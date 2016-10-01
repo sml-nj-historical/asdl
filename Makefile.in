@@ -1,0 +1,48 @@
+# Makefile for asdl-gen
+#
+# This code is part of the SML/NJ system (http://smlnj.org)
+#
+# COPYRIGHT (c) 2016 The Fellowship of SML/NJ
+# All rights reserved.
+#
+# @configure_input@
+#
+
+SHELL =			/bin/sh
+PREFIX =		@prefix@
+INSTALL_BINDIR =	$(PREFIX)/bin
+INSTALL_HEAPDIR =	$(INSTALL_BINDIR)/.heap
+INSTALL_WRAPPER =	@top_srcdir@/bin/install-sml-wrapper.sh
+SML =			@SMLNJ_CMD@
+ML_BUILD =		@ML_BUILD@
+
+PROGRAM =		asdlGen
+
+SRCDIR =		@top_srcdir@/src/sml
+
+TARGET =		$(SRCDIR)/$(PROGRAM)
+HEAP =			$(TARGET).@SMLNJ_HEAP_SUFFIX@
+
+INSTALL=@INSTALL@
+
+build:		$(TARGET)
+
+$(HEAP):
+	(cd $(SRCDIR); \
+	$(ML_BUILD) sources.cm Export.asdlGen asdlGen)
+
+install:	$(HEAP)
+	$(INSTALL_WRAPPER) $(TARGET) $(INSTALL_BINDIR)
+
+clean:
+	rm -f $(HEAP)
+	find . \( -name CM -o -name .cm \) -exec rm -rf {} \; -prune -print
+
+distclean:	clean
+	rm -f bin/ml-build
+	rm -f bin/install-sml-wrapper.sh
+	rm -f Makefile
+	rm -rf autom4te.cache config.log config.cache config.status
+
+devclean:	distclean
+	rm -f configure
