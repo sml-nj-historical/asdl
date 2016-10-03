@@ -1,7 +1,7 @@
 %!TEX root = manual.tex
 %
-\section{Input Syntax}
-\label{sec:syntax}
+\chapter{Input Syntax}
+\label{chap:syntax}
 
 This section describes the syntax of the input language to \asdlgen{}.
 The syntax is described using EBNF notation.
@@ -12,7 +12,7 @@ The description is broken up in smaller subsection.
 Each subsection describes a fragment of
 the syntax and its meaning.
 
-\subsection{Lexical Tokens}
+\section{Lexical Tokens}
 
 \begin{figure}[t]
   \begin{center}
@@ -25,9 +25,9 @@ the syntax and its meaning.
 
       <alpha-num> ::= <alpha> | `0' | ... | `9'
 
-      <typ-id>    ::= <lower> {<alpha-num>}
+      <typ-id>    ::= <lower> \{ <alpha-num> \}
 
-      <con-id>    ::= <upper> {<alpha-num>}
+      <con-id>    ::= <upper> \{ <alpha-num> \}
 
       <id>        ::= <typ-id> | <con-id>
     \end{grammar}
@@ -50,7 +50,7 @@ and continue to the end of the line.
     \begin{grammar}
       <module>  ::=  `module' <id> [ <imports> ] `{' <definitions> `}'
 
-      <imports> ::=  `(' { `imports' <id> } `)'
+      <imports> ::=  `(' \{ `imports' <id> \} `)'
     \end{grammar}
   \end{center}
   \caption{\asdl{} module syntax}
@@ -92,17 +92,17 @@ module B (imports A) { t = T(A.t, t) | N  ... }
 \begin{figure}[ht]
   \begin{center}
     \begin{grammar}
-      <definitions>  ::= { <typ-id> `=' <type> }
+      <definitions>  ::=  \{ <typ-id> `=' <type> \}
 
       <type>         ::= <sum-type> | <product-type>
 
       <product-type> ::= <fields>
 
-      <sum-type>     ::= <constructor> { `|' <constructor> } [ `attributes' <fields> ]
+      <sum-type>     ::= <constructor> \{ `|' <constructor> \} [ `attributes' <fields> ]
 
       <constructor>  ::= <con-id> [ <fields> ]
 
-      <fields>       ::= `(' { <field>  `,' } <field> `)'
+      <fields>       ::= `(' \{ <field>  `,' \} <field> `)'
 
       <field>        ::= [ id `.' ] <typ-id> [`?' | `*' ]  [ <id> ]
     \end{grammar}
@@ -293,7 +293,7 @@ struct Tree_tree_s {
 \subsection{Type Qualifiers}
 
 The type identifier of a field declaration can also be qualified with either
-a sequence ("<bf/*/") or option ("<bf/?/") qualifier. The sequence qualifier
+a sequence (\lit{*}) or option (\lit{?}) qualifier. The sequence qualifier
 is an abbreviation that stands for a sequence or list of that given type,
 while the option qualifier stands for a type whose value maybe
 uninitialized. Sequence types are equivalent to the lists or arrays of a
@@ -302,7 +302,7 @@ types in ML and Haskell or the idiom of a pointer which maybe \lstinline[languag
 contain a valid address or object reference in languages like C or Java.
 \asdlgen{} provides various different translation schemes for handling option
 and sequence types in languages that do not have parametric polymorphism. 
-See section <ref id="sect.invocation" name="Invocation"> for details.
+See \chapref{chap:invocation} for details.
 
 \subsection{Attributes}
 All sum types may optionally be followed by a set of
@@ -325,13 +325,23 @@ translated. For example in C code the attribute field is hoisted out of the
 \lstinline[language=ASDL]!union! and placed in the outer \lstinline[language=ASDL]!struct!. Object oriented languages
 find attribute fields declared in the abstract base class. 
 
-\subsection{View Syntax}
+\section{Primitive Modules}
+\begin{figure}[ht]
+  \begin{center}
+    \begin{grammar}
+      <primitive-module> ::= `primitive' `module' <id> `{' \{ <id> \} `}'
+    \end{grammar}%
+  \end{center}%
+  \caption{\asdl{} primitive module syntax}
+\end{figure}%
+
+\section{View Syntax}
 \begin{figure}[ht]
   \begin{center}
     \begin{grammar}
       <lit-txt>     ::= <see discussion below>
 
-      <view>        ::= `view' <id> `{' { <view-entry> } `}'
+      <view>        ::= `view' <id> `{' \{ <view-entry> \} `}'
 
       <view-entity> ::= <id> `.' <typ-id>
 		 \alt{} <id> `.' <con-id>
@@ -341,8 +351,8 @@ find attribute fields declared in the abstract base class.
 
       <view-entry>  ::= <view-entity>  <view-prop> <lit-txt>
 		 \alt{} `{' {<view-entity>} `}' <view-prop> <lit-txt>
-		 \alt{} <view-prop> `{' {<view-entity> <lit-txt>} `}'
-		 \alt{} <view-entity> `<=' `{' {<id> <lit-txt>} `}'
+		 \alt{} <view-prop> `{' \{ <view-entity> <lit-txt> \} `}'
+		 \alt{} <view-entity> `<=' `{' \{ <id> <lit-txt> \} `}'
     \end{grammar}
   \end{center}
   \caption{\asdl{} type definition syntax}
