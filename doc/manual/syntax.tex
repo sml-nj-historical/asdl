@@ -335,6 +335,44 @@ find attribute fields declared in the abstract base class.
   \caption{\asdl{} primitive module syntax}
 \end{figure}%
 
+Primitive modules provide a way to introduce abstract types that are defined outside
+of \asdl{} and which have their own pickling and unpickling code.
+For example, we might want to include GUIDs (16-byte globally-unique IDs) in our
+pickles.
+We can do so by first defining a primitive module \lstinline!Prim!:
+\begin{quote}\begin{lstlisting}[language=ASDL]
+primitive module Prim { guid }
+\end{lstlisting}\end{quote}%
+The, depending on the target language, we will need to define
+supporting code to read and write guids from the byte stream.
+In SML, we would define the following two modules:
+\begin{quote}\begin{lstlisting}[language=SML]
+structure PrimPickleUtil : sig
+
+    type guid = GUID.guid
+    
+    val read_guid :  StdPkl.instream -> guid
+    val write_guid : guid -> StdPkl.outstream -> unit
+    
+  end = struct
+  
+    type guid = GUID.guid
+
+    fun read_guid strm = (case GUID.fromBytes(BinIO.inputN(strm, 16))
+	   of NONE => raise Fail "bogus GUID"
+	    | (SOME g) => g
+	  (* end case *))
+    fun write_guid g strm = BinIO.output(strm, GUID.toBytes g)
+    
+  end
+
+structure PrimPickle :> sig
+    type guid = PrimPickleUtil.guid
+  end = PrimPickleUtil;
+\end{lstlisting}\end{quote}%
+(assuming that the \lstinline!GUID! module implements the application's representation
+of GUIDs).
+
 \section{View Syntax}
 \begin{figure}[ht]
   \begin{center}
