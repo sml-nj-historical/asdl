@@ -11,8 +11,14 @@
 SHELL =			/bin/sh
 PREFIX =		@prefix@
 
-manual.pdf:	$(wildcard *.tex) $(wildcard code/*.asdl)
-	latexmk -pdf manual
+DOC_DIRS =		manual
+
+pdf:
+	for dir in $(DIRS) ; do \
+	    (cd $$dir; make pdf) \
+	done
 
 clean:
-	latexmk -C manual
+	for dir in $(DIRS) ; do \
+	    (cd $$dir; make clean) \
+	done

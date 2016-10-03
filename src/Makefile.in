@@ -16,7 +16,7 @@ INSTALL_WRAPPER =	@top_srcdir@/bin/install-sml-wrapper.sh
 SML =			@SMLNJ_CMD@
 ML_BUILD =		@ML_BUILD@
 
-PROGRAM =		asdlGen
+PROGRAM =		asdl-gen
 
 SRCDIR =		@top_srcdir@/src/sml
 

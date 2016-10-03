@@ -142,6 +142,7 @@ dnl
 dnl ***** Makefiles *****
   Makefile
   doc/Makefile
+  doc/manual/Makefile
   examples/Makefile
   src/Makefile$SRC_MAKEFILE_IN
 dnl

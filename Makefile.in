@@ -8,41 +8,74 @@
 # @configure_input@
 #
 
-SHELL =			/bin/sh
-PREFIX =		@prefix@
+SHELL =			@SHELL@
+@SET_MAKE@
+
+INSTALL =		@INSTALL@
+
+BUILD_DIRS =		src doc examples
+
+INSTALL_DIR =		@prefix@
 INSTALL_BINDIR =	$(PREFIX)/bin
 INSTALL_HEAPDIR =	$(INSTALL_BINDIR)/.heap
 INSTALL_WRAPPER =	@top_srcdir@/bin/install-sml-wrapper.sh
 SML =			@SMLNJ_CMD@
 ML_BUILD =		@ML_BUILD@
 
-PROGRAM =		asdlGen
+PROGRAM =		asdl-gen
 
-SRCDIR =		@top_srcdir@/src/sml
+.PHONY:		help build local-install install \
+		clean local-distclean local-devclean
 
-TARGET =		$(SRCDIR)/$(PROGRAM)
-HEAP =			$(TARGET).@SMLNJ_HEAP_SUFFIX@
+help:
+	@echo "This Makefile supports the following targets:"
+	@echo "  help          -- print this message."
+	@echo "  build         -- build asdl-gen tool"
+	@echo "  local-install -- install asdl-gen tool, libraries, and headers in "
+	@echo "                   @ASDLGEN_ROOT@/{bin,lib,include}"
+	@echo "  install       -- install asdl-gen tools, libraries, and headers in "
+	@echo "                   @prefix@/{bin,lib,include}"
+	@echo "  clean         -- remove intermediate files generated during building"
+	@echo "  distclean     -- remove files generated during configuration"
+	@echo "                   and building; the resulting tree has the same"
+	@echo "                   files as the distribution."
+	@echo "The following additional targets are primarily for developers:"
+	@echo "  devclean      -- remove everything that is not part of the SVN"
+	@echo "                   repository."
 
-INSTALL=@INSTALL@
+local-install:	build doc examples
+	for dir in $(BUILD_DIRS); do \
+	  (cd $$dir && $(MAKE) local-install) || exit $$?; \
+	done
 
-build:		$(TARGET)
+install:	build doc examples
+	mkdir -p $(INSTALL_DIR)
+	for dir in $(BUILD_DIRS); do \
+	  (cd $$dir && $(MAKE) install) || exit $$?; \
+	done
 
-$(HEAP):
-	(cd $(SRCDIR); \
-	$(ML_BUILD) sources.cm Export.asdlGen asdlGen)
+build:
+	(cd src && $(MAKE) build) || exit $$?
 
-install:	$(HEAP)
-	$(INSTALL_WRAPPER) $(TARGET) $(INSTALL_BINDIR)
+doc:
+	(cd doc; $(MAKE))
 
-clean:
-	rm -f $(HEAP)
-	find . \( -name CM -o -name .cm \) -exec rm -rf {} \; -prune -print
+examples:
+	(cd examples; $(MAKE))
 
-distclean:	clean
-	rm -f bin/ml-build
-	rm -f bin/install-sml-wrapper.sh
-	rm -f Makefile
-	rm -rf autom4te.cache config.log config.cache config.status
+#################### Cleanup ####################
 
-devclean:	distclean
-	rm -f configure
+CLEAN_SUBDIRS =		$(BUILD_DIRS)
+
+CLEAN_FILES =		
+
+DISTCLEAN_FILES +=	Makefile config.status config.log \
+			autom4te*.cache \
+			bin \
+			lib \
+			include
+
+DEVCLEAN_FILES =	configure \
+			config/config_h.in
+
+include @ASDLGEN_MKDIR@/clean-rules.gmk

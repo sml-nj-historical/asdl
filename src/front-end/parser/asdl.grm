@@ -1,0 +1,227 @@
+(* asdl.grm
+ *
+ * COPYRIGHT (c) 2016 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * All rights reserved.
+ *
+ * ML-Antlr grammar for ASDL.
+ *)
+
+%name ASDL;
+
+%start Root;
+
+%tokens
+    : KW_alias			("alias")
+    | KW_attributes		("attributes")
+    | KW_imports		("imports")
+    | KW_module			("module")
+    | KW_primitive		("primitive")
+    | KW_view			("view")
+    | LPAREN			("(")
+    | RPAREN			(")")
+    | LBRACK			("[")
+    | RBRACK			("]")
+    | LBRACE			("{")
+    | RBRACE			("}")
+    | LEQ			("<=")
+    | COMMA			(",")
+    | DOT			(".")
+    | SEQUENCE			("*")
+    | OPTIONAL			("?")
+    | SHARED			("!")
+    | EQ			("=")
+    | PIPE			("|")
+    | TOP			("<Top>")
+    | CODE of string		(* raw code *)
+    | LID of Atom.atom		(* lower-case identifier *)
+    | UID of Atom.atom		(* upper-case identifier *)
+    ;
+
+%keywords KW_alias, KW_attributes, KW_imports, KW_module, KW_primitive, KW_view;
+
+%defs (
+  structure PT = ParseTree
+
+  val aliasId = Atom.atom "alias"
+  val attributesId = Atom.atom "attributes"
+  val importsId = Atom.atom "imports"
+  val moduleId = Atom.atom "module"
+  val primitiveId = Atom.atom "primitive"
+  val viewId = Atom.atom "view"
+
+(* apply a mark constructor to a span and a tree *)
+  fun mark cons (span : AntlrStreamPos.span, tr) = cons{span = span, tree = tr}
+
+  fun markId (span : AntlrStreamPos.span, id) = {span = span, tree = id}
+);
+
+Root
+	: MarkDecl*		=> (MarkDecl)
+	;
+
+MarkDecl
+	: Decl			=> (mark PT.D_Mark (FULL_SPAN, Decl))
+	;
+
+Decl
+	: "module" ModuleId ModuleImport "{" TypeDecl* "}"
+		=> (PT.D_Module{name = ModuleId, imports = ModuleImport, decls = TypeDecl})
+	| "primitive" "module" Id "{" Id* "}"
+		=> (PT.D_Primitive{name = Id1, exports = Id2})
+	| "view" Id "{" MarkViewDecl* "}"
+		=> (PT.D_View{name = Id, decls = List.concat MarkViewDecl})
+	;
+
+ModuleId
+	: Id			=> (Id)
+	| "<Top>"		=> (markId(FULL_SPAN, PT.topId))
+	;
+
+ModuleImport
+	: (* empty *)		=> ([])
+	| "(" Import+ ")"	=> (Import)
+	;
+
+Import
+	: "imports" Id ("alias" Id)?
+		=> (mark PT.Import_Mark (FULL_SPAN, PT.Import{module = Id, alias=SR}))
+	;
+
+TypeDecl
+	: TyId "=" TypeDef
+		=> (mark PT.TD_Mark (FULL_SPAN, TypeDef TyId))
+	;
+
+TypeDef
+	: Constructors ( "attributes" "(" Fields ")" )?
+		=> (fn id => PT.TD_Sum{
+			name = id,
+			attribs = case SR of NONE => [] | SOME flds => flds,
+			cons = Constructors
+		      })
+	| "(" Fields ")"
+		=> (fn id => PT.TD_Product{name = id, fields = Fields})
+	;
+
+Constructors
+	: Constructor ( "|" Constructor )*
+		=> (Constructor :: SR)
+	;
+
+Constructor
+	: ConId optFields
+		=> (mark PT.Cons_Mark (FULL_SPAN, PT.Cons(ConId, optFields)))
+	;
+
+optFields
+	: (* empty *)		=> ([])
+	| "(" Fields ")"	=> (Fields)
+	;
+
+Fields
+	: Field ( "," Field )*
+		=> (Field :: SR)
+	;
+
+Field
+	: Id ("." Id)? TyCon? Id?
+		=> (let
+		    val fld = (case SR
+			   of NONE => PT.Field{module=NONE, typ=Id1, tycon=TyCon, label=Id2}
+			    | SOME id => PT.Field{module=SOME Id1, typ=id, tycon=TyCon, label=Id2}
+			  (* end case *))
+		    in
+		      mark PT.Field_Mark (FULL_SPAN, fld)
+		    end)
+	;
+
+TyCon
+	: "?"			=> (PT.Optional)
+	| "*"			=> (PT.Sequence)
+	| "!"			=> (PT.Shared)
+	;
+
+(* we allow keywords to be used as identifiers *)
+Id	: LID			=> (markId (FULL_SPAN, LID))
+	| UID			=> (markId (FULL_SPAN, UID))
+	| Keyword		=> (Keyword)
+	;
+
+TyId	: LID			=> (markId (FULL_SPAN, LID))
+	| Keyword		=> (Keyword)
+	;
+
+ConId	: UID			=> (markId (FULL_SPAN, UID))
+	;
+
+Keyword	: "alias"		=> (markId (FULL_SPAN, aliasId))
+	| "attributes"		=> (markId (FULL_SPAN, attributesId))
+	| "imports"		=> (markId (FULL_SPAN, importsId))
+	| "module"		=> (markId (FULL_SPAN, moduleId))
+	| "primitive"		=> (markId (FULL_SPAN, primitiveId))
+	| "view"		=> (markId (FULL_SPAN, viewId))
+	;
+
+MarkViewDecl
+	: ViewDecl		=> (mark PT.ViewDcl_Mark (FULL_SPAN, ViewDecl))
+	;
+
+ViewDecl
+	: ViewEntity "<=" ViewRHS
+		=> (case ViewRHS
+		     of Either.INL(prop, code) =>
+			  [PT.ViewDcl{entity=ViewEntity, property=prop, value=code}]
+		      | Either.INR l =>
+			  List.map
+			    (fn (prop, code) => PT.ViewDcl{
+				entity=ViewEntity, property=prop, value=code
+			      })
+			      l
+		    (* end case *))
+	| "{" ViewEntity* "}" "<=" ViewRHS
+		=> (case ViewRHS
+		     of Either.INL(prop, code) =>
+			  List.map
+			    (fn ve => PT.ViewDcl{entity = ve, property = p, value = v})
+			      ViewEntity
+		      | Either.INR l => let
+			  fun mk (ve, dcls) =
+				List.foldr
+				  (fn ((p, v), dcls) => PT.ViewDcl{
+				      entity = ve, property = p, value = v
+				    })
+				    dcls l
+			  in
+			    List.foldr mk [] ViewEntity
+			  end
+		    (* end case *))
+	| "<=" Id "{" MarkViewEntityCode* "}"
+		=> (List.map
+		      (fn (span, ve, code) =>
+			  mark PT.ViewDcl_Mark (span, PT.ViewDcl{entity=ev, prop=Id, value=code}))
+			MarkViewEntityCode)
+	;
+
+MarkViewEntityCode
+	: ViewEntity Code
+		=> (FULL_SPAN, ViewEntity Code)
+	;
+
+ViewEntity
+	: ModuleId "." Id
+		=> ([ModuleId, Id])
+	| ModuleId "." Id "." Id
+		=> ([ModuleId, Id1, Id2])
+	| "module" ModuleId
+		=> ([ModuleId])
+	;
+
+ViewRHS
+	: Id Code
+		=> (Either.INL(Id, Code))
+	| "{" ( ViewEntity Code )* "}"
+		=> (Either.INR SR)
+	;
+
+Code	: CODE			=> (markId (FULL_SPAN, CODE))
+	;

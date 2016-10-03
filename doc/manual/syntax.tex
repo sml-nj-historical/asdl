@@ -228,7 +228,9 @@ public class Cons   extends sexpr { Cons(sexpr x, sexpr y) { ... } }
 public class Nil    extends sexpr { Nil() { ... } }
 \end{lstlisting}\end{quote}%
 
-\subsubsection{Sum Types as Enumerations<label id="enumerations">}
+\subsubsection{Sum Types as Enumerations}
+\label{sec:enumerations}
+
 Sum types which consist completely of constructors that take no arguments
 are often treated specially and translated into static constants of a
 enumerated value in languages that support them.
