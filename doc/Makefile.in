@@ -10,3 +10,9 @@
 
 SHELL =			/bin/sh
 PREFIX =		@prefix@
+
+manual.pdf:	$(wildcard *.tex) $(wildcard code/*.asdl)
+	latexmk -pdf manual
+
+clean:
+	latexmk -C manual
