@@ -1,0 +1,23 @@
+(* asdl-lib.cm
+ *
+ * COPYRIGHT (c) 2017 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * All rights reserved.
+ *)
+
+Library
+
+  signature ASDL_PKL
+  signature ASDL_TYPES
+
+  structure ASDLPkl
+  structure ASDLTypes
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+
+  asdl-pkl.sig
+  asdl-pkl.sml
+  asdl-types.sig
+  asdl-types.sml

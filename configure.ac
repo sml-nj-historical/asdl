@@ -2,15 +2,15 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 dnl This code is part of the SML/NJ system (http://smlnj.org)
 dnl
-dnl COPYRIGHT (c) 2016 The Fellowship of SML/NJ
+dnl COPYRIGHT (c) 2017 The Fellowship of SML/NJ
 dnl All rights reserved.
 dnl
 
 AC_INIT(asdl-gen,2.0,)
 
 AC_PREREQ(2.60)
-AC_COPYRIGHT([[COPYRIGHT (c) 2016 The Fellowship of SML/NJ]])
-AC_CONFIG_SRCDIR(src/c/std_prims.c)
+AC_COPYRIGHT([[COPYRIGHT (c) 2017 The Fellowship of SML/NJ]])
+AC_CONFIG_SRCDIR(lib/sml/asdl-types.sml)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
 
@@ -132,7 +132,7 @@ AC_SUBST(SML)
 dnl The compiler Makefile depends on which SML system we are
 dnl using.
 if test x"$SML" = xmlton ; then
-  SRC_MAKEFILE_IN=":src/Makefile_mlton.in"
+  SRC_MAKEFILE_IN=":src/asdlgen/Makefile_mlton.in"
 else
   SRC_MAKEFILE_IN=""
 fi
@@ -144,7 +144,7 @@ dnl ***** Makefiles *****
   doc/Makefile
   doc/manual/Makefile
   examples/Makefile
-  src/Makefile$SRC_MAKEFILE_IN
+  src/asdlgen/Makefile$SRC_MAKEFILE_IN
 dnl
 dnl
   src/sml/config.sml:src/sml/config_sml.in
