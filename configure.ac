@@ -2,15 +2,15 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 dnl This code is part of the SML/NJ system (http://smlnj.org)
 dnl
-dnl COPYRIGHT (c) 2017 The Fellowship of SML/NJ
+dnl COPYRIGHT (c) 2018 The Fellowship of SML/NJ
 dnl All rights reserved.
 dnl
 
 AC_INIT(asdl-gen,2.0,)
 
 AC_PREREQ(2.60)
-AC_COPYRIGHT([[COPYRIGHT (c) 2017 The Fellowship of SML/NJ]])
-AC_CONFIG_SRCDIR(lib/sml/asdl-types.sml)
+AC_COPYRIGHT([[COPYRIGHT (c) 2018 The Fellowship of SML/NJ]])
+AC_CONFIG_SRCDIR(src/lib/asdl/std-types.asdl)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
 
@@ -19,6 +19,7 @@ dnl include additional macros
 dnl
 sinclude(config/check_smlnj.m4)
 sinclude(config/check_smlnj_heap_suffix.m4)
+sinclude(config/ax_cxx_compile_stdcxx.m4)
 
 dnl
 dnl get host information
@@ -147,7 +148,7 @@ dnl ***** Makefiles *****
   src/asdlgen/Makefile$SRC_MAKEFILE_IN
 dnl
 dnl
-  src/sml/config.sml:src/sml/config_sml.in
+  src/asdlgen/common/config.sml:src/asdlgen/common/config_sml.in
 )
 
 dnl
