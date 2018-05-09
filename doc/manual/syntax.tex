@@ -414,10 +414,10 @@ The type, constructor or module is referred to as
 the view entity the key is referred to as the view property.
 The value is an arbitrary string.
 In the grammar above the arbitrary string is represented
-with the <em/lit-txt/ non-terminal. \synt{lit-txt} is either a "<bf/:/"
+by the \synt{lit-txt} non-terminal, where \synt{lit-txt} is either a ``\lstinline!:!''
 followed by some arbitrary text that continues to the end of the line or a
-"<bf/\%\%/" balanced by a "<bf/\%\%/" at the beginning of a line by itself. 
-Text include using the "<bf/:/" notation will have trailing and leading 
+``\lstinline!%%!'' terminated by a ``\lstinline!%%!'' at the beginning of a line by itself. 
+Text include using the ``\lstinline!:!'' notation will have trailing and leading 
 whitespace removed. For example
 
 \begin{quote}\begin{lstlisting}[language=ASDL]
