@@ -75,7 +75,7 @@ imports \lstinline[language=ASDL]!B!.
 \end{lstlisting}\end{quote}% 
 
 To refer to a type imported from another module the type must
-\emph{always} be qualified by the module name from which is
+\emph{always} be qualified by the module name from which it is
 imported.
 The following declares two different types called ``\texttt{t}.''
 One in module \texttt{A} and one in module \texttt{B}.
@@ -111,15 +111,15 @@ module B (imports A) { t = T(A.t, t) | N  ... }
 \end{figure}%
 
 All type definitions occur within a module.  They begin with a type
-identifier which is the name of the type. The name must be unique within the
+identifier, which is the name of the type. The name must be unique within the
 module. The order of definitions is unimportant. When translating type
 definitions from a module they are placed in what would be considered a
 module, package, or name-space of the same name. If a output language does
 not support such features and only has one global name space the module name
 is used to prefix all the globally exported identifiers.
 
-Type definitions are either product types which are simple record definitions
-or sum type which represent a discriminated union of possible values. Unlike
+Type definitions are either product types, which are simple record definitions,
+or sum type, which represent a discriminated union of possible values. Unlike
 sum types, product types cannot form recursive type definitions, but they can
 contain recursively declared sum types.
 
@@ -231,7 +231,7 @@ public class Nil    extends sexpr { Nil() { ... } }
 \subsubsection{Sum Types as Enumerations}
 \label{sec:enumerations}
 
-Sum types which consist completely of constructors that take no arguments
+Sum types, which consist completely of constructors that take no arguments,
 are often treated specially and translated into static constants of a
 enumerated value in languages that support them.
 \begin{quote}\begin{lstlisting}[language=ASDL]
@@ -298,8 +298,7 @@ is an abbreviation that stands for a sequence or list of that given type,
 while the option qualifier stands for a type whose value maybe
 uninitialized. Sequence types are equivalent to the lists or arrays of a
 fixed type. Option types are equivalent to the \lstinline[language=ASDL]!option! and \lstinline[language=ASDL]!Maybe!
-types in ML and Haskell or the idiom of a pointer which maybe \lstinline[language=ASDL]!NULL! or
-contain a valid address or object reference in languages like C or Java.
+types in ML and Haskell or the idiom of a pointer that may be \lstinline[language=ASDL]!NULL! in languages like C or Java.
 \asdlgen{} provides various different translation schemes for handling option
 and sequence types in languages that do not have parametric polymorphism. 
 See \chapref{chap:invocation} for details.
@@ -381,16 +380,16 @@ of GUIDs).
 
       <view>        ::= `view' <id> `{' \{ <view-entry> \} `}'
 
+      <view-entry>  ::= <view-entity>  <view-prop> <lit-txt>
+		 \alt{} `{' {<view-entity>} `}' <view-prop> <lit-txt>
+		 \alt{} <view-prop> `{' \{ <view-entity> <lit-txt> \} `}'
+		 \alt{} <view-entity> `<=' `{' \{ <id> <lit-txt> \} `}'
+
       <view-entity> ::= <id> `.' <typ-id>
 		 \alt{} <id> `.' <con-id>
 		 \alt{} `module' <id>
 
       <view-prop>   ::= `<='  <id>
-
-      <view-entry>  ::= <view-entity>  <view-prop> <lit-txt>
-		 \alt{} `{' {<view-entity>} `}' <view-prop> <lit-txt>
-		 \alt{} <view-prop> `{' \{ <view-entity> <lit-txt> \} `}'
-		 \alt{} <view-entity> `<=' `{' \{ <id> <lit-txt> \} `}'
     \end{grammar}
   \end{center}
   \caption{\asdl{} type definition syntax}
@@ -419,7 +418,7 @@ followed by some arbitrary text that continues to the end of the line or a
 ``\lstinline!%%!'' terminated by a ``\lstinline!%%!'' at the beginning of a line by itself. 
 Text include using the ``\lstinline!:!'' notation will have trailing and leading 
 whitespace removed. For example
-
+%
 \begin{quote}\begin{lstlisting}[language=ASDL]
 view Doc {
   module  M <= doc_string
@@ -438,25 +437,27 @@ view Java {
  M.sexpr <= base_class  : MyClass
 }
 \end{lstlisting}\end{quote}%
-
-associates with the module M the type M.sexpr and the constructor M.Int
+%
+associates with the module \lstinline[language=ASDL]!M! the type
+\lstinline[language=ASDL]!M.sexpr! and the
+constructor \lstinline[language=ASDL]!M.Int!
 strings that will be added to the automatically generated documentation
 produced by the \texttt{--doc} command of \asdlgen{}.
-(<em/ In future we eill probably dump them in comments in the output code too.)
+(\emph{In future we will probably dump them in comments in the output code too.})
 The view named \lstinline[language=ASDL]!Java! causes the type
 \lstinline[language=ASDL]!M.sexpr! to be renamed \lstinline[language=ASDL]!Sexpr! when
 generating Java output, and causes the abstract class normally generated to
 inherit from \lstinline[language=ASDL]!MyClass!. 
 
 There can be many views with the same name. The entries of two views
-with the same name are merged and consists of the union of the entries
+with the same name are merged and consist of the union of the entries
 in both. It is an error, for two views of the same name to assign
-different values to the same property of an entity. <em/Currently
-this error isn't checked for so you randomly get one or the other./
+different values to the same property of an entity. \emph{Currently
+this error isn't checked for so you randomly get one or the other.}
 
 \subsection{Sugared Syntax}
-The above example show only the simplest syntax to define view entry there are
-three sugared versions that remove some of the redundancy of the simple
+The above example shows only the simplest syntax to define view entries.
+There are also three sugared versions that remove some of the redundancy of the simple
 syntax. The first sugared version allows the assignment of the same
 property value pair to a set of entities. The next sugared version allows
 assigning to different entities different values for a fixed property.

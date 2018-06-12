@@ -46,13 +46,12 @@ assigned too. Currently there is a small set of standard interpretations.
   \item[boolean]
     A boolean value either ``\lstinline!true!'' or ``\lstinline!false!.''
   \item[qualified identifier]
-    A possibly qualified identifier.
-    For example ``\lstinline!M.t!'' or ``\lstinline!t!.''
+    A possibly qualified identifier (\textit{e.g.}, ``\lstinline!M.t!'' or ``\lstinline!t!'').
     Qualified identifiers are language independent
     identifiers that are translated to the appropriate output language in a
     uniform way.
-    For example \lstinline!M.t! would appear as \lstinline!M_t! in C and C++ but
-    remain \lstinline!M.t! in SML, Java, and Haskell.
+    For example \lstinline!M.t! would appear as \lstinline!M_t! in C, as \lstinline!M::t! in C++, but
+    remain as \lstinline!M.t! in SML, Java, and Haskell.
 \end{description}%
 
 \section{Adding User Code}
@@ -178,12 +177,12 @@ module IntMap {
 }
 \end{lstlisting}\end{quote}%
 The above is one possible abstract description of a mapping from integers to
-integers.  It would be more efficient to <em/implement/ such a mapping as
+integers.  It would be more efficient to \emph{implement} such a mapping as
 a binary tree. Described as with the ASDL definition below.
 \begin{quote}\begin{lstlisting}[language=ASDL]
 module IntMap {
-  int_map = (size int,map tree)
-     tree = Node(int key,int value,tree left,tree right)
+  int_map = (size int, map tree)
+     tree = Node(int key, int value, tree left, tree right)
           | Empty
 }
 \end{lstlisting}\end{quote}%
@@ -205,9 +204,9 @@ properties apply to types only and are interpreted as qualified identifiers.
 
   \item[\texttt{natural\char`\_type\char`\_con}] \mbox{} \\
     A unary type constructor to apply to the old type to get a new type to
-    use in all the resulting code. e.g. ref in ML to make a type
-    mutable. Supported by ML and Haskell.  <em/Support for C++ templates
-    will be added in the near future./
+    use in all the resulting code; \textit{e.g.}, ref in ML to make a type
+    mutable. Supported by ML and Haskell.  \emph{Support for C++ templates
+    will be added in the near future.}
 
   \item[\texttt{wrapper}] \mbox{} \\
     A function to convert the new type to the old type when writing the
