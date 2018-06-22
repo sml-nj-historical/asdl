@@ -1,5 +1,7 @@
 /*! \file std-pkl.hxx
  *
+ * Input/output sources for ASDL pickles.
+ *
  * \author John Reppy
  */
 
@@ -16,7 +18,7 @@
 namespace asdl {
 
     //! byte source for unpickling
-    class instream {
+    class in_stream {
       public:
 	int8_t int8 ()   { return static_cast<int8_t>(this->_signed32()); }
 	int16_t int16 () { return static_cast<int16_t>(this->_signed32()); }
@@ -33,10 +35,10 @@ namespace asdl {
 	float float32 ();
 	double float64 ();
 
-	instream (std::instream *inS);
+	in_stream (std::instream *inS);
 
       private:
-	std::instream *_inS;
+	std::in_stream *_inS;
 
 	int32_t _signed32 ();
 	uint32_t _unsigned32 ();
@@ -44,8 +46,18 @@ namespace asdl {
 	uint64_t _unsigned64 ();
     };
 
+    //! byte source from memory
+    class in_memory {
+      public:
+
+      private:
+	uint8_t *_datap;	//!< current data pointer
+	uint8_t *_end;		//!< end of input buffer
+
+    };
+
     //! byte sink for pickling
-    class outstream {
+    class out_stream {
       public:
 	void int8 (int8_t v);
 	void int16 (int16_t v);
@@ -62,10 +74,10 @@ namespace asdl {
 	void float32 (float v);
 	void float64 (double v);
 
-	instream (std::instream *outS);
+	out_stream (std::outstream *outS);
 
       private:
-	std::outstream *_outS;
+	std::out_stream *_outS;
     };
 
 } // namespace asdl

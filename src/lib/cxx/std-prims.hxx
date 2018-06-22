@@ -11,11 +11,13 @@
 #ifndef _ASDL_STD_PRIMS_HXX_
 #define _ASDL_STD_PRIMS_HXX_
 
+#include "asdl-integer.hxx"
 #include "std-pkl.hxx"
 #include <vector>
 #include <string>
 
 namespace asdl {
+
 } // namespace asdl
 
 #endif // !_ASDL_STD_PRIMS_HXX_
