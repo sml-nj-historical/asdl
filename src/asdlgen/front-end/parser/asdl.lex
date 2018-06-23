@@ -20,9 +20,9 @@
   (* ml-ulex requires this as well *)
     fun eof () = T.EOF
 
-    val charlist = ref ([] : string list)
-    fun addString s = charlist := s :: (!charlist)
-    fun makeCode () = (T.CODE(concat(rev(!charlist))) before charlist := nil)
+    val code = ref ([] : string list)
+    fun addString s = code := s :: (!code)
+    fun makeCode () = (T.CODE(concat(rev(!code))) before code := nil)
 
 );
 
@@ -50,7 +50,7 @@
 <INITIAL>","		=> (T.COMMA);
 <INITIAL>"*"		=> (T.SEQUENCE);
 <INITIAL>"."		=> (T.DOT);
-<INITIAL>"?"		=> (T.OPT);
+<INITIAL>"?"		=> (T.OPTIONAL);
 <INITIAL>"!"		=> (T.SHARED);
 <INITIAL>"|"		=> (T.PIPE);
 <INITIAL>"="		=> (T.EQ);
@@ -66,7 +66,7 @@
 <CODELN>[^\n\r]*	=> (YYBEGIN INITIAL; T.CODE yytext);
 <INITIAL>"%%"{ws}*	=> (YYBEGIN CODE; continue());
 <CODE>"%%"		=> (YYBEGIN INITIAL; makeCode());
-<CODE>.*		=> (addString(code, yytext); continue());
+<CODE>.*		=> (addString(yytext); continue());
 
 <INITIAL>.              => (lexErr(yypos, ["bad character `", String.toString yytext, "'"]);
                             continue());

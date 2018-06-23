@@ -1,9 +1,9 @@
 (* parse-tree.sml
  *
- * COPYRIGHT (c) 2016 The Fellowship of SML/NJ (http://www.smlnj.org)
- * All rights reserved.
+ * Parse tree representation of an ASDL specification
  *
- * Parse tree representation of ASDL specification
+ * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * All rights reserved.
  *)
 
 structure ParseTree =
@@ -17,24 +17,24 @@ structure ParseTree =
 
     datatype decl
       = D_Mark of decl mark
-      | D_Module of {
+      | D_Module of {		(* `module` <id> <imports> `{` <decls> `}` *)
 	    name : id,
 	    imports : import list,
 	    decls : type_decl list
 	  }
-      | D_Primitive of {
+      | D_Primitive of {	(* `primitive` <id> `{` <exports> `}` *)
 	    name : id,
 	    exports : id list
 	  }
-      | D_View of {
+      | D_View of {		(* `view` <id> `{` <entries> `}` *)
 	    name : id,
-	    decls : view_decl list
+	    entries : view_entry list
 	  }
 
     and import
       = Import_Mark of import mark
       | Import of {
-	    module : id, 
+	    module : id,
             alias : id option
 	  }
 
@@ -65,11 +65,11 @@ structure ParseTree =
 
     and tycon = Optional | Sequence | Shared
 
-    and view_decl
-      = ViewDcl_Mark of view_decl option
-      | ViewDcl of {
+    and view_entry
+      = ViewEnt_Mark of view_entry mark
+      | ViewEnt of {
 	    entity : id list,
-	    property : id,
+	    prop : id,
 	    value : string mark
 	  }
 

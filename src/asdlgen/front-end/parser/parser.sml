@@ -6,19 +6,23 @@
 
 structure Parser :> sig
 
-    val parse : Error.err_stream * string list -> {file : string, decl : ASDL.decl} list
+    val parse : Error.err_stream * TextIO.instream -> ParseTree.decl list
 
   end = struct
+
+    structure AR = AntlrRepair
 
   (* error function for lexers *)
     fun lexErr errStrm (pos, msg) = Error.errorAt(errStrm, (pos, pos), msg)
 
     local
-    (* map tokens to strings; when adding a token, we use a generic name where it makes sense *)
-      fun tokToString ADD (ASDLTokens.LID _) = "<lower-case identifier>"
-	| tokToString DEL (ASDLTokens.LID x) = Atom.toString x
-	| tokToString ADD (ASTLTokens.UID _) = "<upper-case identifier>"
-	| tokToString DEL (ASDLTokens.UID x) = Atom.toString x
+    (* map tokens to strings; when adding a token, we use a generic name where it
+     * makes sense
+     *)
+      fun tokToString AR.ADD (ASDLTokens.LID _) = "<lower-case identifier>"
+	| tokToString AR.DEL (ASDLTokens.LID x) = Atom.toString x
+	| tokToString AR.ADD (ASDLTokens.UID _) = "<upper-case identifier>"
+	| tokToString AR.DEL (ASDLTokens.UID x) = Atom.toString x
 	| tokToString _ (ASDLTokens.CODE _) = "<code>"
 	| tokToString _ tok = ASDLTokens.toString tok
 
@@ -28,13 +32,13 @@ structure Parser :> sig
     (* glue together the lexer and parser *)
       structure ASDLParser = ASDLParseFn(ASDLLex)
     in
-    fun parser (errStrm, files) = let
+    fun parse (errStrm, file) = let
           fun get () = TextIO.input file
 	  val lexer = ASDLLex.lex (Error.sourceMap errStrm) (lexErr errStrm)
 	  val (res, _, errs) = ASDLParser.parse lexer (ASDLLex.streamify get)
 	  in
 	    List.app (parseErr errStrm) errs;
-	    res
+	    Option.getOpt(res, [])
 	  end
     end (* local *)
 

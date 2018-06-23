@@ -56,7 +56,7 @@
 );
 
 Root
-	: MarkDecl*		=> (MarkDecl)
+	: MarkDecl+		=> (MarkDecl)
 	;
 
 MarkDecl
@@ -68,8 +68,8 @@ Decl
 		=> (PT.D_Module{name = ModuleId, imports = ModuleImport, decls = TypeDecl})
 	| "primitive" "module" Id "{" Id* "}"
 		=> (PT.D_Primitive{name = Id1, exports = Id2})
-	| "view" Id "{" MarkViewDecl* "}"
-		=> (PT.D_View{name = Id, decls = List.concat MarkViewDecl})
+	| "view" Id "{" MarkViewEntry* "}"
+		=> (PT.D_View{name = Id, entries = List.concat MarkViewEntry})
 	;
 
 ModuleId
@@ -127,8 +127,12 @@ Field
 	: Id ("." Id)? TyCon? Id?
 		=> (let
 		    val fld = (case SR
-			   of NONE => PT.Field{module=NONE, typ=Id1, tycon=TyCon, label=Id2}
-			    | SOME id => PT.Field{module=SOME Id1, typ=id, tycon=TyCon, label=Id2}
+			   of NONE => PT.Field{
+				  module=NONE, typ=Id1, tycon=TyCon, label=Id2
+				}
+			    | SOME id => PT.Field{
+				  module=SOME Id1, typ=id, tycon=TyCon, label=Id2
+				}
 			  (* end case *))
 		    in
 		      mark PT.Field_Mark (FULL_SPAN, fld)
@@ -162,49 +166,33 @@ Keyword	: "alias"		=> (markId (FULL_SPAN, aliasId))
 	| "view"		=> (markId (FULL_SPAN, viewId))
 	;
 
-MarkViewDecl
-	: ViewDecl		=> (mark PT.ViewDcl_Mark (FULL_SPAN, ViewDecl))
+MarkViewEntry
+	: ViewEntry		=> (List.map
+				      (fn ve => mark PT.ViewEnt_Mark (FULL_SPAN, ve))
+					ViewEntry)
 	;
 
-ViewDecl
-	: ViewEntity "<=" ViewRHS
-		=> (case ViewRHS
-		     of Either.INL(prop, code) =>
-			  [PT.ViewDcl{entity=ViewEntity, property=prop, value=code}]
-		      | Either.INR l =>
-			  List.map
-			    (fn (prop, code) => PT.ViewDcl{
-				entity=ViewEntity, property=prop, value=code
-			      })
-			      l
-		    (* end case *))
-	| "{" ViewEntity* "}" "<=" ViewRHS
-		=> (case ViewRHS
-		     of Either.INL(prop, code) =>
-			  List.map
-			    (fn ve => PT.ViewDcl{entity = ve, property = p, value = v})
-			      ViewEntity
-		      | Either.INR l => let
-			  fun mk (ve, dcls) =
-				List.foldr
-				  (fn ((p, v), dcls) => PT.ViewDcl{
-				      entity = ve, property = p, value = v
-				    })
-				    dcls l
-			  in
-			    List.foldr mk [] ViewEntity
-			  end
-		    (* end case *))
+ViewEntry
+	: ViewEntity "<=" ViewProps
+		=> (List.map
+		      (fn (prop, code) => PT.ViewEnt{
+			  entity=ViewEntity, prop=prop, value=code
+			})
+			ViewProps)
+	| "{" ViewEntity* "}" "<=" Id Code
+		=> (List.map
+		      (fn ve => PT.ViewEnt{entity = ve, prop = Id, value = Code})
+			ViewEntity)
 	| "<=" Id "{" MarkViewEntityCode* "}"
 		=> (List.map
-		      (fn (span, ve, code) =>
-			  mark PT.ViewDcl_Mark (span, PT.ViewDcl{entity=ev, prop=Id, value=code}))
+		      (fn (span, ve, v) =>
+			  mark PT.ViewEnt_Mark (span, PT.ViewEnt{entity=ve, prop=Id, value=v}))
 			MarkViewEntityCode)
 	;
 
 MarkViewEntityCode
 	: ViewEntity Code
-		=> (FULL_SPAN, ViewEntity Code)
+		=> (FULL_SPAN, ViewEntity, Code)
 	;
 
 ViewEntity
@@ -216,11 +204,11 @@ ViewEntity
 		=> ([ModuleId])
 	;
 
-ViewRHS
+ViewProps
 	: Id Code
-		=> (Either.INL(Id, Code))
-	| "{" ( ViewEntity Code )* "}"
-		=> (Either.INR SR)
+		=> ([(Id, Code)])
+	| "{" ( Id Code )* "}"
+		=> (SR)
 	;
 
 Code	: CODE			=> (markId (FULL_SPAN, CODE))
