@@ -191,41 +191,39 @@ structure M =
       | Nil
   end
 \end{lstlisting}\end{quote}%
-in C would be
-\begin{quote}\begin{lstlisting}[language=c]
-typedef struct M_sexpr_s * M_sexpr_ty;
-struct M_sexpr_s { 
- enum { M_Int_kind, M_String_kind, 
-        M_Symbol_kind, M_Cons_kind, M_Nil_kind }  kind;
-         union {
-	  struct M_Int_s    { int_ty  int1;             } M_Int;
-          struct M_String_s { string_ty string1;        } M_String;	 
-          struct M_Atom_s   { identifier_ty identifier1;} M_Atom;
-          struct M_Cons_s   { M_sexpr_ty; sexpr1 M_sexpr_ty sexpr2 }; M_Cons;
-         } v;
+and in \Cplusplus{} it translates to
+\begin{quote}\begin{lstlisting}[language=c++]
+namespace M {
+
+  struct sexpr {
+      enum tag {
+          _Int, _String, _Symbol, _Cons, _Nil
+      };
+      tag _tag;
+      sexpr (tag t) : _tag(t) { }
+      virtual ~sexpr ();
+  };
+
+  struct Int : public sexpr {
+      int _v1;
+      Int (int v) : sexpr(sexpr::_Int), _v1(v) { }
+      ~Int () { }
+  };
+
+  struct String : public sexpr {
+      std::string _v1;
+      String (const char *v) : sexpr(sexpr::_String), _v1(v) { }
+      String (std::string const &v) : sexpr(sexpr::_String), _v1(v) { }
+      ~String () { }
+  };
+
+  struct Symbol : public sexpr { ... };
+
+  struct Cons : public sexpr { ... };
+
+  struct Nil : public sexpr { ... };
+
 }
-\end{lstlisting}\end{quote}%
-and in Java would be
-\begin{quote}\begin{lstlisting}[language=java]
-package ast.M;
-public abstract class sexpr {
-	 int kind;
-	 static final Int_kind        = 0;
-	 static final String_kind     = 1;
-	 static final Symbol_kind     = 2;
-	 static final Cons_kind       = 3;
-	 static final Nil_kind        = 4;
-	 abstract int kind();
-}
-public class Int extends sexpr { 
-    int v; 
-    Int(int v) { this.v = v;  } 
-    int kind () { return Int_kind; }
-}
-public class String extends sexpr { String(string v) { ... } ... }
-public class Symbol extends sexpr { Symbol(identifier v) { ... } ... }
-public class Cons   extends sexpr { Cons(sexpr x, sexpr y) { ... } }
-public class Nil    extends sexpr { Nil() { ... } }
 \end{lstlisting}\end{quote}%
 
 \subsubsection{Sum Types as Enumerations}
@@ -393,7 +391,7 @@ of GUIDs).
       <lit-txt>     ::= <see discussion below>
     \end{grammar}
   \end{center}
-  \caption{\asdl{} type definition syntax}
+  \caption{\asdl{} view syntax}
 \end{figure}%
 
 Views are an extensible system of annotating modules, types, and
