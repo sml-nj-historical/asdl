@@ -11,25 +11,26 @@ Note that this presentation is language independent.
 
 \subsection{Required for All Languages}
 All languages require the following
+\newcommand{\ITEM}[1]{\item[\normalfont\color{\cdColor}\texttt{#1}]}
 \begin{description}
-  \item[instream outstream] \mbox{}\\
-    The input and output stream that the reader and writer functions expect.
-  \item[int] \mbox{}\\
+  \ITEM{instream outstream} \mbox{}\\
+    The types of input and output streams that the reader and writer functions expect.
+  \ITEM{int} \mbox{}\\
     The type of integers, possibly a ``bignum'' type.
-  \item[string] \mbox{}\\
-    The type of strings
-  \item[identifier] \mbox{}\\
-    The type of identifiers
-  \item[read\char`\_tag write\char`\_tag] \mbox{}\\
+  \ITEM{string} \mbox{}\\
+    The type of strings.
+  \ITEM{identifier} \mbox{}\\
+    The type of identifiers.
+  \ITEM{read\char`\_tag write\char`\_tag} \mbox{}\\
     Read and write a constructor and length tags out in \asdl{} integer format.
     Both should use the languages standard integer types rather than a ``bignum'' types.
-  \item[read\char`\_int write\char`\_int] \mbox{}\\
-    Read and write the <bf/int/ type out in \asdl{} integer format.
-  \item[read\char`\_string write\char`\_string] \mbox{}\\
-    Read and write the <bf/string/ type out in the \asdl{} string format.
-  \item[read\char`\_identifier write\char`\_identifier] \mbox{}\\
-    Read and write the <bf/identifier/ type out in the \asdl{} identifier format.
-  \item[die] \mbox{}\\
+  \ITEM{read\char`\_int write\char`\_int} \mbox{}\\
+    Read and write the \lstinline!int! type out in \asdl{} integer format.
+  \ITEM{read\char`\_string write\char`\_string} \mbox{}\\
+    Read and write the \lstinline!string! type out in the \asdl{} string format.
+  \ITEM{read\char`\_identifier write\char`\_identifier} \mbox{}\\
+    Read and write the \lstinline!identifier! type out in the \asdl{} identifier format.
+  \ITEM{die} \mbox{}\\
     Signal a fatal error.
 \end{description}%
 
@@ -44,11 +45,11 @@ SML the flags are \texttt{--base\char`\_signature BIG\char`\_BASE} and
 For code that does not use polymorphic list and option the following extra
 types are needed along with the corresponding read and write functions
 \begin{description}
-  \item[int\char`\_list int\char`\_option] \mbox{}\\
+  \ITEM{int\char`\_list int\char`\_option} \mbox{}\\
     The list and option types for integers.
-  \item[string\char`\_list string\char`\_option] \mbox{}\\
+  \ITEM{string\char`\_list string\char`\_option} \mbox{}\\
     The list an option types for strings.
-  \item[identifier\char`\_list identifier\char`\_option] \mbox{}\\
+  \ITEM{identifier\char`\_list identifier\char`\_option} \mbox{}\\
     The list an option types for identifiers.
 \end{description}%
 
@@ -56,10 +57,10 @@ For code that supports polymorphic list and options the following extra
 functions are required
 
 \begin{description}
-  \item[read\char`\_list write\char`\_list] \mbox{}\\
+  \ITEM{read\char`\_list write\char`\_list} \mbox{}\\
     Functions whose first argument is a read or write
     function for a specific type that reads or writes a list of that type.
-  \item[read\char`\_option write\char`\_option] \mbox{}\\
+  \ITEM{read\char`\_option write\char`\_option} \mbox{}\\
     Functions whose first argument is a read or write
     function for a specific type that reads or writes a option of that type.
 \end{description}%
@@ -67,7 +68,8 @@ functions are required
 \subsection{Note about \texttt{--mono\char`\_types=false} for C}
 For the \texttt{--mono\char`\_types false} option in C these function expect functions
 pointers that correspond to the following C \lstinline[language=c]!typedef!s
-\begin{quote}\begin{lstlisting}[language=]
+%
+\begin{quote}\begin{lstlisting}[language=c]
 typedef void *(*generic_reader_ty)(instream_ty s);
 typedef void (*generic_writer_ty)(void *x,outstream_ty s);
 \end{lstlisting}\end{quote}%
