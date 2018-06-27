@@ -15,7 +15,7 @@ the syntax and its meaning.
 \section{Lexical Tokens}
 
 \begin{figure}[t]
-  \begin{center}
+  \begin{quote}
     \begin{grammar}
       <upper>     ::= `A' | ... | `Z'
 
@@ -31,8 +31,9 @@ the syntax and its meaning.
 
       <id>        ::= <typ-id> | <con-id>
     \end{grammar}
-  \end{center}
+  \end{quote}
   \caption{Lexical rules for \asdl{} terminals}
+  \label{fig:lexical-syntax}
 \end{figure}%
 
 Notice that identifiers for types, \synt{typ-i}, are in a different
@@ -45,15 +46,16 @@ and continue to the end of the line.
 
 \section{Module Syntax}
 
-\begin{figure}[ht]
-  \begin{center}
+\begin{figure}[t]
+  \begin{quote}
     \begin{grammar}
       <module>  ::=  `module' <id> [ <imports> ] `{' <definitions> `}'
 
       <imports> ::=  `(' \{ `imports' <id> \} `)'
     \end{grammar}
-  \end{center}
+  \end{quote}
   \caption{\asdl{} module syntax}
+  \label{fig:module-syntax}
 \end{figure}%
 
 An ASDL module declaration consists of the keyword \lit{module}
@@ -89,8 +91,8 @@ module B (imports A) { t = T(A.t, t) | N  ... }
 
 \section{Type Definitions}
 
-\begin{figure}[ht]
-  \begin{center}
+\begin{figure}[t]
+  \begin{quote}
     \begin{grammar}
       <definitions>  ::=  \{ <typ-id> `=' <type> \}
 
@@ -106,8 +108,9 @@ module B (imports A) { t = T(A.t, t) | N  ... }
 
       <field>        ::= [ id `.' ] <typ-id> [`?' | `*' ]  [ <id> ]
     \end{grammar}
-  \end{center}
+  \end{quote}
   \caption{\asdl{} type definition syntax}
+  \label{fig:type-syntax}
 \end{figure}%
 
 All type definitions occur within a module.  They begin with a type
@@ -195,33 +198,33 @@ and in \Cplusplus{} it translates to
 \begin{quote}\begin{lstlisting}[language=c++]
 namespace M {
 
-  struct sexpr {
-      enum tag {
-          _Int, _String, _Symbol, _Cons, _Nil
-      };
-      tag _tag;
-      sexpr (tag t) : _tag(t) { }
-      virtual ~sexpr ();
-  };
+    struct sexpr {
+        enum tag {
+            _Int, _String, _Symbol, _Cons, _Nil
+        };
+        tag _tag;
+        sexpr (tag t) : _tag(t) { }
+        virtual ~sexpr ();
+    };
 
-  struct Int : public sexpr {
-      int _v1;
-      Int (int v) : sexpr(sexpr::_Int), _v1(v) { }
-      ~Int () { }
-  };
+    struct Int : public sexpr {
+        int _v1;
+        Int (int v) : sexpr(sexpr::_Int), _v1(v) { }
+        ~Int () { }
+    };
 
-  struct String : public sexpr {
-      std::string _v1;
-      String (const char *v) : sexpr(sexpr::_String), _v1(v) { }
-      String (std::string const &v) : sexpr(sexpr::_String), _v1(v) { }
-      ~String () { }
-  };
+    struct String : public sexpr {
+        std::string _v1;
+        String (const char *v) : sexpr(sexpr::_String), _v1(v) { }
+        String (std::string const &v) : sexpr(sexpr::_String), _v1(v) { }
+        ~String () { }
+    };
 
-  struct Symbol : public sexpr { ... };
+    struct Symbol : public sexpr { ... };
 
-  struct Cons : public sexpr { ... };
+    struct Cons : public sexpr { ... };
 
-  struct Nil : public sexpr { ... };
+    struct Nil : public sexpr { ... };
 
 }
 \end{lstlisting}\end{quote}%
@@ -232,26 +235,33 @@ namespace M {
 Sum types, which consist completely of constructors that take no arguments,
 are often treated specially and translated into static constants of a
 enumerated value in languages that support them.
+For example, the following \asdl{} specification:
+%
 \begin{quote}\begin{lstlisting}[language=ASDL]
 module Op {
   op = PLUS | MINUS | TIMES | DIVIDE 
 }
 \end{lstlisting}\end{quote}%
-
-Is translated into the enumeration and constants in C as
-\begin{quote}\begin{lstlisting}[language=c]
-enum Op_op_ty {Op_PLUS_kind, Op_MINUS_kind, Op_TIME_kind, Op_DIVIDE_kind};
-extern Op_op_ty Op_PLUS   = Op_PLUS_kind;
-extern Op_op_ty Op_MINUS  = Op_MINUS_kind;
-extern Op_op_ty Op_TIMES  = Op_TIMES_kind;
-extern Op_op_ty Op_DIVIDE = Op_DIVIDE_kind;
+%
+Is translated into \Cplusplus{} as follows:
+%
+\begin{quote}\begin{lstlisting}[language=c++]
+namespace M {
+    enum op {
+        PLUS, MINUS, TIMES, DIVIDE
+    };
+}
 \end{lstlisting}\end{quote}%
 
 \subsection{Field Labels}
 Field declarations can be as simple as a single type identifier, or they can
-be followed with an optional label. Labels aid in the readability of
+be followed with an optional label.
+If any field in a product type (or constructor type argument) has a label, then
+all of the fields must have labels.
+Labels aid in the readability of
 descriptions and are used by \asdlgen{} to name the fields of records
-and classes for languages. For example the declarations
+and classes for languages.
+For example the declarations
 \begin{quote}\begin{lstlisting}[language=ASDL]
 module Tree {
   tree = Node(int, tree, tree)
@@ -267,43 +277,80 @@ module Tree {
 \end{lstlisting}\end{quote}%
 
 When translating the first definition without labels 
-into C one would normally get
-\begin{quote}\begin{lstlisting}[language=c]
-...
-struct Tree_tree_s {
-    union {
-    struct { int_ty int1; Tree_tree_ty tree1; Tree_tree_ty tree2; } ...
-    } v
+into \Cplusplus{} one would normally get
+\begin{quote}\begin{lstlisting}[language=c++]
+namespace Tree {
+
+    class tree {
+      public:
+        enum tag_t {
+            _Node, _EmptyTree
+        };
+        tag_t tag () const { return this->_tag; }
+        bool is_Node () const { return this->_tag = _Node; }
+        bool is_EmptyTree () const { return this->_tag = _EmptyTree; }
+        virtual ~tree ();
+      protected:
+        tag _tag;
+        tree (tag t) : _tag(t) { }
+    };
+
+    struct Node : public tree {
+        int _v1;
+        tree *_v2;
+        tree *_v3;
+        Node (int v1, tree *v2, tree * v3)
+          : tree(tree::_Node), _v1(v1), _v2(v2), _v3(v3) { }
+        ~Node () { }
+    };
+    
+    struct EmptyTree : public tree {
+        EmptyTree () : tree(tree::_EmptyTree) { }
+        ~EmptyTree () { }
+    };
 }
-...
 \end{lstlisting}\end{quote}%
 with labels one would get
-\begin{quote}\begin{lstlisting}[language=c]
-...
-struct Tree_tree_s {
-    union {
-    struct { int_ty value; Tree_tree_ty left; Tree_tree_ty right; } ...
-    } v
+\begin{quote}\begin{lstlisting}[language=c++]
+namespace Tree {
+
+    ...
+    
+    struct Node : public tree {
+        int value;
+        tree *left;
+        tree *right;
+        Node (int v1, tree *v2, tree * v3)
+          : tree(tree::_Node), value(v1), left(v2), right(v3) { }
+        ~Node () { }
+    };
+    
+    ...
 }
-...
 \end{lstlisting}\end{quote}%
 
+For the \sml{} target, product types without labels are translated to tuples, while those with
+labels are translated to 
 \subsection{Type Qualifiers}
 
 The type identifier of a field declaration can also be qualified with either
-a sequence (\lit{*}) or option (\lit{?}) qualifier. The sequence qualifier
+a sequence (\lit{*}) or option (\lit{?}) qualifier.
+The sequence qualifier
 is an abbreviation that stands for a sequence or list of that given type,
-while the option qualifier stands for a type whose value maybe
-uninitialized. Sequence types are equivalent to the lists or arrays of a
-fixed type. Option types are equivalent to the \lstinline[language=ASDL]!option! and \lstinline[language=ASDL]!Maybe!
-types in ML and Haskell or the idiom of a pointer that may be \lstinline[language=ASDL]!NULL! in languages like C or Java.
-\asdlgen{} provides various different translation schemes for handling option
-and sequence types in languages that do not have parametric polymorphism. 
-See \chapref{chap:invocation} for details.
+while the option qualifier stands for a type whose value may be
+uninitialized.
+Sequence types are equivalent to the lists or arrays of a
+fixed type.
+Option types are equivalent to the \lstinline[language=ASDL]!option!
+type in \sml{}.
+%\asdlgen{} provides various different translation schemes for handling option
+%and sequence types in languages that do not have parametric polymorphism. 
+%See \chapref{chap:invocation} for details.
 
 \subsection{Attributes}
-All sum types may optionally be followed by a set of
-attributes. Attributes provide notation for fields common to all the
+Sum types may optionally be followed by a set of
+attributes.
+Attributes provide notation for fields common to all the
 constructors in the sum type. 
 \begin{quote}\begin{lstlisting}[language=ASDL]
 module M {
@@ -316,89 +363,142 @@ module M {
         attribute(pos p)
 }
 \end{lstlisting}\end{quote}%
-adds a field of type \lstinline[language=ASDL]!pos! with label \lstinline[language=ASDL]!p! to all the constructors in
-\lstinline[language=ASDL]!sexpr!. Attribute fields are treated specially when
-translated. For example in C code the attribute field is hoisted out of the
-\lstinline[language=ASDL]!union! and placed in the outer \lstinline[language=ASDL]!struct!. Object oriented languages
-find attribute fields declared in the abstract base class. 
+adds a field of type \lstinline[language=ASDL]!pos! with label \lstinline[language=ASDL]!p! to all the constructors in \lstinline[language=ASDL]!sexpr!.
+Attribute fields are treated specially when
+translated.
+For example in \Cplusplus{} code the attribute field is defined in the base class for the sum type.
 
 \section{Primitive Modules}
-\begin{figure}[ht]
-  \begin{center}
+\label{sec:primitive-module}
+
+\begin{figure}[t]
+  \begin{quote}
     \begin{grammar}
       <primitive-module> ::= `primitive' `module' <id> `{' \{ <id> \} `}'
     \end{grammar}%
-  \end{center}%
+  \end{quote}%
   \caption{\asdl{} primitive module syntax}
+  \label{fig:prim-module-syntax}
 \end{figure}%
 
-Primitive modules provide a way to introduce abstract types that are defined outside
+Primitive modules (see \figref{fig:prim-module-syntax}) provide a way to introduce abstract
+types that are defined outside
 of \asdl{} and which have their own pickling and unpickling code.
-For example, we might want to include GUIDs (16-byte globally-unique IDs) in our
-pickles.
+For example, we might want to include GUIDs (16-byte globally-unique IDs) in our pickles.
 We can do so by first defining a primitive module \lstinline!Prim!:
+%
 \begin{quote}\begin{lstlisting}[language=ASDL]
 primitive module Prim { guid }
 \end{lstlisting}\end{quote}%
-The, depending on the target language, we will need to define
+%
+Then, depending on the target language, we define
 supporting code to read and write guids from the byte stream.
-In SML, we would define the following two modules:
+In \sml{}, we would define three modules:
+\begin{enumerate}
+  \item \lstinline[language=SML]!structure PrimPickle!, which defines the representation of the
+    \lstinline[language=SML]!guid! type.
+  \item
+    \lstinline[language=SML]!structure PrimPickleUtil!, which defines a function for calculating
+    the number size of a pickle (in bytes) and functions for converting between GUIDs and
+    vectors of bytes.
+  \item
+    \lstinline[language=SML]!structure PrimPickleIO!, which defines functions for reading
+    and writing GUIDs on binary I/O streams.
+\end{enumerate}%
+The \sml{} implementation of these modules could be written as follows:
 \begin{quote}\begin{lstlisting}[language=SML]
-structure PrimPickleUtil : sig
-
-    type guid = GUID.guid
-    
-    val read_guid :  StdPkl.instream -> guid
-    val write_guid : guid -> StdPkl.outstream -> unit
-    
+structure PrimPickle : sig
+    type guid
   end = struct
-  
     type guid = GUID.guid
-
-    fun read_guid strm = (case GUID.fromBytes(BinIO.inputN(strm, 16))
-	   of NONE => raise Fail "bogus GUID"
-	    | (SOME g) => g
-	  (* end case *))
-    fun write_guid g strm = BinIO.output(strm, GUID.toBytes g)
-    
   end
 
-structure PrimPickle :> sig
-    type guid = PrimPickleUtil.guid
-  end = PrimPickleUtil;
+structure PrimPickleUtil : sig
+    val guidSize : PrimPickle.guid -> size
+    val guidToBytes : PrimPickle.guid -> Word8Vector.vector
+    val guidFromBytes : { input : int -> Word8Vector.vector option }
+          -> PrimPickle.guid
+  end = struct
+    fun guidSize _ = 16
+    fun guidToBytes = GUID.toBytes
+    fun guidFromBytes { input } = (case input 16
+           of NONE => raise Fail "bogus GUID"
+	        | (SOME v) => (case GUID.fromBytes v
+                 of NONE => raise Fail "bogus GUID"
+	              | SOME g => g
+                (* end case *))
+	      (* end case *))
+  end
+
+structure PrimPickleIO : sig
+    val guidInput : BinIO.instream -> guid
+    val guidOutput : BinIO.outstream * guid -> unit
+  end = struct
+    fun guidInput strm = (case GUID.fromBytes(BinIO.inputN(strm, 16))
+	       of NONE => raise Fail "bogus GUID"
+	        | (SOME g) => g
+	      (* end case *))
+    fun guidOutput (strm, g) = BinIO.output(strm, GUID.toBytes g)
+  end
 \end{lstlisting}\end{quote}%
 (assuming that the \lstinline!GUID! module implements the application's representation
 of GUIDs).
 
-\section{View Syntax}
-\begin{figure}[ht]
-  \begin{center}
-    \begin{grammar}
+For \Cplusplus{}, a primitive module requires a corresponding header file that declares
+the primitive types and instances of the overloaded \lstinline[language=c++]!<<! and
+\lstinline[language=c++]!>>! operators on the primitive types.  These declarations should
+all be in a \lstinline[language=c++]!namespace! with the type name of the primitive module.
+For example, the module from above would require the provision of a \texttt{Prim.hxx} header
+file that contained something like the following code:
+%
+\begin{quote}\begin{lstlisting}[language=c++]
+#include <iostream>
+#include "guid.hxx"
 
+namespace Prim {
+
+    typedef GUID::guid guid;
+
+    std::istream &operator>> (istream &is, guid &g);
+    std::ostream &operator<< (ostream &os, guid const &g);
+
+}
+\end{lstlisting}\end{quote}%
+(assuming that the \texttt{guid.hxx} header defines the application's representation
+of GUIDs).
+%For the \Cplusplus{} target, one should use string streams (in binary mode)
+%to support pickling/unpickling of to/from memory.
+
+
+\section{View Syntax}
+
+\begin{figure}[t]
+  \begin{quote}
+    \begin{grammar}
       <view>        ::= `view' <id> `{' \{ <view-entry> \} `}'
 
-      <view-entry>  ::= <view-entity>  <view-prop> <lit-txt>
-		 \alt{} `{' {<view-entity>} `}' <view-prop> <lit-txt>
-		 \alt{} <view-prop> `{' \{ <view-entity> <lit-txt> \} `}'
-		 \alt{} <view-entity> `<=' `{' \{ <id> <lit-txt> \} `}'
+      <view-entry>  ::= <view-entity>  `<=' <id> <lit-txt>
+         \alt{} `{' {<view-entity>} `}' `<=' <id> <lit-txt>
+         \alt{} `<=' <id> `{' \{ <view-entity> <lit-txt> \} `}'
+         \alt{} <view-entity> `<=' `{' \{ <id> <lit-txt> \} `}'
 
       <view-entity> ::= <id> `.' <typ-id>
-		 \alt{} <id> `.' <con-id>
-		 \alt{} `module' <id>
-
-      <view-prop>   ::= `<='  <id>
+         \alt{} <id> `.' <con-id>
+         \alt{} `module' <id>
 
       <lit-txt>     ::= <see discussion below>
     \end{grammar}
-  \end{center}
+  \end{quote}
   \caption{\asdl{} view syntax}
+  \label{fig:view-syntax}
 \end{figure}%
 
 Views are an extensible system of annotating modules, types, and
 constructors to aid in the conversion of ASDL declarations into a
-particular output language. This discussion will only cover the basic view
-syntax.
-\chapref{chap:views} discusses the meaning of the annotations in more detail.
+particular output language.
+The syntax of view declarations is given in \figref{fig:view-syntax}.
+This section covers the syntax of views, but leaves the semantics to
+\chapref{chap:views}.
 
 \subsection{Basic Syntax}
 Views are named and consist of series of entries.
@@ -477,7 +577,7 @@ view Doc {
   }
 }
 
-view Java {
+view Cxx {
  M.sexpr <= {
    source_name : Sexpr
    base_class  : MyClass
