@@ -459,8 +459,8 @@ namespace Prim {
 
     typedef GUID::guid guid;
 
-    std::istream &operator>> (istream &is, guid &g);
-    std::ostream &operator<< (ostream &os, guid const &g);
+    std::istream &operator>> (std::istream &is, guid &g);
+    std::ostream &operator<< (std::ostream &os, guid const &g);
 
 }
 \end{lstlisting}\end{quote}%
