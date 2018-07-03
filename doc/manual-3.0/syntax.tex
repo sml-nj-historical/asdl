@@ -1,6 +1,6 @@
 %!TEX root = manual.tex
 %
-\chapter{Input Syntax}
+\chapter{ASDL Syntax}
 \label{chap:syntax}
 
 This section describes the syntax of the input language to \asdlgen{}.
@@ -127,10 +127,14 @@ sum types, product types cannot form recursive type definitions, but they can
 contain recursively declared sum types.
 
 \subsection{Primitive Types}
-There are only three primitive types in ASDL. They
-are \lstinline[language=ASDL]!string!, \lstinline[language=ASDL]!int!, and \lstinline[language=ASDL]!identifier!. The \lstinline[language=ASDL]!string! type
-represents length encoded strings of bytes. The \lstinline[language=ASDL]!int! type represents
-arbitrary precision signed integers. The \lstinline[language=ASDL]!identifier! type represents
+There are six primitive types in ASDL. They are
+\lstinline!bool!, \lstinline!int!, \lstinline!uint!, \lstinline!integer!, \lstinline!string!,
+and \lstinline!identifier!.
+The \lstinline!int! and \lstinline!uint! types support 30 bits of signed and unsigned precision
+for small integer values, while the \lstinline!integer! type supports arbitrary precision
+integer values.
+The \lstinline!string! type represents length encoded strings of bytes.
+The \lstinline[language=ASDL]!identifier! type represents
 atomic printable names, which support fast equality testing, analogous to
 LISP symbols.
 

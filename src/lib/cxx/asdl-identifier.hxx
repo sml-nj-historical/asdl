@@ -19,12 +19,24 @@
 #include <string>
 #include <iostream>
 
+#include "asdl-stream.hxx"
+
 namespace asdl {
 
     class identifier {
       public:
 	identifier (std::string const &s) : _s(_resolve(s)) { }
 	identifier (const char *cp, int n) : _s (_resolve(std::string(cp, n))) { }
+
+      // pickle/unpickle operations
+	asdl::ostream pickle (asdl::ostream &os) { return (os.wr_string(this->_str()); }
+
+	identifier (asdl::istream &is)
+	  : _s(_resolve(is.rd_string()))
+	{ }
+
+      // get a copy of the identifier
+	std::string to_string () const { return std::string(this->_str()); }
 
       // wrappers around std::string operations
 	size_t size() const noexcept { return this->_str().size(); }
@@ -105,8 +117,10 @@ namespace asdl {
     bool operator== (identifier &id1, identifier &id2) { return id1._s == id2._s; }
     bool operator!= (identifier &id1, identifier &id2) { return id1._s != id2._s; }
 
-    std::istream &operator>> (std::istream &is, identifier &g);
-    std::ostream &operator<< (std::ostream &os, identifier const &g);
+  // output an identifier to a text stream
+    std::ostream &operator<< (std::ostream &os, identifier const &g)
+    {
+	return os << g._str
 }
 
 #endif // !_ASDL_IDENTIFIER_HXX_

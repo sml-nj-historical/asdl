@@ -29,6 +29,18 @@ Since \asdl{} data structures have a tree-like form, they can be represented
 linearly with a simple prefix encoding.
 
 \begin{description}
+  \item[int/uint] \mbox{}\\
+    The \lstinline!int! and \lstinline!uint! types provide 30-bits of signed/unsigned
+    precision encoded in one to four bytes.
+    The top two bits of the first byte specifies the number of additional bytes in
+    the encoding.
+    Thus values in the range -32 to 31 (0 to 63 unsigned) can be encoded in one byte,
+    -2048 to 2047 (0 to 2095 unsigned) in two bytes, \etc{}
+
+  \item[bool] \mbox{}\\
+    Boolean values are represented by \lstinline!0! (false) or \lstinline!1! (true)
+    and are encoded as \lstinline!uint! values.
+
   \item[integer] \mbox{}\\
     Since \asdl{} integers are intended to be of infinite precision they are
     represented with a variable-length, signed-magnitude encoding.
@@ -43,23 +55,18 @@ linearly with a simple prefix encoding.
     If most integer values tend to be values near zero, this encoding of integers
     will use less space than a fixed precision representation.
 
-  \item[int] \mbox{}\\
-    The \lstinline!int! type uses the same encoding scheme as the \lstinline!integer!
-    type, but values are limited to the default integer type (assumed to be at least
-    30 bits).
-
   \item[string] \mbox{}\\
-    Strings are represented with an integer length-header that describe how many more
-    8-bit bytes follow for the string and then the data for the string in
-    bytes.
-    The length-header is encoded with the integer encoding described previously.
+    Strings are represented with a length-header that describe how many more
+    8-bit bytes follow for the string and then the data for the string in bytes.
+    The length-header is encoded as a \lstinline!uint! value, thus strings are limited
+    to 1,073,741,823 characters.
 
   \item[identifier] \mbox{}\\
     Identifiers are represented as if they were strings. 
 
   \item[product types] \mbox{}\\ 
-    Product types are represented sequentially without any tag. The fields of
-    the product type are packed from left to right.
+    Product types are represented sequentially without any tag.
+    The fields of the product type are packed from left to right.
 
   \item[sum types] \mbox{}\\
     Sum types begin with a unique tag to identify the constructor
@@ -70,19 +77,18 @@ linearly with a simple prefix encoding.
     Fields are packed left to right based of the order in the definition.
     If there are any attribute values associated with the type, they are packed left to right
     after the tag but before other constructor fields.
-    The tag is encoded with the same arbitrary precision integer encoding described previously.
+    The tag is encoded as a \lstinline!uint! value.
 
   \item[sequence types] \mbox{}\\
     Sequence types are represented with an integer length-header followed by
     that many values of that type.
-    The length-header is encoded with the same arbitrary precision integer encoding
-    described previously.
+    The length-header is encoded as a \lstinline!uint! value.
 
   \item[option types] \mbox{}\\
     Optional values are preceded by an integer header that is either one or zero.
     A zero indicates that the value is empty and no more data follows.
     A one indicates that the next value is the value of the optional value.
-    The header is encoded with the same arbitrary precision integer encoding described previously.
+    The header is encoded as a \lstinline!uint! value.
 
   \item[primitive types] \mbox{}\\
     User-defined primitive types are pickled/unpickled by user-provided functions (see
