@@ -54,6 +54,8 @@ whitespace removed.
   \label{fig:lexical-syntax}
 \end{figure}%
 
+Keywords: \lit{alias}, \lit{attributes}, \lit{include}, \lit{import}, \lit{module}, \lit{primitive}, \lit{view}
+
 \section{File Syntax}
 
 An \asdl{} file consists of one or more \synt{definition}s possibly preceded by \lit{include}
@@ -93,9 +95,9 @@ sequence of type definitions enclosed in braces.
 \begin{figure}[t]
   \begin{quote}
     \begin{grammar}
-      <module>  ::=  `module' <id> [ <imports> ] `{' \{ <type-definition> \} `}'
+      <module>  ::=  `module' <id> [ <imports> ] `{' <definitions> `}'
 
-      <imports> ::=  `(' \{ `imports' <id> \} `)'
+      <imports> ::=  `(' \{ `import' <id> [ `alias' <id> ] \} `)'
     \end{grammar}
   \end{quote}
   \caption{\asdl{} module syntax}
@@ -113,9 +115,9 @@ import \lstinline[language=ASDL]!C!, since \lstinline[language=ASDL]!C!
 imports \lstinline[language=ASDL]!B!.
 \begin{code}\begin{lstlisting}[language=ASDL]
  module A { ... } 
- module B (imports A) { ... }
- module C (imports A 
-           imports B) { ... }
+ module B (import A) { ... }
+ module C (import A 
+           import B) { ... }
 \end{lstlisting}\end{code}% 
 
 To refer to a type imported from another module the type must
@@ -128,7 +130,7 @@ recursively mentions itself and also references the type ``\texttt{t}'' imported
 from module \texttt{A}.
 \begin{code}\begin{lstlisting}[language=ASDL]
 module A { t = ... } 
-module B (imports A) { t = T(A.t, t) | N  ... }
+module B (import A) { t = T(A.t, t) | N  ... }
 \end{lstlisting}\end{code}% 
 
 \section{Type Definitions}
@@ -176,8 +178,8 @@ There are seven primitive types in ASDL:
     (\ie{}, in the range ${-}2^{29}$ to~\mbox{$2^{29}-1$}).
   \item[\normalfont\texttt{\color{\cdColor}uint}] describes unsigned-integer values that representable in 30 bits
     (\ie{}, in the range $0$ to~$2^{30}-1$).
-  \item[\normalfont\texttt{\color{\cdColor}integer}] describes arbitrary precision signed-integer values.
-  \item[\normalfont\texttt{\color{\cdColor}natural}] describes arbitrary precision unsigned-integer values.
+  \item[\normalfont\texttt{\color{\cdColor}integer}] describes arbitrary-precision signed-integer values.
+  \item[\normalfont\texttt{\color{\cdColor}natural}] describes arbitrary-precision unsigned-integer values.
   \item[\normalfont\texttt{\color{\cdColor}string}] describes length encoded strings of 8-bit characters.
   \item[\normalfont\texttt{\color{\cdColor}identifier}] describes strings with fast equality testing
     analogous to Lisp symbols.
@@ -220,15 +222,16 @@ declares that values of type \lstinline[language=ASDL]!sexpr! can either be cons
 \lstinline[language=ASDL]!int! using the \lstinline[language=ASDL]!Int! constructor or a \lstinline[language=ASDL]!string! from a \lstinline[language=ASDL]!String!
 constructor, an \lstinline[language=ASDL]!identifier! using the \lstinline[language=ASDL]!Symbol! constructor, or from
 two other \lstinline[language=ASDL]!sexpr! using the \lstinline[language=ASDL]!Cons! constructor, or from no arguments
-using the \lstinline[language=ASDL]!Nil! constructor. Notice that the \lstinline[language=ASDL]!Cons! constructor
-recursively refers to the \lstinline[language=ASDL]!sexpr! type. ASDL allows sum types to be
-mutually recursive. Recursion however is limited to sum types defined within
-the same module.
+using the \lstinline[language=ASDL]!Nil! constructor.
+Notice that the \lstinline[language=ASDL]!Cons! constructor
+recursively refers to the \lstinline[language=ASDL]!sexpr! type.
+\asdl{} allows sum types to be mutually recursive.
+Recursion, however, is limited to sum types defined within the same module.
 
 \subsubsection{Sum Types as Enumerations}
 \label{sec:enumerations}
 
-Sum types, which consist completely of constructors that take no arguments,
+Sum types that consist completely of nullary constructors
 are often treated specially and translated into static constants of a
 enumerated value in languages that support them.
 For example, the following \asdl{} specification:

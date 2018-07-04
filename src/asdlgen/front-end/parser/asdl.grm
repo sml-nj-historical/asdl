@@ -13,7 +13,8 @@
 %tokens
     : KW_alias			("alias")
     | KW_attributes		("attributes")
-    | KW_imports		("imports")
+    | KW_imports		("import")
+    | KW_include		("include")
     | KW_module			("module")
     | KW_primitive		("primitive")
     | KW_view			("view")
@@ -44,7 +45,8 @@
 
   val aliasId = Atom.atom "alias"
   val attributesId = Atom.atom "attributes"
-  val importsId = Atom.atom "imports"
+  val importId = Atom.atom "import"
+  val includeId = Atom.atom "include"
   val moduleId = Atom.atom "module"
   val primitiveId = Atom.atom "primitive"
   val viewId = Atom.atom "view"
@@ -56,7 +58,11 @@
 );
 
 Root
-	: MarkDecl+		=> (MarkDecl)
+	: Include* MarkDecl+	=> (PT.File(Include, MarkDecl))
+	;
+
+Include
+	: "include" CODE	=> ({span = FULL_SPAN, tree = CODE})
 	;
 
 MarkDecl
@@ -83,7 +89,7 @@ ModuleImport
 	;
 
 Import
-	: "imports" Id ("alias" Id)?
+	: "import" Id ("alias" Id)?
 		=> (mark PT.Import_Mark (FULL_SPAN, PT.Import{module = Id, alias=SR}))
 	;
 
@@ -160,7 +166,8 @@ ConId	: UID			=> (markId (FULL_SPAN, UID))
 
 Keyword	: "alias"		=> (markId (FULL_SPAN, aliasId))
 	| "attributes"		=> (markId (FULL_SPAN, attributesId))
-	| "imports"		=> (markId (FULL_SPAN, importsId))
+	| "import"		=> (markId (FULL_SPAN, importId))
+	| "include"		=> (markId (FULL_SPAN, includeId))
 	| "module"		=> (markId (FULL_SPAN, moduleId))
 	| "primitive"		=> (markId (FULL_SPAN, primitiveId))
 	| "view"		=> (markId (FULL_SPAN, viewId))

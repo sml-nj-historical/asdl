@@ -57,7 +57,8 @@
 <INITIAL>"attributes"	=> (T.KW_attributes);
 <INITIAL>"module"	=> (T.KW_module);
 <INITIAL>"primitive"	=> (T.KW_primitive);
-<INITIAL>"imports"	=> (T.KW_imports);
+<INITIAL>"import"	=> (T.KW_import);
+<INITIAL>"include"	=> (T.KW_include);
 <INITIAL>"alias"	=> (T.KW_alias);
 <INITIAL>"view"		=> (T.KW_view);
 <INITIAL>{uc_id}	=> (T.UID(Atom.atom yytext));

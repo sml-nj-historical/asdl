@@ -15,7 +15,12 @@ structure ParseTree =
 
     val topId = Atom.atom "<top>"
 
-    datatype decl
+    datatype file = {
+	includes : string mark list,
+	decls : decl list
+      }
+
+    and decl
       = D_Mark of decl mark
       | D_Module of {		(* `module` <id> <imports> `{` <decls> `}` *)
 	    name : id,
