@@ -29,7 +29,7 @@
 \newcommand{\asdl}{\textbf{ASDL}}
 \newcommand{\asdlgen}{\texttt{asdl-gen}}
 
-\newcommand{\Cplusplus}{\mbox{C\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
+\newcommand{\Cplusplus}{\mbox{C\hspace{-.05em}\raisebox{.4ex}{\small\bf ++}}}
 \newcommand{\java}{\textsc{Java}}
 \newcommand{\sml}{\textsc{SML}}
 \newcommand{\smlnj}{\textsc{SML/NJ}}
@@ -39,6 +39,7 @@
 \newcommand{\chapref}[1]{\hyperref[#1]{Chapter~\ref{#1}}}
 \newcommand{\secref}[1]{\hyperref[#1]{Section~\ref{#1}}}
 \newcommand{\figref}[1]{\hyperref[#1]{Figure~\ref{#1}}}
+\newcommand{\tblref}[1]{\hyperref[#1]{Table~\ref{#1}}}
 
 \usepackage{color}
 \definecolor{Red}{rgb}{0.9,0.0,0.0}
@@ -69,7 +70,7 @@
 
 \lstdefinelanguage{ASDL}{%
   morekeywords={alias,attributes,imports,module,primitive,view},%
-  otherkeywords={[,],\{,\},\,,:,<=,\%\%,?,*,!,|},
+  otherkeywords={:,\{,\},\,,<=,\%\%,?,*,!,|},
   sensitive,%
   alsoletter={_},
   morecomment=[l]{--},%
@@ -82,6 +83,10 @@
   showstringspaces=false,
   language=ASDL
 }
+
+% indented code displays
+%
+\newenvironment{code}{\begin{quote}}{\end{quote}}
 
 % for typesetting the syntax
 %

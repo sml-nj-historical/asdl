@@ -1,0 +1,140 @@
+%!TEX root = manual.tex
+%
+\chapter{Code Interface}
+\label{sec:code-interface}
+
+In this section, we describe the default translation of ASDL definitions to target
+languages and describe some of the runtime assumptions that users need to be aware of
+when using the generated code.
+
+\section{Translation to \sml{}}
+
+The translation from an \asdl{} specification to \sml{} code is straightforward.
+\asdl{} modules map to \sml{} structures, \asdl{} product types map to either tuples or records,
+and \asdl{} sum types map the \sml{} datatypes.
+\tblref{tbl:asdl-to-sml} summarizes this translation.
+If an \asdl{} identifier conflicts with an \sml{} keyword or pervasive identifier, then the translation
+adds a trailing prime character (\lstinline[language=SML]!'!) to the identifier.
+
+For an \asdl{} module \lstinline[mathescape=true]@$M$@, we generate three \sml{} structures:
+\begin{code}\begin{lstlisting}[language=SML,mathescape=true]
+structure $M$ = struct ... end
+
+structure $M$Pickle = struct ... end
+
+structure $M$PickleIO = struct ... end
+\end{lstlisting}\end{code}
+where \lstinline[language=SML,mathescape=true]@$M$@ structure contains the type definitions
+for the \asdl{} specification, \lstinline[language=SML,mathescape=true]@$M$Pickle@ structure
+implements functions to convert between the types and byte vectors, and the
+\lstinline[language=SML,mathescape=true]@$M$PickleIO@ structure implements functions to
+read and write pickles from binary files.
+
+\begin{table}[tp]
+  \caption{Translation of \asdl{} types to \sml{}}
+  \label{tbl:asdl-to-sml}
+  \begin{center}
+    \begin{tabular}{|l|p{3in}|}
+      \hline
+      \textbf{\asdl{} type} & \textbf{\sml{} type} \\
+      \hline
+      \textit{Named types ($T$)} &  ($\hat{T}$) \\[0.25em]
+      \lstinline!bool! & \lstinline[language=SML]!bool! \\[0.5em]
+      \lstinline!int! & \lstinline[language=SML]!int! \\[0.5em]
+      \lstinline!uint! & \lstinline[language=SML]!word! \\[0.5em]
+      \lstinline!integer! & \lstinline[language=SML]!IntInf.int! \\[0.5em]
+      \lstinline!string! & \lstinline[language=SML]!string! \\[0.5em]
+      \lstinline!identifier! & \lstinline[language=SML]!Atom.atom! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$t$@ & \lstinline[language=SML,mathescape=true]!$t$! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$M$.$t$@ & \lstinline[language=SML,mathescape=true]!$M$.$t$! \\[0.5em]
+      \hline
+      \textit{Type expressions ($\tau$)} &  ($\hat{\tau}$) \\[0.25em]
+      \lstinline[language=ASDL,mathescape=true]@$T$@ & \lstinline[language=SML,mathescape=true]!$\hat{T}$! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$T$?@ & \lstinline[language=SML,mathescape=true]!$\hat{T}$ option! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$T$*@ & \lstinline[language=SML,mathescape=true]!$\hat{T}$ list! \\[0.5em]
+      \hline
+      \textit{Product types ($\rho$)} & ($\hat{\rho}$) \\[0.25em]
+      \lstinline[language=ASDL,mathescape=true]@($\tau_1$, $\ldots$, $\tau_n$)@
+        & \lstinline[language=SML,mathescape=true]!$\hat{\tau}_1$ * $\cdots$ * $\hat{\tau}_n$! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@($\tau_1$ $f_1$, $\ldots$, $\tau_n$ $f_n$)@
+        & \lstinline[language=SML,mathescape=true]!{$f_1$ : $\hat{\tau}_1$, $\ldots$, $f_n$ : $\hat{\tau}_n$}! \\[0.5em]
+      \hline
+      \textit{Type definitions} & \\[0.25em]
+      \lstinline[language=ASDL,mathescape=true]@$t$ = $\rho$@
+        & \lstinline[language=SML,mathescape=true]!type $t$ = $\hat{\rho}$! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$t$ = $C_1$ | $\cdots$ | $C_n$@
+        & \lstinline[language=SML,mathescape=true]!datatype $t$ = $C_1$ | $\cdots$ | $C_n$! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$t$ = $C_1$($\rho_1$) | $\cdots$ | $C_n$($\rho_n$)@
+        & \lstinline[language=SML,mathescape=true]!datatype $t$ = $C_1$ of $\hat{\rho}_1$ | $\cdots$ | $C_n$ of $\hat{\rho}_n$! \\[0.25em]
+      \hline
+    \end{tabular}%
+  \end{center}%
+\end{table}%
+
+\section{Translation to \Cplusplus{}}
+
+The translation of an \asdl{} specification to \Cplusplus{} is more complicated than for \sml{}.
+For each \asdl{} module, we define a corresponding \Cplusplus{} namespace.
+
+\begin{table}[tp]
+  \caption{Translation of \asdl{} types to \Cplusplus{}}
+  \label{tbl:asdl-to-cxx}
+  \begin{center}
+    \begin{tabular}{|p{2in}|p{3in}|}
+      \hline
+      \textbf{ASDL type} & \textbf{\Cplusplus{} type} \\
+      \hline
+      \textit{Named types ($T$)} &  ($\hat{T}$) \\[0.25em]
+      \lstinline!bool! & \lstinline[language=c++]!bool! \\[0.5em]
+      \lstinline!int! & \lstinline[language=c++]!int! \\[0.5em]
+      \lstinline!uint! & \lstinline[language=c++]!unsigned int! \\[0.5em]
+      \lstinline!integer! & \lstinline[language=c++]!asdl::integer! \\[0.5em]
+      \lstinline!string! & \lstinline[language=c++]!std::string! \\[0.5em]
+      \lstinline!identifier! & \lstinline[language=c++]!asdl::identifier! \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$t$@ &
+        $\left\{
+        \begin{array}{ll}
+          t & \text{if $t$ is an \lstinline[language=c++]!enum! type} \\
+          \text{\lstinline[language=c++,mathescape=true]@$t$ *@} & otherwise \\
+        \end{array}
+        \right.$ \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$M$.$t$@ & \lstinline[language=c++,mathescape=true]@$M$::$t$@ \\[0.5em]
+      \hline
+      \textit{Type expressions ($\tau$)} &  ($\hat{\tau}$) \\[0.25em]
+      \lstinline[language=ASDL,mathescape=true]@$T$@ & \lstinline[language=c++,mathescape=true]@$\hat{T}$@ \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$T$?@ & \lstinline[language=c++,mathescape=true]@asdl::option< $\hat{T}$ >@ \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$T$*@ & \lstinline[language=c++,mathescape=true]@std::vector< $\hat{T}$ >@ \\[0.5em]
+      \hline
+      \textit{Product types ($\rho$)} & ($\hat{\rho}$) \\[0.25em]
+      \lstinline[language=ASDL,mathescape=true]@($\tau_1$, $\ldots$, $\tau_n$)@
+        & \lstinline[language=c++,mathescape=true]@$\hat{\tau}_1$ _v1; $\ldots$ $\hat{\tau}_n$ _vn@ \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@($\tau_1$ $f_1$, $\ldots$, $\tau_n$ $f_n$)@
+        & \lstinline[language=c++,mathescape=true]@$\hat{\tau}_1$ _$f_1$; $\ldots$ $\hat{\tau}_n$ _$f_n$@ \\[0.5em]
+      \hline
+      \textit{Type definitions} & \\[0.25em]
+      \lstinline[language=ASDL,mathescape=true]@$t$ = $\rho$@
+        & \lstinline[language=c++,mathescape=true]@struct $t$ { $\hat{\rho}$ };@ \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$t$ = $C_1$ | $\cdots$ | $C_n$@
+        & \lstinline[language=c++,mathescape=true]@enum $t$ { $C_1$, $\ldots$, $C_n$ };@ \\[0.5em]
+      \lstinline[language=ASDL,mathescape=true]@$t$ = $C_1$($\rho_1$) | $\cdots$ | $C_n$($\rho_n$)@
+        &
+\vspace*{-1em}
+\begin{lstlisting}[language=c++,mathescape=true]
+class $t$ { $\cdots$ };
+class $C_1$ : public $t$ {
+  private: $\hat{\rho}_1$
+  $\cdots$
+};
+$\cdots$
+class $C_n$ : public $t$ {
+  private: $\hat{\rho}_n$
+  $\cdots$
+};
+\end{lstlisting}%
+      \\[0.25em]
+      \hline
+    \end{tabular}%
+  \end{center}%
+\end{table}%
+
+\subsection{Memory management}
