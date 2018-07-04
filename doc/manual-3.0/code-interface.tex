@@ -138,3 +138,60 @@ class $C_n$ : public $t$ {
 \end{table}%
 
 \subsection{Memory management}
+
+
+\section{The Rosetta Stone for Sum Types}
+\label{sec:rosetta-stone}
+
+In languages that have algebraic data types sum types are equivalent to the
+\lstinline[language=ASDL]!datatype! and \lstinline[language=ASDL]!data! declarations in ML and Haskell. In Algol like
+languages they are equivalent to tagged \lstinline[language=ASDL]!unions! in C or variant records
+in Pascal. In class based object oriented languages sum types are equivalent
+to an abstract base class that represents the type of a family of subclasses
+one for each constructor of the type. The previous example written in ML would
+be
+\begin{quote}\begin{lstlisting}[language=SML]
+structure M =
+  struct
+    datatype sexpr
+      = Int of (int)
+      | String of (string)
+      | Symbol of (identifier)
+      | Cons of (sexpr * sexpr)
+      | Nil
+  end
+\end{lstlisting}\end{quote}%
+and in \Cplusplus{} it translates to
+\begin{quote}\begin{lstlisting}[language=c++]
+namespace M {
+
+    struct sexpr {
+        enum tag {
+            _Int, _String, _Symbol, _Cons, _Nil
+        };
+        tag _tag;
+        sexpr (tag t) : _tag(t) { }
+        virtual ~sexpr ();
+    };
+
+    struct Int : public sexpr {
+        int _v1;
+        Int (int v) : sexpr(sexpr::_Int), _v1(v) { }
+        ~Int () { }
+    };
+
+    struct String : public sexpr {
+        std::string _v1;
+        String (const char *v) : sexpr(sexpr::_String), _v1(v) { }
+        String (std::string const &v) : sexpr(sexpr::_String), _v1(v) { }
+        ~String () { }
+    };
+
+    struct Symbol : public sexpr { ... };
+
+    struct Cons : public sexpr { ... };
+
+    struct Nil : public sexpr { ... };
+
+}
+\end{lstlisting}\end{quote}%

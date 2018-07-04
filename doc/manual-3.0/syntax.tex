@@ -8,11 +8,24 @@ The syntax is described using EBNF notation.
 Literal terminals are typeset in bold and enclosed in single quotes.
 Optional terms are enclosed in square brackets and terms that are
 repeated zero or more times are enclosed in braces.
-The description is broken up in smaller subsection.
-Each subsection describes a fragment of
-the syntax and its meaning.
+Each section describes a fragment of the syntax and its meaning.
 
 \section{Lexical Tokens}
+
+The lexical conventions for \asdl{} are given in \figref{fig:lexical-syntax}.
+Notice that identifiers for types, \synt{typ-id}, are in a different
+lexical class from identifiers for constructors \synt{con-id}.
+Constructor identifiers must start with an uppercase
+letter, while type identifiers must begin with a lowercase letter.
+Comments begin with ``\lstinline[language=ASDL]!--!''
+and continue to the end of the line.
+
+Verbatim text is denoted by \synt{text} and can be specified in one of two ways.
+Either by an initial ``\lstinline!:!'' followed by a sequence of \synt{text-character}s that
+continues to the end of the line or by a ``\lstinline!%%!'' terminated by a ``\lstinline!%%!''
+at the beginning of a line by itself. 
+Text include using the ``\lstinline!:!'' notation will have trailing and leading 
+whitespace removed.
 
 \begin{figure}[t]
   \begin{quote}
@@ -30,26 +43,57 @@ the syntax and its meaning.
       <con-id>    ::= <upper> \{ <alpha-num> \}
 
       <id>        ::= <typ-id> | <con-id>
+
+      <comment>   ::= `--' <text-character> <end-of-line>
+
+      <text>      ::= `:' \{ <text-character> \} <end-of-line>
+               \alt{} `\%\%' \{ <text-character> | <end-of-line> \} <end-of-line> `\%\%'
     \end{grammar}
   \end{quote}
   \caption{Lexical rules for \asdl{} terminals}
   \label{fig:lexical-syntax}
 \end{figure}%
 
-Notice that identifiers for types, \synt{typ-i}, are in a different
-lexical class from identifiers for constructors
-\synt{con-id}. Constructor identifiers must start with one uppercase
-letter, while type identifiers must begin with one lowercase
-letter. All identifiers must begin with a letter.  Comments (not shown
-in the above syntax) begin with ``\lstinline[language=ASDL]!--!''
-and continue to the end of the line.
+\section{File Syntax}
 
-\section{Module Syntax}
+An \asdl{} file consists of one or more \synt{definition}s possibly preceded by \lit{include}
+directives.
+A definition specifies either a module (see \secref{sec:module-syntax}),
+primitive module (see \secref{sec:primitive-syntax}),
+or view (see \secref{sec:view-syntax}).
+
+Include directives allow one to split a large \asdl{} specification into multiple files,
+while allowing \asdlgen{} to check references from one module to another.
+\asdlgen{} will parse included files, but will not generate code for the definitions in included
+files.
+Also, included files will only be parsed once.
 
 \begin{figure}[t]
   \begin{quote}
     \begin{grammar}
-      <module>  ::=  `module' <id> [ <imports> ] `{' <definitions> `}'
+      <file>  ::=  \{ `include' <text> \} <definition> \{ <definition> \}
+      
+      <definition> ::= <module>
+        \alt{} <primitive-module>
+        \alt{} <view>
+    \end{grammar}
+  \end{quote}
+  \caption{\asdl{} file syntax}
+  \label{fig:file-syntax}
+\end{figure}%
+
+\section{Module Syntax}
+\label{sec:module-syntax}
+
+\figref{fig:module-syntax} gives the syntax for modules.
+An \asdl{} module declaration consists of the keyword \lit{module}
+followed by an identifier, an optional set of imported modules, and a
+sequence of type definitions enclosed in braces.
+
+\begin{figure}[t]
+  \begin{quote}
+    \begin{grammar}
+      <module>  ::=  `module' <id> [ <imports> ] `{' \{ <type-definition> \} `}'
 
       <imports> ::=  `(' \{ `imports' <id> \} `)'
     \end{grammar}
@@ -58,9 +102,7 @@ and continue to the end of the line.
   \label{fig:module-syntax}
 \end{figure}%
 
-An ASDL module declaration consists of the keyword \lit{module}
-followed by an identifier, an optional set of imported modules, and a
-sequence of type definitions enclosed in braces. For example the
+For example the
 following example declares modules \lstinline[language=ASDL]!A!,
 \lstinline[language=ASDL]!B!, and \lstinline[language=ASDL]!C!.
 \lstinline[language=ASDL]!B! imports types from \lstinline[language=ASDL]!A!.
@@ -69,12 +111,12 @@ following example declares modules \lstinline[language=ASDL]!A!,
 Imports cannot be recursive; for example, it is an error for \lstinline[language=ASDL]!B! to
 import \lstinline[language=ASDL]!C!, since \lstinline[language=ASDL]!C!
 imports \lstinline[language=ASDL]!B!.
-\begin{quote}\begin{lstlisting}[language=ASDL]
+\begin{code}\begin{lstlisting}[language=ASDL]
  module A { ... } 
  module B (imports A) { ... }
  module C (imports A 
            imports B) { ... }
-\end{lstlisting}\end{quote}% 
+\end{lstlisting}\end{code}% 
 
 To refer to a type imported from another module the type must
 \emph{always} be qualified by the module name from which it is
@@ -84,17 +126,17 @@ One in module \texttt{A} and one in module \texttt{B}.
 The type ``\texttt{t}'' in module \texttt{B} defines a type ``\texttt{t}'' that
 recursively mentions itself and also references the type ``\texttt{t}'' imported
 from module \texttt{A}.
-\begin{quote}\begin{lstlisting}[language=ASDL]
+\begin{code}\begin{lstlisting}[language=ASDL]
 module A { t = ... } 
 module B (imports A) { t = T(A.t, t) | N  ... }
-\end{lstlisting}\end{quote}% 
+\end{lstlisting}\end{code}% 
 
 \section{Type Definitions}
 
 \begin{figure}[t]
   \begin{quote}
     \begin{grammar}
-      <definitions>  ::=  \{ <typ-id> `=' <type> \}
+      <type-definition>  ::=  <typ-id> `=' <type>
 
       <type>         ::= <sum-type> | <product-type>
 
@@ -106,7 +148,7 @@ module B (imports A) { t = T(A.t, t) | N  ... }
 
       <fields>       ::= `(' \{ <field>  `,' \} <field> `)'
 
-      <field>        ::= [ id `.' ] <typ-id> [`?' | `*' ]  [ <id> ]
+      <field>        ::= [ <id> `.' ] <typ-id> [`?' | `*' ]  [ <id> ]
     \end{grammar}
   \end{quote}
   \caption{\asdl{} type definition syntax}
@@ -127,24 +169,30 @@ sum types, product types cannot form recursive type definitions, but they can
 contain recursively declared sum types.
 
 \subsection{Primitive Types}
-There are six primitive types in ASDL. They are
-\lstinline!bool!, \lstinline!int!, \lstinline!uint!, \lstinline!integer!, \lstinline!string!,
-and \lstinline!identifier!.
-The \lstinline!int! and \lstinline!uint! types support 30 bits of signed and unsigned precision
-for small integer values, while the \lstinline!integer! type supports arbitrary precision
-integer values.
-The \lstinline!string! type represents length encoded strings of bytes.
-The \lstinline[language=ASDL]!identifier! type represents
-atomic printable names, which support fast equality testing, analogous to
-LISP symbols.
+There are seven primitive types in ASDL:
+\begin{description}
+  \item[\normalfont\texttt{\color{\cdColor}bool}] describes Boolean values.
+  \item[\normalfont\texttt{\color{\cdColor}int}] describes signed-integer values that are representable in 30 bits
+    (\ie{}, in the range ${-}2^{29}$ to~\mbox{$2^{29}-1$}).
+  \item[\normalfont\texttt{\color{\cdColor}uint}] describes unsigned-integer values that representable in 30 bits
+    (\ie{}, in the range $0$ to~$2^{30}-1$).
+  \item[\normalfont\texttt{\color{\cdColor}integer}] describes arbitrary precision signed-integer values.
+  \item[\normalfont\texttt{\color{\cdColor}natural}] describes arbitrary precision unsigned-integer values.
+  \item[\normalfont\texttt{\color{\cdColor}string}] describes length encoded strings of 8-bit characters.
+  \item[\normalfont\texttt{\color{\cdColor}identifier}] describes strings with fast equality testing
+    analogous to Lisp symbols.
+\end{description}%
+
+In addition, the \lstinline!StdTypes! module defines additional fixed-precision numeric types
+that can be used when necessary (\eg{}, \lstinline!StdTypes.int32!).
 
 \subsection{Product Types}
 Product types are record or tuple declarations. They consist of a non-empty 
 sequence of fields separated by commas enclosed in parenthesis. For
 example 
-\begin{quote}\begin{lstlisting}[language=ASDL] 
+\begin{code}\begin{lstlisting}[language=ASDL] 
 pair_of_ints = (int, int) 
-\end{lstlisting}\end{quote}% 
+\end{lstlisting}\end{code}% 
 declares a new type \lstinline[language=ASDL]!pair_of_ints! that consists of two integers.
 
 \subsection{Sum Types}
@@ -159,7 +207,7 @@ Constructor names must be unique within the module in which they are
 declared. Constructors can be viewed as functions who take some number of
 arguments of arbitrary type and create a value belonging to the sum type in
 which they are declared. For example
-\begin{quote}\begin{lstlisting}[language=ASDL]
+\begin{code}\begin{lstlisting}[language=ASDL]
 module M {
   sexpr = Int(int)
 	| String(string)
@@ -167,7 +215,7 @@ module M {
 	| Cons(sexpr, sexpr)
 	| Nil
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 declares that values of type \lstinline[language=ASDL]!sexpr! can either be constructed from an
 \lstinline[language=ASDL]!int! using the \lstinline[language=ASDL]!Int! constructor or a \lstinline[language=ASDL]!string! from a \lstinline[language=ASDL]!String!
 constructor, an \lstinline[language=ASDL]!identifier! using the \lstinline[language=ASDL]!Symbol! constructor, or from
@@ -177,62 +225,6 @@ recursively refers to the \lstinline[language=ASDL]!sexpr! type. ASDL allows sum
 mutually recursive. Recursion however is limited to sum types defined within
 the same module.
 
-\subsubsection{The Rosetta Stone for Sum Types}
-\label{sec:rosetta-stone}
-
-In languages that have algebraic data types sum types are equivalent to the
-\lstinline[language=ASDL]!datatype! and \lstinline[language=ASDL]!data! declarations in ML and Haskell. In Algol like
-languages they are equivalent to tagged \lstinline[language=ASDL]!unions! in C or variant records
-in Pascal. In class based object oriented languages sum types are equivalent
-to an abstract base class that represents the type of a family of subclasses
-one for each constructor of the type. The previous example written in ML would
-be
-\begin{quote}\begin{lstlisting}[language=SML]
-structure M =
-  struct
-    datatype sexpr
-      = Int of (int)
-      | String of (string)
-      | Symbol of (identifier)
-      | Cons of (sexpr * sexpr)
-      | Nil
-  end
-\end{lstlisting}\end{quote}%
-and in \Cplusplus{} it translates to
-\begin{quote}\begin{lstlisting}[language=c++]
-namespace M {
-
-    struct sexpr {
-        enum tag {
-            _Int, _String, _Symbol, _Cons, _Nil
-        };
-        tag _tag;
-        sexpr (tag t) : _tag(t) { }
-        virtual ~sexpr ();
-    };
-
-    struct Int : public sexpr {
-        int _v1;
-        Int (int v) : sexpr(sexpr::_Int), _v1(v) { }
-        ~Int () { }
-    };
-
-    struct String : public sexpr {
-        std::string _v1;
-        String (const char *v) : sexpr(sexpr::_String), _v1(v) { }
-        String (std::string const &v) : sexpr(sexpr::_String), _v1(v) { }
-        ~String () { }
-    };
-
-    struct Symbol : public sexpr { ... };
-
-    struct Cons : public sexpr { ... };
-
-    struct Nil : public sexpr { ... };
-
-}
-\end{lstlisting}\end{quote}%
-
 \subsubsection{Sum Types as Enumerations}
 \label{sec:enumerations}
 
@@ -241,21 +233,21 @@ are often treated specially and translated into static constants of a
 enumerated value in languages that support them.
 For example, the following \asdl{} specification:
 %
-\begin{quote}\begin{lstlisting}[language=ASDL]
+\begin{code}\begin{lstlisting}[language=ASDL]
 module Op {
   op = PLUS | MINUS | TIMES | DIVIDE 
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 %
 Is translated into \Cplusplus{} as follows:
 %
-\begin{quote}\begin{lstlisting}[language=c++]
+\begin{code}\begin{lstlisting}[language=c++]
 namespace M {
-    enum op {
+    class enum op {
         PLUS, MINUS, TIMES, DIVIDE
     };
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 
 \subsection{Field Labels}
 Field declarations can be as simple as a single type identifier, or they can
@@ -266,23 +258,23 @@ Labels aid in the readability of
 descriptions and are used by \asdlgen{} to name the fields of records
 and classes for languages.
 For example the declarations
-\begin{quote}\begin{lstlisting}[language=ASDL]
+\begin{code}\begin{lstlisting}[language=ASDL]
 module Tree {
   tree = Node(int, tree, tree)
        | EmptyTree
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 can also be written as
-\begin{quote}\begin{lstlisting}[language=ASDL]
+\begin{code}\begin{lstlisting}[language=ASDL]
 module Tree {
   tree = Node(int value, tree left, tree right)
        | EmptyTree
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 
 When translating the first definition without labels 
 into \Cplusplus{} one would normally get
-\begin{quote}\begin{lstlisting}[language=c++]
+\begin{code}\begin{lstlisting}[language=c++]
 namespace Tree {
 
     class tree {
@@ -313,9 +305,9 @@ namespace Tree {
         ~EmptyTree () { }
     };
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 with labels one would get
-\begin{quote}\begin{lstlisting}[language=c++]
+\begin{code}\begin{lstlisting}[language=c++]
 namespace Tree {
 
     ...
@@ -331,7 +323,7 @@ namespace Tree {
     
     ...
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 
 For the \sml{} target, product types without labels are translated to tuples, while those with
 labels are translated to 
@@ -351,12 +343,13 @@ type in \sml{}.
 %and sequence types in languages that do not have parametric polymorphism. 
 %See \chapref{chap:invocation} for details.
 
-\subsection{Attributes}
-Sum types may optionally be followed by a set of
-attributes.
-Attributes provide notation for fields common to all the
-constructors in the sum type. 
-\begin{quote}\begin{lstlisting}[language=ASDL]
+\subsection{Attribute Fields}
+Sum types may optionally be followed by a list of attribute fields, which
+provide a concise way to specify fields that are common to all of the constructors
+of a sum type.
+For example, the definition
+%
+\begin{code}\begin{lstlisting}[language=ASDL]
 module M {
   pos = (string file, int linenum, int charpos)
   sexpr = Int(int)
@@ -364,16 +357,33 @@ module M {
 	| Symbol(identifier)
 	| Cons(sexpr, sexpr)
 	| Nil
-        attribute(pos p)
+        attribute(pos)
 }
-\end{lstlisting}\end{quote}%
-adds a field of type \lstinline[language=ASDL]!pos! with label \lstinline[language=ASDL]!p! to all the constructors in \lstinline[language=ASDL]!sexpr!.
-Attribute fields are treated specially when
-translated.
+\end{lstlisting}\end{code}%
+adds a field of type \lstinline[language=ASDL]!pos! to all the constructors
+in \lstinline[language=ASDL]!sexpr!.
+One can think of an \lstinline!attribute! annotation as syntactic sugar for just including
+the extra fields at the \emph{beginning} of each constructor's fields.
+For example, the above definition can be viewed as syntactic sugar for
+%
+\begin{code}\begin{lstlisting}[language=ASDL]
+module M {
+  pos = (string file, int linenum, int charpos)
+  sexpr = Int(pos, int)
+	| String(pos, string)
+	| Symbol(pos, identifier)
+	| Cons(pos, sexpr, sexpr)
+	| Nil(pos)
+}
+\end{lstlisting}\end{code}%
+Note that this interpretation implies that attribute fields are labeled if, and only if, all
+of the constructor fields are labeled.
+
+Attribute fields are treated specially when translating to some targets.
 For example in \Cplusplus{} code the attribute field is defined in the base class for the sum type.
 
 \section{Primitive Modules}
-\label{sec:primitive-module}
+\label{sec:primitive-syntax}
 
 \begin{figure}[t]
   \begin{quote}
@@ -410,7 +420,7 @@ In \sml{}, we would define three modules:
     and writing GUIDs on binary I/O streams.
 \end{enumerate}%
 The \sml{} implementation of these modules could be written as follows:
-\begin{quote}\begin{lstlisting}[language=SML]
+\begin{code}\begin{lstlisting}[language=SML]
 structure PrimPickle : sig
     type guid
   end = struct
@@ -444,7 +454,7 @@ structure PrimPickleIO : sig
 	      (* end case *))
     fun guidOutput (strm, g) = BinIO.output(strm, GUID.toBytes g)
   end
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 (assuming that the \lstinline!GUID! module implements the application's representation
 of GUIDs).
 
@@ -455,7 +465,7 @@ all be in a \lstinline[language=c++]!namespace! with the type name of the primit
 For example, the module from above would require the provision of a \texttt{Prim.hxx} header
 file that contained something like the following code:
 %
-\begin{quote}\begin{lstlisting}[language=c++]
+\begin{code}\begin{lstlisting}[language=c++]
 #include <iostream>
 #include "guid.hxx"
 
@@ -467,7 +477,7 @@ namespace Prim {
     std::ostream &operator<< (std::ostream &os, guid const &g);
 
 }
-\end{lstlisting}\end{quote}%
+\end{lstlisting}\end{code}%
 (assuming that the \texttt{guid.hxx} header defines the application's representation
 of GUIDs).
 %For the \Cplusplus{} target, one should use string streams (in binary mode)
@@ -475,116 +485,131 @@ of GUIDs).
 
 
 \section{View Syntax}
+\label{sec:view-syntax}
+
+A view defines how an \asdl{} specification is translated to a target.
+Each of the supported targets (\eg{}, \sml{} or \Cplusplus{}) has a default
+view, but it is possible to customize the translation using \synt{view}
+definitions.
+The syntax of view declarations is given in \figref{fig:view-syntax}.
+This section covers the syntax of views, but leaves the semantics to
+\chapref{chap:views}.
 
 \begin{figure}[t]
   \begin{quote}
     \begin{grammar}
       <view>        ::= `view' <id> `{' \{ <view-entry> \} `}'
 
-      <view-entry>  ::= <view-entity>  `<=' <id> <lit-txt>
-         \alt{} `{' {<view-entity>} `}' `<=' <id> <lit-txt>
-         \alt{} `<=' <id> `{' \{ <view-entity> <lit-txt> \} `}'
-         \alt{} <view-entity> `<=' `{' \{ <id> <lit-txt> \} `}'
+      <view-entry>  ::= <view-entity>  `<=' <id> <text>
+         \alt{} `{' {<view-entity>} `}' `<=' <id> <text>
+         \alt{} `<=' <id> `{' \{ <view-entity> <text> \} `}'
+         \alt{} <view-entity> `<=' `{' \{ <id> <text> \} `}'
 
       <view-entity> ::= <id> `.' <typ-id>
          \alt{} <id> `.' <con-id>
          \alt{} `module' <id>
-
-      <lit-txt>     ::= <see discussion below>
-    \end{grammar}
-  \end{quote}
+    \end{grammar}%
+  \end{quote}%
   \caption{\asdl{} view syntax}
   \label{fig:view-syntax}
 \end{figure}%
 
-Views are an extensible system of annotating modules, types, and
-constructors to aid in the conversion of ASDL declarations into a
-particular output language.
-The syntax of view declarations is given in \figref{fig:view-syntax}.
-This section covers the syntax of views, but leaves the semantics to
-\chapref{chap:views}.
-
-\subsection{Basic Syntax}
+\subsection{Basic View Syntax}
 Views are named and consist of series of entries.
-Each entry conceptually
-begins with a fully qualified type, constructor, or module name. Following
-that name is a key value pair.
-The meaning of the entry is to add a
-particular key value pair into an internal table associated with the type,
-constructor, or module.
-The type, constructor or module is referred to as
-the view entity the key is referred to as the view property.
-The value is an arbitrary string.
-In the grammar above the arbitrary string is represented
-by the \synt{lit-txt} non-terminal, where \synt{lit-txt} is either a ``\lstinline!:!''
-followed by some arbitrary text that continues to the end of the line or a
-``\lstinline!%%!'' terminated by a ``\lstinline!%%!'' at the beginning of a line by itself. 
-Text include using the ``\lstinline!:!'' notation will have trailing and leading 
-whitespace removed. For example
+In its basic form, a view entry begins with a fully qualified type, constructor, or module name (
+a \synt{view-entity}), followed by a name-value pair (the view property).
 %
-\begin{quote}\begin{lstlisting}[language=ASDL]
-view Doc {
-  module  M <= doc_string
-%%
-  Types for representing LISP s-expressions.
-%%
-  M.sexpr  <= doc_string : s-expressions 
-  M.Int    <= doc_string : s-expression constructor
-  M.Symbol <= doc_string : s-expression constructor
-  M.Cons   <= doc_string : s-expression constructor
-  M.Nil    <= doc_string : s-expression constructor
-}
-
-view Java {
- M.sexpr <= source_name : Sexpr
- M.sexpr <= base_class  : MyClass
-}
-\end{lstlisting}\end{quote}%
+\begin{quote}\begin{grammar}
+  <view-entry>  ::= <view-entity> `<=' <id> <text>
+\end{grammar}\end{quote}%
 %
-associates with the module \lstinline[language=ASDL]!M! the type
-\lstinline[language=ASDL]!M.sexpr! and the
-constructor \lstinline[language=ASDL]!M.Int!
-strings that will be added to the automatically generated documentation
-produced by the \texttt{--doc} command of \asdlgen{}.
-(\emph{In future we will probably dump them in comments in the output code too.})
-The view named \lstinline[language=ASDL]!Java! causes the type
-\lstinline[language=ASDL]!M.sexpr! to be renamed \lstinline[language=ASDL]!Sexpr! when
-generating Java output, and causes the abstract class normally generated to
-inherit from \lstinline[language=ASDL]!MyClass!. 
+The meaning of an entry is to associate the specified view property with the specified view entity.
+%%
+%\begin{code}\begin{lstlisting}[language=ASDL]
+%view Doc {
+%  module  M <= doc_string
+%%%
+%  Types for representing LISP s-expressions.
+%%%
+%  M.sexpr  <= doc_string : s-expressions 
+%  M.Int    <= doc_string : s-expression constructor
+%  M.Symbol <= doc_string : s-expression constructor
+%  M.Cons   <= doc_string : s-expression constructor
+%  M.Nil    <= doc_string : s-expression constructor
+%}
+%
+%view Java {
+% M.sexpr <= source_name : Sexpr
+% M.sexpr <= base_class  : MyClass
+%}
+%\end{lstlisting}\end{code}%
+%%
+%associates with the module \lstinline[language=ASDL]!M! the type
+%\lstinline[language=ASDL]!M.sexpr! and the
+%constructor \lstinline[language=ASDL]!M.Int!
+%strings that will be added to the automatically generated documentation
+%produced by the \texttt{--doc} command of \asdlgen{}.
+%(\emph{In future we will probably dump them in comments in the output code too.})
+%The view named \lstinline[language=ASDL]!Java! causes the type
+%\lstinline[language=ASDL]!M.sexpr! to be renamed \lstinline[language=ASDL]!Sexpr! when
+%generating Java output, and causes the abstract class normally generated to
+%inherit from \lstinline[language=ASDL]!MyClass!. 
 
-There can be many views with the same name. The entries of two views
-with the same name are merged and consist of the union of the entries
-in both. It is an error, for two views of the same name to assign
-different values to the same property of an entity. \emph{Currently
-this error isn't checked for so you randomly get one or the other.}
+There can be many views with the same name.
+The entries of two views with the same name are merged and consist of the
+union of the entries in both.
+It is an error, for two views of the same name to assign different values
+to the same property of an entity.
 
-\subsection{Sugared Syntax}
-The above example shows only the simplest syntax to define view entries.
-There are also three sugared versions that remove some of the redundancy of the simple
-syntax. The first sugared version allows the assignment of the same
-property value pair to a set of entities. The next sugared version allows
+\subsection{View Entry Derived Forms}
+To make it easier to specify view entries, \asdl{} includes three derived forms
+to remove some of the redundancy of the basic syntax.
+
+The first derived form allows the assignment of a view property to a set
+of view entities.
+%
+\begin{quote}\begin{grammar}
+  <view-entry> ::= `{' {<view-entity>} `}' `<=' <id> <text>
+\end{grammar}\end{quote}%
+%
+
+The second derived form allows
 assigning to different entities different values for a fixed property.
-The final sugared version allows the assignment of different property
-value pairs to the same entity. Examples of the sugared notation are shown
-below in their respective order.
-\begin{quote}\begin{lstlisting}[language=ASDL]
-view Doc {
- { M.Int  M.Symbol  
-   M.Cons M.Nil } <= doc_string : s-expression constructor
+%
+\begin{quote}\begin{grammar}
+  <view-entry> ::= `<=' <id> `{' \{ <view-entity> <text> \} `}'
+\end{grammar}\end{quote}%
+%
+Here the property name is given first, followed by a sequence of view-entity-value pairs.
 
- <= doc_string {
-  module  M 
-%%
-  Types for representing LISP s-expressions.
-%%
-  M.sexpr : s-expressions 
-  }
-}
+The final derived form allows the assignment of multiple properties
+to the same entity.
+%
+\begin{quote}\begin{grammar}
+  <view-entry> ::= <view-entity> `<=' `{' \{ <id> <text> \} `}'
+\end{grammar}\end{quote}%
+%
 
-view Cxx {
- M.sexpr <= {
-   source_name : Sexpr
-   base_class  : MyClass
- }
-}
-\end{lstlisting}\end{quote}%
+%Examples of the sugared notation are shown
+%below in their respective order.
+%\begin{code}\begin{lstlisting}[language=ASDL]
+%view Doc {
+% { M.Int  M.Symbol  
+%   M.Cons M.Nil } <= doc_string : s-expression constructor
+%
+% <= doc_string {
+%  module  M 
+%%%
+%  Types for representing LISP s-expressions.
+%%%
+%  M.sexpr : s-expressions 
+%  }
+%}
+%
+%view Cxx {
+%  M.sexpr <= {
+%    source_name : Sexpr
+%    base_class  : MyClass
+%  }
+%}
+%\end{lstlisting}\end{code}%
