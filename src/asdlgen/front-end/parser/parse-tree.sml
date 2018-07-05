@@ -15,10 +15,10 @@ structure ParseTree =
 
     val topId = Atom.atom "<top>"
 
-    datatype file = {
-	includes : string mark list,
-	decls : decl list
-      }
+    datatype file = File of {
+	  includes : string mark list,
+	  decls : decl list
+	}
 
     and decl
       = D_Mark of decl mark
@@ -71,11 +71,16 @@ structure ParseTree =
     and tycon = Optional | Sequence | Shared
 
     and view_entry
-      = ViewEnt_Mark of view_entry mark
-      | ViewEnt of {
-	    entity : id list,
-	    prop : id,
-	    value : string mark
-	  }
+      = VEntry_Mark of view_entry mark
+      | VEntry of view_entity list * view_property list
+      | VEntry_Multiple of id * (view_entity * string mark) list
+
+    and view_entity
+      = VEntity_Mark of view_entity mark
+      | VEntity of id list
+
+    and view_property
+      = VProp_Mark of view_property mark
+      | VProp of id * string mark
 
   end

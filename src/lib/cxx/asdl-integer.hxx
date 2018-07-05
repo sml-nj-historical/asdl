@@ -25,6 +25,7 @@ namespace asdl {
 	integer (uint32_t a);
 	integer (int64_t a);
 	integer (uint64_t a);
+
 	~integer () { mpz_clear(this->_rep); }
 
 	int toInt ();

@@ -20,6 +20,7 @@ structure CxxGenerate : sig
 
   (* generate code for a constructor *)
     fun defConstr view tyName (cons, cd : code) = let
+
 	(* the class definition for the constructor *)
 	  val cls = CL.D_ClassDef{
 		  name = Cons.nameOf(view, cons),

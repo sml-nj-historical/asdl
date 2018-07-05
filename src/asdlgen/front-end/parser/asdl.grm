@@ -13,7 +13,7 @@
 %tokens
     : KW_alias			("alias")
     | KW_attributes		("attributes")
-    | KW_imports		("import")
+    | KW_import 		("import")
     | KW_include		("include")
     | KW_module			("module")
     | KW_primitive		("primitive")
@@ -38,7 +38,7 @@
     | UID of Atom.atom		(* upper-case identifier *)
     ;
 
-%keywords KW_alias, KW_attributes, KW_imports, KW_module, KW_primitive, KW_view;
+%keywords KW_alias, KW_attributes, KW_import, KW_include, KW_module, KW_primitive, KW_view;
 
 %defs (
   structure PT = ParseTree
@@ -50,6 +50,7 @@
   val moduleId = Atom.atom "module"
   val primitiveId = Atom.atom "primitive"
   val viewId = Atom.atom "view"
+  val starId = Atom.atom "*"
 
 (* apply a mark constructor to a span and a tree *)
   fun mark cons (span : AntlrStreamPos.span, tr) = cons{span = span, tree = tr}
@@ -58,7 +59,8 @@
 );
 
 Root
-	: Include* MarkDecl+	=> (PT.File(Include, MarkDecl))
+	: Include* MarkDecl+
+		=> (PT.File{includes = Include, decls = MarkDecl})
 	;
 
 Include
@@ -75,7 +77,7 @@ Decl
 	| "primitive" "module" Id "{" Id* "}"
 		=> (PT.D_Primitive{name = Id1, exports = Id2})
 	| "view" Id "{" MarkViewEntry* "}"
-		=> (PT.D_View{name = Id, entries = List.concat MarkViewEntry})
+		=> (PT.D_View{name = Id, entries = MarkViewEntry})
 	;
 
 ModuleId
@@ -154,69 +156,76 @@ TyCon
 (* we allow keywords to be used as identifiers *)
 Id	: LID			=> (markId (FULL_SPAN, LID))
 	| UID			=> (markId (FULL_SPAN, UID))
-	| Keyword		=> (Keyword)
+	| Keyword		=> (markId (FULL_SPAN, Keyword))
 	;
 
 TyId	: LID			=> (markId (FULL_SPAN, LID))
-	| Keyword		=> (Keyword)
+	| Keyword		=> (markId (FULL_SPAN, Keyword))
 	;
 
 ConId	: UID			=> (markId (FULL_SPAN, UID))
 	;
 
-Keyword	: "alias"		=> (markId (FULL_SPAN, aliasId))
-	| "attributes"		=> (markId (FULL_SPAN, attributesId))
-	| "import"		=> (markId (FULL_SPAN, importId))
-	| "include"		=> (markId (FULL_SPAN, includeId))
-	| "module"		=> (markId (FULL_SPAN, moduleId))
-	| "primitive"		=> (markId (FULL_SPAN, primitiveId))
-	| "view"		=> (markId (FULL_SPAN, viewId))
+Keyword	: "alias"		=> (aliasId)
+	| "attributes"		=> (attributesId)
+	| "import"		=> (importId)
+	| "include"		=> (includeId)
+	| "module"		=> (moduleId)
+	| "primitive"		=> (primitiveId)
+	| "view"		=> (viewId)
 	;
 
 MarkViewEntry
-	: ViewEntry		=> (List.map
-				      (fn ve => mark PT.ViewEnt_Mark (FULL_SPAN, ve))
-					ViewEntry)
+	: ViewEntry		=> (mark PT.VEntry_Mark (FULL_SPAN, ViewEntry))
 	;
 
 ViewEntry
-	: ViewEntity "<=" ViewProps
-		=> (List.map
-		      (fn (prop, code) => PT.ViewEnt{
-			  entity=ViewEntity, prop=prop, value=code
-			})
-			ViewProps)
-	| "{" ViewEntity* "}" "<=" Id Code
-		=> (List.map
-		      (fn ve => PT.ViewEnt{entity = ve, prop = Id, value = Code})
-			ViewEntity)
+	: ViewEntities "<=" ViewProps
+		=> (PT.VEntry(ViewEntities, ViewProps))
 	| "<=" Id "{" MarkViewEntityCode* "}"
-		=> (List.map
-		      (fn (span, ve, v) =>
-			  mark PT.ViewEnt_Mark (span, PT.ViewEnt{entity=ve, prop=Id, value=v}))
-			MarkViewEntityCode)
+		=> (PT.VEntry_Multiple(Id, MarkViewEntityCode))
 	;
 
 MarkViewEntityCode
 	: ViewEntity Code
-		=> (FULL_SPAN, ViewEntity, Code)
+		=> (ViewEntity, Code)
+	;
+
+ViewEntities
+	: MarkViewEntity
+		=> ([MarkViewEntity])
+	| "{" MarkViewEntity* "}"
+		=> (MarkViewEntity)
+	;
+
+MarkViewEntity
+	: ViewEntity
+		=> (mark PT.VEntity_Mark (FULL_SPAN, ViewEntity))
 	;
 
 ViewEntity
 	: ModuleId "." Id
-		=> ([ModuleId, Id])
+		=> (PT.VEntity[ModuleId, Id])
+	| ModuleId "." Id "." "*"
+		=> (PT.VEntity[ModuleId, Id, {span = (0,0), tree = starId}])
 	| ModuleId "." Id "." Id
-		=> ([ModuleId, Id1, Id2])
+		=> (PT.VEntity[ModuleId, Id1, Id2])
 	| "module" ModuleId
-		=> ([ModuleId])
+		=> (PT.VEntity[ModuleId])
 	;
 
 ViewProps
-	: Id Code
-		=> ([(Id, Code)])
-	| "{" ( Id Code )* "}"
-		=> (SR)
+	: ViewProp
+		=> ([ViewProp])
+	| "{" ViewProp* "}"
+		=> (ViewProp)
 	;
+
+ViewProp
+	: Id Code
+		=> (mark PT.VProp_Mark (FULL_SPAN, (PT.VProp(Id, Code))))
+	;
+
 
 Code	: CODE			=> (markId (FULL_SPAN, CODE))
 	;
