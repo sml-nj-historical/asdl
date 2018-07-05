@@ -503,14 +503,18 @@ This section covers the syntax of views, but leaves the semantics to
     \begin{grammar}
       <view>        ::= `view' <id> `{' \{ <view-entry> \} `}'
 
-      <view-entry>  ::= <view-entity>  `<=' <id> <text>
-         \alt{} `{' {<view-entity>} `}' `<=' <id> <text>
+      <view-entry>  ::=  <view-entities> `<=' <view-properties>
          \alt{} `<=' <id> `{' \{ <view-entity> <text> \} `}'
-         \alt{} <view-entity> `<=' `{' \{ <id> <text> \} `}'
 
-      <view-entity> ::= <id> `.' <typ-id>
+      <view-entities> ::= <view-entity>
+         \alt{} `{' \{ <view-entity> \} `}'
+
+      <view-entity> ::= <id> `.' <typ-id> [ `.' `*' ]
          \alt{} <id> `.' <con-id>
          \alt{} `module' <id>
+
+      <view-properties> ::= <id> <text>
+          \alt{} `{' \{ <id> <text> \} `}'
     \end{grammar}%
   \end{quote}%
   \caption{\asdl{} view syntax}
@@ -519,8 +523,8 @@ This section covers the syntax of views, but leaves the semantics to
 
 \subsection{Basic View Syntax}
 Views are named and consist of series of entries.
-In its basic form, a view entry begins with a fully qualified type, constructor, or module name (
-a \synt{view-entity}), followed by a name-value pair (the view property).
+In its basic form, a view entry consists of a \synt<view-entity>, which specifies a module,
+type, or constructor, and a view property, which is a name-value pair.
 %
 \begin{quote}\begin{grammar}
   <view-entry>  ::= <view-entity> `<=' <id> <text>
@@ -558,26 +562,22 @@ The meaning of an entry is to associate the specified view property with the spe
 %generating Java output, and causes the abstract class normally generated to
 %inherit from \lstinline[language=ASDL]!MyClass!. 
 
-There can be many views with the same name.
+There can be multiple views with the same name.
 The entries of two views with the same name are merged and consist of the
 union of the entries in both.
 It is an error, for two views of the same name to assign different values
 to the same property of an entity.
 
 \subsection{View Entry Derived Forms}
-To make it easier to specify view entries, \asdl{} includes three derived forms
+To make it easier to specify view entries, \asdl{} generalizes the basic syntax
 to remove some of the redundancy of the basic syntax.
+First, it is possible to specify multiple view entities on the left-hand-side of
+the \lit{<=} symbol.
+Likewise, it is possible to specify multiple view properties on the right-hand-side
+of the \lit{<=} symbol.
 
-The first derived form allows the assignment of a view property to a set
-of view entities.
-%
-\begin{quote}\begin{grammar}
-  <view-entry> ::= `{' {<view-entity>} `}' `<=' <id> <text>
-\end{grammar}\end{quote}%
-%
-
-The second derived form allows
-assigning to different entities different values for a fixed property.
+It is also possible to assign different values to different entities for a fixed property
+using the syntax.
 %
 \begin{quote}\begin{grammar}
   <view-entry> ::= `<=' <id> `{' \{ <view-entity> <text> \} `}'
@@ -585,13 +585,8 @@ assigning to different entities different values for a fixed property.
 %
 Here the property name is given first, followed by a sequence of view-entity-value pairs.
 
-The final derived form allows the assignment of multiple properties
-to the same entity.
-%
-\begin{quote}\begin{grammar}
-  <view-entry> ::= <view-entity> `<=' `{' \{ <id> <text> \} `}'
-\end{grammar}\end{quote}%
-%
+Lastly, \asdl{} allows a \lit{.*} suffix to be added to sum-type entities.
+This suffix means that the entity specifies the set of all of the constructors of the type.
 
 %Examples of the sugared notation are shown
 %below in their respective order.
