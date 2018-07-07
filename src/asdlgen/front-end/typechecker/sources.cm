@@ -13,6 +13,9 @@ is
   $/basis.cm
   $/smlnj-lib.cm
 
+  ../common/sources.cm
   ../parser/sources.cm
 
   ast.sml
+  ident-fn.sml
+

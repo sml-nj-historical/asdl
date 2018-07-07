@@ -4,41 +4,72 @@
  * All rights reserved.
  *)
 
+local
+
+  structure ModuleId = IdentFn()
+  structure TypeId = IdentFn()
+  structure ConsId = IdentFn()
+  structure ViewId = IdentFn()
+
+(* functor to add a definition property to a IDENTIFIER structure *)
+  functor AddDefPropFn (
+      type def
+      structure Id : IDENTIFIER
+    ) = struct
+
+	type def = def
+
+	open Id
+
+	local
+	  val {setFn, peekFn : t -> def option, ...} =
+		newProp (fn id => raise Fail(concat[
+		    "no definition for '", nameOf id, "'"
+		  ]))
+	in
+	  val bind = setFn
+	  val bindingOf = peekFn
+	end (* local *)
+
+    end
+
+in
+
 structure AST =
   struct
 
     datatype module = Module of {
 	  isPrim : bool,			(* true for primitive modules *)
-	  name : string,
-	  imports : module list,
+	  id : ModuleId.t,
 	  decls : type_decl list ref
 	}
 
     and type_decl = TyDcl of {
-	  name : string,
+	  id : TypeId.t,
 	  def : ty_def ref,
 	  owner : module
 	}
 
     and named_ty
-      = BaseTy of string
-      | ImportTy of module * string
+      = BaseTy of TypeId.t
+      | ImportTy of ModuleId.t * TypeId.t
       | LocalTy of type_decl
 
     and ty_def
-      = SumTy of {
+      = EnumTy of constructor list
+      | SumTy of {
 	    attribs : field list,
 	    cons : constructor list
 	  }
       | ProdTy of {
-	    fields : field list,
+	    fields : field list
 	  }
       | PrimTy
 
     and constructor = Constr of {
-	    name : string,
+	    id : ConsId.t,
 	    owner : named_ty,
-	    fields : field list
+	    fields : field list		(* fields of the constructor (includes attribs) *)
 	  }
 
     and ty_exp
@@ -52,21 +83,16 @@ structure AST =
 	  ty : ty_exp
 	}
 
-    datatype view = View of {
-	  name : string,
-	  decls : view_decl list
-	}
+    structure ModuleId = AddDefPropFn(
+	type def = module
+	structure Id = ModuleId)
+    structure TypeId = AddDefPropFn(
+	type def = type_decl
+	structure Id = ModuleId)
+    structure ConsId = AddDefPropFn(
+	type def = constructor
+	structure Id = ModuleId)
 
-    and view_decl = VDcl of {
-	  entity : view_entity,
-	  prop : Atom.atom,
-	  value : string
-	}
+  end (* structure AST *)
 
-    and view_entity
-      = ModuleView of module
-      | TypeView of module * named_ty
-      | ConstrView of module * constructor
-      | FieldView of module * named_ty * field
-
-  end
+end (* local *)
