@@ -49,12 +49,12 @@ structure Typecheck : sig
 	  checkTopDecl (withMark (cxt, env, m))
       | checkTopDecl (cxt, env, PT.D_Module{name, imports, decls}) = (
 	  case Env.findModule(env, name)
-	   of SOME _ => (* error: duplicate module definition *)
-	    | NONE => ??
+	   of SOME _ => NONE (* error: duplicate module definition *)
+	    | NONE => checkModule (cxt, env, name, imports, decls)
 	  (* end case *))
       | checkTopDecl (cxt, env, PT.D_Primitive{name, exports}) = (
 	  case Env.findModule(env, name)
-	   of SOME _ => (* error: duplicate module definition *)
+	   of SOME _ => NONE (* error: duplicate module definition *)
 	    | NONE => ??
 	  (* end case *))
       | checkTopDecl (cxt, env, PT.D_View{name, entries}) =
@@ -74,7 +74,7 @@ structure Typecheck : sig
 	      in
 		declsRef := decls;
 		AST.ModuleId.bind(id, module);
-		module
+		SOME module
 	      end)
 	  end
 
@@ -136,6 +136,30 @@ structure Typecheck : sig
 		  (* end case *))
 	      | NONE => chkTy NONE
 	    (* end case *)
+	  end
+
+    and checkPrimModule (cxt, gEnv, name, exports) = let
+	  val id = AST.ModuleId.newPrim (Atom.toString name)
+	  in
+	    Env.withModule (gEnv, id, fn env => let
+	      val declsRef = ref[]
+	      val module = AST.Module{
+		      isPrim = true,
+		      id = id,
+		      decls = declsRef
+		    }
+(* check for duplicate exports *)
+	      fun checkExport ({span, tree}, dcls) = let
+		    val tyId = AST.TypeId.new (Atom.toString tree)
+		    in
+		      AST.TyDcl{id = tyId, def = ref PrimTy, owner = module} :: dcls
+		    end
+	      val decls = List.foldr checkExport [] decls
+	      in
+		declsRef := decls;
+		AST.ModuleId.bind(id, module);
+		SOME module
+	      end)
 	  end
 
   end
