@@ -88,10 +88,10 @@ structure AST =
 	structure Id = ModuleId)
     structure TypeId = AddDefPropFn(
 	type def = type_decl
-	structure Id = ModuleId)
+	structure Id = TypeId)
     structure ConsId = AddDefPropFn(
 	type def = constructor
-	structure Id = ModuleId)
+	structure Id = ConsId)
 
   end (* structure AST *)
 

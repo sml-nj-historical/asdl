@@ -11,8 +11,9 @@ signature IDENTIFIER =
 
     type t
 
-    val new : string -> t
+    val new : Atom.atom -> t
 
+    val atomOf : t -> Atom.atom
     val nameOf : t -> string
 
     val same : t * t -> bool
@@ -37,7 +38,7 @@ functor IdentFn () : IDENTIFIER =
   struct
 
     datatype t = ID of {
-	name : string,
+	id : Atom.atom,
 	stamp : word,
 	props : PropList.holder
       }
@@ -45,15 +46,16 @@ functor IdentFn () : IDENTIFIER =
     local
       val cnt = ref 0w0
     in
-    fun new name = let
+    fun new id = let
 	  val stamp = !cnt
 	  in
 	    cnt := stamp + 0w1;
-	    ID{name = name, stamp = stamp, props = PropList.newHolder()}
+	    ID{id = id, stamp = stamp, props = PropList.newHolder()}
 	  end
     end (* local *)
 
-    fun nameOf (ID{name, ...}) = name
+    fun atomOf (ID{id, ...}) = id
+    fun nameOf (ID{id, ...}) = Atom.toString id
 
     fun same (ID{stamp=a, ...}, ID{stamp=b, ...}) = (a = b)
 
