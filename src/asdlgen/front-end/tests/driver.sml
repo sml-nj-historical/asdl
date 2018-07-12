@@ -33,7 +33,9 @@ structure Driver : sig
 	      else let
 		val {modules} = Typecheck.check parseTree
 		in
-		  anyErrors parseTree
+		  if (anyErrors parseTree)
+		    then true
+		    else (PPAST.output (TextIO.stdOut, modules); false)
 		end
 	  end
 

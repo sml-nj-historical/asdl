@@ -262,7 +262,11 @@ structure Typecheck : sig
    *)
     and checkFields (cxt, env, attribs, fields) = let
 	  fun chkField (cxt, PT.Field_Mark m) = chkField (withMark' (cxt, m))
-	    | chkField (cxt, PT.Field{module, typ, tycon, label}) = raise Fail "FIXME"
+	    | chkField (cxt, PT.Field{module, typ, tycon, label}) = let
+		val ty = checkTy (cxt, env, module, typ, tycon)
+		in
+		  {label = Option.map (Atom.toString o #tree) label, ty = ty}
+		end
 	  in
 (* FIXME: check for duplicate field names *)
 	    attribs @ List.map (fn fld => chkField (cxt, fld)) fields

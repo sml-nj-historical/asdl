@@ -12,9 +12,11 @@ is
 
   $/basis.cm
   $/smlnj-lib.cm
+  $/pp-lib.cm
 
   ../common/sources.cm
   ../parser/sources.cm
   ../typechecker/sources.cm
 
   driver.sml
+  pp-ast.sml
