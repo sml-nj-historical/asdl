@@ -79,7 +79,7 @@ structure Typecheck : sig
 		      decls = declsRef
 		    }
 	    (* first pass over decls defines mapping to type Ids *)
-	      val tyIds = List.map (fn dcl => bindTyDecl (cxt, env, dcl)) decls
+	      val tyIds = List.map (fn dcl => bindTyDecl (cxt, env, module, dcl)) decls
 	      val decls = ListPair.mapPartial
 		    (fn (tyId, dcl) => checkTyDecl (cxt, env, tyId, dcl))
 		      (tyIds, decls)
@@ -108,7 +108,7 @@ structure Typecheck : sig
    * defined type and add it to the environment with an empty rhs.  We return NONE if the
    * type is redefined or SOME id, where id is the type's unique Id.
    *)
-    and bindTyDecl (cxt, env, tyDcl) = let
+    and bindTyDecl (cxt, env, module, tyDcl) = let
 	(* check for possible redefination of the type *)
 	  fun chkTyRedef (cxt, name) = (case Env.findType(env, NONE, name)
 		 of SOME(AST.BaseTy _) => (
@@ -126,21 +126,23 @@ structure Typecheck : sig
 		  val dcl = AST.TyDcl{
 			  id = id,
 			  def = ref(mkDef()),
-			  owner = Env.currentModule env
+			  owner = module
 			}
 		  in
 		  (* set the type Id's binding *)
 		    AST.TypeId.bind (id, dcl);
 		  (* add the type to the module's type environment *)
 		    Env.insertType (env, name, dcl);
-		    SOME dcl
+		    SOME id
 		  end
+	  fun isNullary (PT.Cons_Mark m) = isNullary(#tree m)
+	    | isNullary (PT.Cons(_, [])) = true
+	    | isNullary _ = false
 	  in
 	    case tyDcl
-	     of PT.TD_Mark m => checkTyDecl (withMark (cxt, env, m))
+	     of PT.TD_Mark m => bindTyDecl (markCxt(cxt, #span m), env, module, #tree m)
 	      | PT.TD_Sum{name, attribs, cons} =>
-		  if List.null attribs
-		  andalso List.all (fn AST.Constr{fields=[], ...} => true |_ => false) cons
+		  if List.null attribs andalso List.all isNullary cons
 		    then bind (name, fn () => AST.EnumTy[])
 		    else bind (name, fn () => AST.SumTy{attribs=[], cons=[]})
 	      | PT.TD_Product{name, fields} => bind (name, fn () => AST.ProdTy{fields=[]})
@@ -152,13 +154,16 @@ structure Typecheck : sig
    *	- enumeration types
    *)
     and checkTyDecl (_, _, NONE, _) = NONE (* skip redefined types *)
+      | checkTyDecl (cxt, env, optTyId, PT.TD_Mark{span, tree}) =
+	  checkTyDecl (markCxt(cxt, span), env, optTyId, tree)
       | checkTyDecl (cxt, env, SOME tyId, tyDcl) = let
-	  val dcl as AST.TyDcl{def, ...} = AST.TypeId.bindingOf tyId
+	  val SOME(dcl as AST.TyDcl{def, ...}) = AST.TypeId.bindingOf tyId
+	  val owner = AST.LocalTy dcl
 	(* check for recursive product types; reports an error and returns true
          * if there is a recursive chain of product types.
          *)
 	  fun checkForRecTy tyId' = (case AST.TypeId.bindingOf tyId'
-		 of AST.TyDcl{def=ref(AST.LocalTy(AST.ProdTy{fields}))} => let
+		 of SOME(AST.TyDcl{def=ref(AST.ProdTy{fields}), ...}) => let
 		    (* check the type of a field *)
 		      fun chk {label, ty} = let
 			    fun chkId tyId'' = if AST.TypeId.same(tyId, tyId'')
@@ -183,14 +188,62 @@ structure Typecheck : sig
 		      end
 		  | _ => false
 		(* end case *))
+	(* check if a constructor has already been defined in this scope *)
+	  fun checkCons (cxt, cons) = (case Env.findCons (env, cons)
+		 of SOME _ => (
+		      err (cxt, [S "multiple definitions of constuctor '", A cons, S "'"]);
+		      true)
+		  | _ => false
+		(* end case *))
 	  in
 	    case tyDcl
-	     of PT.TD_Mark m => checkTyDecl (withMark (cxt, env, m))
-	      | PT.TD_Sum{name, attribs, cons} => (case !def
-		   of AST.EnumTy _ => raise Fail "FIXME"
-		    | AST.SumTy _ => raise Fail "FIXME"
+	     of PT.TD_Mark _ => raise Fail "impossible"
+	      | PT.TD_Sum{name, attribs, cons} => (
+		  case !def
+		   of AST.EnumTy _ => let
+		      (* check the constructors and add them to the environment *)
+			fun chkCons (cxt, PT.Cons_Mark m) = chkCons(withMark'(cxt, m))
+			  | chkCons (cxt, PT.Cons({span, tree}, _)) =
+			      if checkCons (markCxt(cxt, span), tree)
+				then NONE
+				else let
+				  val id = AST.ConsId.new tree
+				  val constr = AST.Constr{id = id, owner = owner, fields = []}
+				  in
+				    Env.insertCons (env, id);
+				    AST.ConsId.bind (id, constr);
+				    SOME constr
+				  end
+			in
+			  def := AST.EnumTy(List.mapPartial (fn cons => chkCons(cxt, cons)) cons)
+			end
+		    | AST.SumTy _ => let
+(* TODO: need to check consistency of fields *)
+		      (* check the common attributes *)
+			val attribs' = checkFields (cxt, env, [], attribs)
+		      (* check the constructors and add them to the environment *)
+			fun chkCons (cxt, PT.Cons_Mark m) = chkCons(withMark'(cxt, m))
+			  | chkCons (cxt, PT.Cons({span, tree}, fields)) =
+			      if checkCons (markCxt(cxt, span), tree)
+				then NONE
+				else let
+				  val id = AST.ConsId.new tree
+				  val fields' = checkFields (cxt, env, attribs', fields)
+				  val constr = AST.Constr{id = id, owner = owner, fields = fields'}
+				  in
+				    Env.insertCons (env, id);
+				    AST.ConsId.bind (id, constr);
+				    SOME constr
+				  end
+			in
+			  def := AST.SumTy{
+			      attribs = attribs',
+			      cons = List.mapPartial (fn c => chkCons(cxt, c)) cons
+			    }
+			end
 		    | _ => raise Fail "impossible"
-		  (* end case *))
+		  (* end case *);
+		  SOME dcl)
 	      | PT.TD_Product{name, fields} => let
 		  val fields' = checkFields (cxt, env, [], fields)
 		  val rhs = AST.ProdTy{fields = fields'}

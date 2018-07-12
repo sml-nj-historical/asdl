@@ -29,6 +29,12 @@ structure Env : sig
   (* insert a local type into the current module's type environment *)
     val insertType : t * Atom.atom * AST.type_decl -> unit
 
+  (* find a constructor in the current module's environment *)
+    val findCons : t * Atom.atom -> AST.ConsId.t option
+
+  (* insert a constructor into the current module's environment *)
+    val insertCons : t * AST.ConsId.t -> unit
+
   end = struct
 
     structure MId = AST.ModuleId
@@ -125,5 +131,14 @@ structure Env : sig
 
     fun insertType (LEnv{curMod=ModEnv{tyEnv, ...}, ...}, name, dcl) =
 	  ATbl.insert tyEnv (name, AST.LocalTy dcl)
+
+  (* find a constructor in the current module's environment *)
+    fun findCons (LEnv{curMod=ModEnv{consEnv, ...}, ...}, name) = ATbl.find consEnv name
+      | findCons _ = raise Fail "findCons applied to global environment"
+
+  (* insert a constructor into the current module's environment *)
+    fun insertCons (LEnv{curMod=ModEnv{consEnv, ...}, ...}, consId) =
+	  ATbl.insert consEnv (AST.ConsId.atomOf consId, consId)
+      | insertCons _ = raise Fail "insertCons applied to global environment"
 
   end (* structure Env *)

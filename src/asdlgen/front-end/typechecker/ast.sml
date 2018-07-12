@@ -47,7 +47,7 @@ structure AST =
     and type_decl = TyDcl of {
 	  id : TypeId.t,
 	  def : ty_def ref,
-	  owner : ModuleId.t
+	  owner : module
 	}
 
     and named_ty
