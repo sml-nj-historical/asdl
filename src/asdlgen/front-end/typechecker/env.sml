@@ -21,8 +21,13 @@ structure Env : sig
 
     val addImport : t * Atom.atom * AST.ModuleId.t -> unit
 
+    val currentModule : t -> AST.ModuleId.t
+
   (* lookup a type.  The second argument is an optional module *)
     val findType : t * AST.ModuleId.t option * Atom.atom -> AST.named_ty option
+
+  (* insert a local type into the current module's type environment *)
+    val insertType : t * Atom.atom * AST.type_decl -> unit
 
   end = struct
 
@@ -81,6 +86,9 @@ structure Env : sig
 	  end
       | withModule _ = raise Fail "withModule in local environment"
 
+    fun currentModule (LEnv{curMod=ModEnv{id, ...}, ...}) = id
+      | currentModule _ = raise Fail "currentModule in global environment"
+
     fun addImport (LEnv{imports, ...}, name, modId) = let
 	  val ModEnv{tyEnv, ...} = getEnv modId
 	(* import a type from its defining module *)
@@ -114,5 +122,8 @@ structure Env : sig
 	    | NONE => NONE
 	  (* end case *))
       | findType _ = raise Fail "findType applied to global environment"
+
+    fun insertType (LEnv{curMod=ModEnv{tyEnv, ...}, ...}, name, dcl) =
+	  ATbl.insert tyEnv (name, AST.LocalTy dcl)
 
   end (* structure Env *)

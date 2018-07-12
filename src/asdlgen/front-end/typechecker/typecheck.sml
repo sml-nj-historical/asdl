@@ -78,7 +78,11 @@ structure Typecheck : sig
 		      id = id,
 		      decls = declsRef
 		    }
-	      val decls = List.mapPartial (fn dcl => checkTyDecl (cxt, env, dcl)) decls
+	    (* first pass over decls defines mapping to type Ids *)
+	      val tyIds = List.map (fn dcl => bindTyDecl (cxt, env, dcl)) decls
+	      val decls = ListPair.mapPartial
+		    (fn (tyId, dcl) => checkTyDecl (cxt, env, tyId, dcl))
+		      (tyIds, decls)
 	      in
 		declsRef := decls;
 		AST.ModuleId.bind(id, module);
@@ -100,17 +104,103 @@ structure Typecheck : sig
 	    | NONE => err (markCxt(cxt, #span module), [S "unknown module '", I module, S "'"])
 	  (* end case *))
 
-  (* typecheck a type declaration in a module.  Things to check for:
-   *	- multiple definitions of same type name
-   *	- multiple definitions of constructor names
-   *	- enumeration types
+  (* first pass of checking a type declaration.  Here we create the unique type Id for the
+   * defined type and add it to the environment with an empty rhs.  We return NONE if the
+   * type is redefined or SOME id, where id is the type's unique Id.
    *)
-    and checkTyDecl (cxt, env, tyDcl) = let
+    and bindTyDecl (cxt, env, tyDcl) = let
+	(* check for possible redefination of the type *)
+	  fun chkTyRedef (cxt, name) = (case Env.findType(env, NONE, name)
+		 of SOME(AST.BaseTy _) => (
+		      err (cxt, [S "redefinition of primitive type '", A name, S "'"]);
+		      true)
+		  | SOME _ =>  (
+		      err (cxt, [S "redefinition of type '", A name, S "'"]);
+		      true)
+		  | NONE => false
+		(* end case *))
+	  fun bind ({span, tree=name}, mkDef) = if chkTyRedef (markCxt(cxt, span), name)
+		then NONE
+		else let
+		  val id = AST.TypeId.new name
+		  val dcl = AST.TyDcl{
+			  id = id,
+			  def = ref(mkDef()),
+			  owner = Env.currentModule env
+			}
+		  in
+		  (* set the type Id's binding *)
+		    AST.TypeId.bind (id, dcl);
+		  (* add the type to the module's type environment *)
+		    Env.insertType (env, name, dcl);
+		    SOME dcl
+		  end
 	  in
 	    case tyDcl
 	     of PT.TD_Mark m => checkTyDecl (withMark (cxt, env, m))
-	      | PT.TD_Sum{name, attribs, cons} => raise Fail "FIXME"
-	      | PT.TD_Product{name, fields} => raise Fail "FIXME"
+	      | PT.TD_Sum{name, attribs, cons} =>
+		  if List.null attribs
+		  andalso List.all (fn AST.Constr{fields=[], ...} => true |_ => false) cons
+		    then bind (name, fn () => AST.EnumTy[])
+		    else bind (name, fn () => AST.SumTy{attribs=[], cons=[]})
+	      | PT.TD_Product{name, fields} => bind (name, fn () => AST.ProdTy{fields=[]})
+	    (* end case *)
+	  end
+
+  (* typecheck a type declaration in a module.  Things to check for:
+   *	- multiple definitions of constructor names
+   *	- enumeration types
+   *)
+    and checkTyDecl (_, _, NONE, _) = NONE (* skip redefined types *)
+      | checkTyDecl (cxt, env, SOME tyId, tyDcl) = let
+	  val dcl as AST.TyDcl{def, ...} = AST.TypeId.bindingOf tyId
+	(* check for recursive product types; reports an error and returns true
+         * if there is a recursive chain of product types.
+         *)
+	  fun checkForRecTy tyId' = (case AST.TypeId.bindingOf tyId'
+		 of AST.TyDcl{def=ref(AST.LocalTy(AST.ProdTy{fields}))} => let
+		    (* check the type of a field *)
+		      fun chk {label, ty} = let
+			    fun chkId tyId'' = if AST.TypeId.same(tyId, tyId'')
+				  then (
+				    err (cxt, [
+					S "recursive product type '", S(AST.TypeId.nameOf tyId),
+					S "'"
+				      ]);
+				    true)
+				  else checkForRecTy tyId''
+			    in
+			      case ty
+			       of AST.Typ(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
+				| AST.OptTy(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
+				| AST.SeqTy(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
+				| AST.SharedTy(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
+				| _ => false
+			      (* end case *)
+			    end
+		      in
+			List.exists chk fields
+		      end
+		  | _ => false
+		(* end case *))
+	  in
+	    case tyDcl
+	     of PT.TD_Mark m => checkTyDecl (withMark (cxt, env, m))
+	      | PT.TD_Sum{name, attribs, cons} => (case !def
+		   of AST.EnumTy _ => raise Fail "FIXME"
+		    | AST.SumTy _ => raise Fail "FIXME"
+		    | _ => raise Fail "impossible"
+		  (* end case *))
+	      | PT.TD_Product{name, fields} => let
+		  val fields' = checkFields (cxt, env, [], fields)
+		  val rhs = AST.ProdTy{fields = fields'}
+		  in
+		    if checkForRecTy tyId
+		      then NONE
+		      else (
+			def := rhs;
+			SOME dcl)
+		  end
 	    (* end case *)
 	  end
 
@@ -121,6 +211,7 @@ structure Typecheck : sig
 	  fun chkField (cxt, PT.Field_Mark m) = chkField (withMark' (cxt, m))
 	    | chkField (cxt, PT.Field{module, typ, tycon, label}) = raise Fail "FIXME"
 	  in
+(* FIXME: check for duplicate field names *)
 	    attribs @ List.map (fn fld => chkField (cxt, fld)) fields
 	  end
 
@@ -166,11 +257,16 @@ structure Typecheck : sig
 		      id = id,
 		      decls = declsRef
 		    }
-(* check for duplicate exports *)
+(* FIXME: check for duplicate exports *)
 	      fun checkExport ({span, tree}, dcls) = let
 		    val tyId = AST.TypeId.new tree
+		    val dcl = AST.TyDcl{id = tyId, def = ref AST.PrimTy, owner = module}
 		    in
-		      AST.TyDcl{id = tyId, def = ref AST.PrimTy, owner = module} :: dcls
+		    (* set the type Id's binding *)
+		      AST.TypeId.bind (tyId, dcl);
+		    (* add the type to the module's type environment *)
+		      Env.insertType (env, name, dcl);
+		      dcl :: dcls
 		    end
 	      val decls = List.foldr checkExport [] exports
 	      in
