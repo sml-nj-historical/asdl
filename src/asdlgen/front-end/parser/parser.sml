@@ -88,13 +88,16 @@ structure Parser :> sig
 
     fun parse file = let
 	  val fileTbl = FileTbl.mkTable(16, Fail "file table")
-	  val files : file list ref = ref []
+	(* add a file to the file table *)
 	  fun addFile (name, path, errStrm, decls) = let
 		val file = {name = path, errStrm = errStrm, decls = decls}
 		in
 		  FileTbl.insert fileTbl (name, ());
-		  files := file :: !files
+		  file
 		end
+	(* list of included files in reverse left-to-right post-order *)
+	  val files : file list ref = ref []
+	  fun visitFile file = (files := file :: !files)
 	(* specialize resolveFile to the directory where the source file is located *)
 	  val resolveFile = resolveFile (OS.Path.dir file)
 	(* parse an included file if it has not already been parsed *)
@@ -115,15 +118,18 @@ structure Parser :> sig
 			    val errStrm = Error.mkErrStream path
 			    in
 			      case parseOne (errStrm, inStrm)
-			       of SOME(PT.File{includes, decls}) => (
+			       of SOME(PT.File{includes, decls}) => let
 				  (* add this file to the table and file list *)
-				    addFile (tree, path, errStrm, decls);
-				  (* parse included files *)
-				    List.app
-				      (parseInclude (errStrm, tree::outer))
-					includes)
+				    val file = addFile (tree, path, errStrm, decls)
+				    in
+				      (* parse included files *)
+					List.app
+					  (parseInclude (errStrm, tree::outer))
+					    includes;
+					visitFile file
+				    end
 				| NONE => (* add error placeholder *)
-				    addFile (tree, path, errStrm, [])
+				    visitFile (addFile (tree, path, errStrm, []))
 			      (* end case *)
 			    end
 		      (* end case *))

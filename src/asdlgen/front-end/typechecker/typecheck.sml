@@ -339,6 +339,8 @@ structure Typecheck : sig
 	(* check an include file *)
 	  fun checkInclude {name, errStrm, decls} =
 		List.app (fn dcl => ignore (checkTop ((errStrm, (0, 0)), env, dcl))) decls
+	(* check the includes *)
+	  val () = List.app checkInclude includes
 	(* check the ASDL specification file *)
 	  val modules = let
 		val {name, errStrm, decls} = file
