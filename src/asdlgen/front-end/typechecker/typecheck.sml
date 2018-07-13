@@ -65,7 +65,12 @@ structure Typecheck : sig
 		NONE)
 	    | NONE => checkPrimModule (cxt, env, #tree name, exports)
 	  (* end case *))
-      | checkTop (cxt, env, PT.D_View{name, entries}) = raise Fail "FIXME: view"
+      | checkTop (cxt, env, PT.D_View{name, entries}) = (
+	  case Env.findView(env, #tree name)
+	   of NONE => err (markCxt(cxt, #span name), [S "unknown view '", I name, "'"])
+	    | SOME view => checkView (cxt, env, view, entries)
+	  (* end case *);
+	  NONE)
 
     and checkModule (cxt, gEnv, name, imports, decls) = let
 	  val id = AST.ModuleId.new name
@@ -331,6 +336,83 @@ structure Typecheck : sig
 		AST.ModuleId.bind(id, module);
 		SOME module
 	      end)
+	  end
+
+  (* typecheck a view declaration *)
+    and checkView (cxt, env, view, entries) = let
+	  fun chkModule {span, tree} = (case Env.findModule(env, tree)
+		 of NONE => (
+		      err (markCxt(cxt, span), [S "unknown module '", A tree, S "'"]);
+		      NONE)
+		  | someId => someId
+		(* end case *))
+	  fun chkType (module, {span, tree}) = (case chkModule module
+		 of SOME modId => (case Env.findType (env, modId, tree)
+		       of SOME ty => SOME(modId, ty)
+			| NONE => (
+			    err (markCxt(cxt, span), [
+				S "unknown type '", I module, S ".", A tree, S "'"
+			      ]);
+			    NONE)
+		  | NONE => NONE
+		(* end case *))
+	  fun chkEntity (cxt, PT.VEntity_Mark m) = chkEntity (withMark' (cxt, m))
+	    | chkEntity (cxt, PT.VEntity_Module module) = (
+		case chkModule module
+		 of SOME modId =>
+		  | NONE => NONE
+		(* end case *))
+	    | chkEntity (cxt, PT.VEntity_Type(module, ty)) = (
+		case chkType (module, ty)
+		 of SOME(modId, ty') =>
+		  | NONE => NONE
+		(* end case *))
+	    | chkEntity (cxt, PT.VEntity_AllCons(module, ty)) = (
+		case chkType (module, ty)
+		 of SOME(modId, ty') =>
+		  | NONE => NONE
+		(* end case *))
+	    | chkEntity (cxt, PT.VEntity_Cons(module, ty, con)) = (
+		case chkType (module, ty)
+		 of SOME modId =>
+		  | NONE => NONE
+		(* end case *))
+	  fun chkPropId (cxt, {span, tree}) = (case View.findProp(view, tree)
+		 of NONE => (
+		      err (markCxt(cxt, span), [
+			  S "unknown property '", A tree, S "' for view '",
+			  S(View.nameOf view), "'"
+			]);
+		      NONE)
+		  | someProp => someProp
+		(* end case *))
+	  fun chkProperty entity = let
+		fun chk (cxt, PT.VProp_Mark m) = chk (withMark' (cxt, m))
+		  | chk (cxt, PT.VProp(key, value)) = (
+		      case chkPropId(view, entity, key)
+		       of NONE => NONE
+			| SOME prop =>
+		      (* end case *))
+		in
+		end
+	  fun chkEntry (cxt, PT.VEntry_Mark m) = chkEntry (withMark' (cxt, m))
+	    | chkEntry (cxt, PT.VEntry(es, props)) = let
+	      (* first check the entities *)
+		val es' = List.mapPartial (fn e => chkEntity (cxt, e)) es
+		in
+		(* for each entity, check each property *)
+		  List.app (fn e => chkProperty e (cxt, p)) props
+		end
+	    | chkEntry (cxt, PT.VEntry_Multiple(propId, keyValues)) = let
+	      (* check the property for the given entity and value *)
+		fun chk (entity, value) = (case chkEntity (cxt, entity)
+		       of SOME entity' => chkProperty entity' (PT.VProp(propId, value))
+			| NONE => ()
+		      (* end case *))
+		in
+		  List.app chk keyValues
+		end
+	  in
 	  end
 
     (* typechecker for an ASDL specification *)

@@ -77,7 +77,10 @@ structure ParseTree =
 
     and view_entity
       = VEntity_Mark of view_entity mark
-      | VEntity of id list
+      | VEntity_Module of id		(* 'module' <module> *)
+      | VEntity_Type of id * id		(* <module> '.' <type> *)
+      | VEntity_AllCons of id * id	(* <module> '.' <type> '.*' *)
+      | VEntity_Cons of id * id * id	(* <module> '.' <type> '.' <cons> *)
 
     and view_property
       = VProp_Mark of view_property mark

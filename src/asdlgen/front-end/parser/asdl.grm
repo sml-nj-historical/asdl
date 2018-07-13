@@ -50,7 +50,6 @@
   val moduleId = Atom.atom "module"
   val primitiveId = Atom.atom "primitive"
   val viewId = Atom.atom "view"
-  val starId = Atom.atom "*"
 
 (* apply a mark constructor to a span and a tree *)
   fun mark cons (span : AntlrStreamPos.span, tr) = cons{span = span, tree = tr}
@@ -204,14 +203,14 @@ MarkViewEntity
 	;
 
 ViewEntity
-	: ModuleId "." Id
-		=> (PT.VEntity[ModuleId, Id])
+	: "module" ModuleId
+		=> (PT.VEntity_Module ModuleId)
+	| ModuleId "." Id
+		=> (PT.VEntity_Type(ModuleId, Id))
 	| ModuleId "." Id "." "*"
-		=> (PT.VEntity[ModuleId, Id, {span = (0,0), tree = starId}])
+		=> (PT.VEntity_AllCons(ModuleId, Id))
 	| ModuleId "." Id "." Id
-		=> (PT.VEntity[ModuleId, Id1, Id2])
-	| "module" ModuleId
-		=> (PT.VEntity[ModuleId])
+		=> (PT.VEntity_Cons(ModuleId, Id1, Id2))
 	;
 
 ViewProps
