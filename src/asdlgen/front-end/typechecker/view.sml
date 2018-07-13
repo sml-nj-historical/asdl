@@ -68,15 +68,20 @@ structure View : sig
 	value : string list ref
       }
 
-  (* create a new property instance for an entity *)
-    fun newProp (PDesc{name, accumulator}) entity = Prop{
-	    name = name,
-	    entity = entity,
-	    accumulator = accumulator,
-	    value = ref[]
-	  }
+    structure Prop =
+      struct
+	type t = prop
+	fun nameOf (Prop{name, ...}) = name
+      (* create a new property instance for an entity *)
+	fun new (PDesc{name, accumulator}, entity) = Prop{
+		name = name,
+		entity = entity,
+		accumulator = accumulator,
+		value = ref[]
+	      }
+      end
 
-  (* table to map entities to their property table *)
+  (* table to map entities to their property tables *)
     type entity_tbl = Prop.prop ATbl.hash_table ETbl.hash_table
 
   (* a view template describes the properties that the various entities of a module
@@ -97,24 +102,27 @@ structure View : sig
 	  (* end case *))
 
     type t = View of {
-	name : string,
-	template : template,
-	eTbl : entity_tbl
+	name : string,		(* the view's name *)
+	template : template,	(* template that specifies which properties are supported by
+				 * the view *)
+	eTbl : entity_tbl	(* table to map entities to their property tables *)
       }
+
+  (* create a new view *)
+    fun new (name, template) = View{
+	    name = name,
+	    template = template,
+	    eTbl = ETbl.mkTable (64, Fail "view-entity table")
+	  }
 
     fun nameOf (View{name, ...}) = name
 
-    structure Prop =
-      struct
-	type t = prop
-      end
-
-  (* find a property instance; create a new instance from the template if necessary *)
+  (* find a property instance; we create a new instance from the template if necessary *)
     fun findProp (View{eTbl, template, ...}, entity, name) = (case ETbl.find eTbl entity
 	   of SOME pTbl => ATbl.find pTbl name
 	    | NONE => (case findPropDesc (template, entity, name)
 		 of SOME pdesc => let
-		      val prop = newProp (entity, pdesc)
+		      val prop = Prop.new (entity, pdesc)
 		      in
 			ATbl.insert pTbl (name, prop);
 			SOME prop
