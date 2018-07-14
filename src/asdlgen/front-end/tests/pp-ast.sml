@@ -63,7 +63,7 @@ handle ex => raise ex
 		      PP.openHBox ppStrm;
 			if isFirst then string "=" else string "|";
 			sp();
-		        string(AST.ConsId.nameOf id);
+		        string(AST.ConId.nameOf id);
 			if (List.null fields)
 			  then ()
 			  else ppFields (List.drop (fields, nAttrs));

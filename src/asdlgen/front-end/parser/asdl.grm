@@ -186,8 +186,8 @@ ViewEntry
 	;
 
 MarkViewEntityCode
-	: ViewEntity Code
-		=> (ViewEntity, Code)
+	: ViewEntity CODE
+		=> (ViewEntity, CODE)
 	;
 
 ViewEntities
@@ -221,10 +221,7 @@ ViewProps
 	;
 
 ViewProp
-	: Id Code
-		=> (mark PT.VProp_Mark (FULL_SPAN, (PT.VProp(Id, Code))))
+	: Id CODE
+		=> (mark PT.VProp_Mark (FULL_SPAN, (PT.VProp(Id, CODE))))
 	;
 
-
-Code	: CODE			=> (markId (FULL_SPAN, CODE))
-	;

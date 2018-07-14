@@ -32,7 +32,7 @@ structure FrontEnd : sig
 	    if anyErrors parseTree
 	      then NONE
 	      else let
-		val {modules} = Typecheck.check parseTree
+		val modules = Typecheck.check parseTree
 		in
 		  if (anyErrors parseTree)
 		    then NONE

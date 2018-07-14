@@ -31,7 +31,7 @@ structure Driver : sig
 	    if anyErrors parseTree
 	      then true
 	      else let
-		val {modules} = Typecheck.check parseTree
+		val modules = Typecheck.check parseTree
 		in
 		  if (anyErrors parseTree)
 		    then true

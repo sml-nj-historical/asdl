@@ -9,10 +9,7 @@ structure Typecheck : sig
     val check : {
 	    includes : Parser.file list,
 	    file : Parser.file
-	  } -> {
-	    modules : AST.module list
-(* some other stuff too *)
-	  }
+	  } -> AST.module list
 
   end = struct
 
@@ -20,6 +17,7 @@ structure Typecheck : sig
     structure ModId = AST.ModuleId
     structure TyId = AST.TypeId
     structure ConId = AST.ConId
+    structure Prop = View.Prop
 
     fun markCxt ((errStrm, _), span) = (errStrm, span)
 
@@ -370,35 +368,37 @@ structure Typecheck : sig
 	  fun chkEntity (cxt, PT.VEntity_Mark m) = chkEntity (withMark' (cxt, m))
 	    | chkEntity (cxt, PT.VEntity_Module module) = (
 		case chkModule module
-		 of SOME modId => SOME(View.Module modId)
-		  | NONE => NONE
+		 of SOME modId => [View.Module modId]
+		  | NONE => []
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_Type(module, ty)) = (
 		case chkType (module, ty)
-		 of SOME(AST.TyDcl{id, ...}) => SOME(View.Type id)
-		  | NONE => NONE
+		 of SOME(AST.TyDcl{id, ...}) => [View.Type id]
+		  | NONE => []
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_AllCons(module, ty)) = (
 		case chkType (module, ty)
 		 of SOME(AST.TyDcl{id, def, ...}) => (case !def
-		       of AST.EnumTy cons => raise Fail "FIXME"
-			| AST.SumTy{cons, ...} => raise Fail "FIXME"
+		       of AST.EnumTy cons =>
+			    List.map (fn AST.Constr{id, ...} => View.Constr id) cons
+			| AST.SumTy{cons, ...} =>
+			    List.map (fn AST.Constr{id, ...} => View.Constr id) cons
 			| _ => (
 			    err(cxt, [S "type '", I module, S ".", I ty, S "' is not a sum type"]);
-			    NONE)
+			    [])
 		      (* end case *))
-		  | NONE => NONE
+		  | NONE => []
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_Cons(module, ty, {span, tree})) = let
 		fun chkCons cons = (
 		      case List.find (fn AST.Constr{id, ...} => Atom.same(ConId.atomOf id, tree)) cons
-		       of SOME(AST.Constr{id, ...}) => SOME(View.Constr id)
+		       of SOME(AST.Constr{id, ...}) => [View.Constr id]
 			| NONE => (
 			    err (markCxt(cxt, span), [
 				S "unknown constructor '", A tree, S "' for type '",
 				I module, S ".", I ty, S "'"
 			      ]);
-			    NONE)
+			    [])
 		      (* end case *))
 		in
 		  case chkType (module, ty)
@@ -407,9 +407,9 @@ structure Typecheck : sig
 			  | AST.SumTy{cons, ...} => chkCons cons
 			  | _ => (
 			      err(cxt, [S "type '", I module, S ".", I ty, S "' is not a sum type"]);
-			      NONE)
+			      [])
 			(* end case *))
-		    | NONE => NONE
+		    | NONE => []
 		  (* end case *)
 		end
 	  fun chkPropId (cxt, entity, {span, tree}) = (case View.findProp(view, entity, tree)
@@ -426,7 +426,12 @@ structure Typecheck : sig
 		  | chk (cxt, PT.VProp(key, value)) = (
 		      case chkPropId(cxt, entity, key)
 		       of NONE => ()
-			| SOME prop => raise Fail "FIXME"
+			| SOME prop => if Prop.isDefined prop andalso not(Prop.isAccumulator prop)
+			    then err(markCxt(cxt, #span key), [
+				S "redefinition of property '", I key,
+				S "' for '", E entity, S "'"
+			      ])
+			    else Prop.setValue(prop, value)
 		      (* end case *))
 		in
 		  chk
@@ -434,7 +439,7 @@ structure Typecheck : sig
 	  fun chkEntry (cxt, PT.VEntry_Mark m) = chkEntry (withMark' (cxt, m))
 	    | chkEntry (cxt, PT.VEntry(es, props)) = let
 	      (* first check the entities *)
-		val es' = List.mapPartial (fn e => chkEntity (cxt, e)) es
+		val es' = List.foldl (fn (e, es') => chkEntity (cxt, e) @ es') [] es
 		in
 		(* for each entity, check each property *)
 		  List.app
@@ -443,10 +448,10 @@ structure Typecheck : sig
 		end
 	    | chkEntry (cxt, PT.VEntry_Multiple(propId, keyValues)) = let
 	      (* check the property for the given entity and value *)
-		fun chk (entity, value) = (case chkEntity (cxt, entity)
-		       of SOME entity' => chkProperty entity' (cxt, PT.VProp(propId, value))
-			| NONE => ()
-		      (* end case *))
+		fun chk (entity, value) =
+		      List.app
+			(fn entity' => chkProperty entity' (cxt, PT.VProp(propId, value)))
+			  (chkEntity (cxt, entity))
 		in
 		  List.app chk keyValues
 		end
@@ -469,9 +474,8 @@ structure Typecheck : sig
 		in
 		  List.mapPartial chk decls
 		end
-	  in {
-	    modules = modules
-(* FIXME: what about the views? *)
-	  } end
+	  in
+	    modules
+	  end
 
   end

@@ -73,7 +73,7 @@ structure ParseTree =
     and view_entry
       = VEntry_Mark of view_entry mark
       | VEntry of view_entity list * view_property list
-      | VEntry_Multiple of id * (view_entity * string mark) list
+      | VEntry_Multiple of id * (view_entity * string) list
 
     and view_entity
       = VEntity_Mark of view_entity mark
@@ -84,6 +84,6 @@ structure ParseTree =
 
     and view_property
       = VProp_Mark of view_property mark
-      | VProp of id * string mark
+      | VProp of id * string
 
   end
