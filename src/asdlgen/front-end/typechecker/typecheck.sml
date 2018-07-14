@@ -17,24 +17,33 @@ structure Typecheck : sig
   end = struct
 
     structure PT = ParseTree
+    structure ModId = AST.ModuleId
+    structure TyId = AST.TypeId
+    structure ConId = AST.ConId
 
     fun markCxt ((errStrm, _), span) = (errStrm, span)
 
     fun withMark (cxt, env, {span, tree}) = (markCxt(cxt, span), env, tree)
     fun withMark' (cxt, {span, tree}) = (markCxt(cxt, span), tree)
 
-    datatype token = S of string | A of Atom.atom | I of {tree : Atom.atom, span : Error.span}
+    datatype token
+     = S of string | A of Atom.atom
+     | I of {tree : Atom.atom, span : Error.span}
+     | E of View.entity
 
     fun err ((errStrm, span), toks) = let
 	  fun tok2str (S s) = s
 	    | tok2str (A a) = Atom.toString a
 	    | tok2str (I{tree, ...}) = Atom.toString tree
+	    | tok2str (E(View.Module modId)) = ModId.nameOf modId
+	    | tok2str (E(View.Type tyId)) = TyId.nameOf tyId
+	    | tok2str (E(View.Constr conId)) = ConId.nameOf conId
 	  in
 	    Error.errorAt(errStrm, span, List.map tok2str toks)
 	  end
 
   (* a bogus type to return when there is an error *)
-    val bogusTypeId = AST.TypeId.new (Atom.atom "**bogus**")
+    val bogusTypeId = TyId.new (Atom.atom "**bogus**")
     val bogusType = AST.BaseTy bogusTypeId
 
   (* check for duplicate names in a list of named values *)
@@ -73,7 +82,7 @@ structure Typecheck : sig
 	  NONE)
 
     and checkModule (cxt, gEnv, name, imports, decls) = let
-	  val id = AST.ModuleId.new name
+	  val id = ModId.new name
 	  in
 	    Env.withModule (gEnv, id, fn env => let
 	      val _ = List.app (fn im => checkImport(cxt, gEnv, env, im)) imports
@@ -90,7 +99,7 @@ structure Typecheck : sig
 		      (tyIds, decls)
 	      in
 		declsRef := decls;
-		AST.ModuleId.bind(id, module);
+		ModId.bind(id, module);
 		SOME module
 	      end)
 	  end
@@ -127,7 +136,7 @@ structure Typecheck : sig
 	  fun bind ({span, tree=name}, mkDef) = if chkTyRedef (markCxt(cxt, span), name)
 		then NONE
 		else let
-		  val id = AST.TypeId.new name
+		  val id = TyId.new name
 		  val dcl = AST.TyDcl{
 			  id = id,
 			  def = ref(mkDef()),
@@ -135,7 +144,7 @@ structure Typecheck : sig
 			}
 		  in
 		  (* set the type Id's binding *)
-		    AST.TypeId.bind (id, dcl);
+		    TyId.bind (id, dcl);
 		  (* add the type to the module's type environment *)
 		    Env.insertType (env, name, dcl);
 		    SOME id
@@ -162,19 +171,19 @@ structure Typecheck : sig
       | checkTyDecl (cxt, env, optTyId, PT.TD_Mark{span, tree}) =
 	  checkTyDecl (markCxt(cxt, span), env, optTyId, tree)
       | checkTyDecl (cxt, env, SOME tyId, tyDcl) = let
-	  val SOME(dcl as AST.TyDcl{def, ...}) = AST.TypeId.bindingOf tyId
+	  val SOME(dcl as AST.TyDcl{def, ...}) = TyId.bindingOf tyId
 	  val owner = AST.LocalTy dcl
 	(* check for recursive product types; reports an error and returns true
          * if there is a recursive chain of product types.
          *)
-	  fun checkForRecTy tyId' = (case AST.TypeId.bindingOf tyId'
+	  fun checkForRecTy tyId' = (case TyId.bindingOf tyId'
 		 of SOME(AST.TyDcl{def=ref(AST.ProdTy{fields}), ...}) => let
 		    (* check the type of a field *)
 		      fun chk {label, ty} = let
-			    fun chkId tyId'' = if AST.TypeId.same(tyId, tyId'')
+			    fun chkId tyId'' = if TyId.same(tyId, tyId'')
 				  then (
 				    err (cxt, [
-					S "recursive product type '", S(AST.TypeId.nameOf tyId),
+					S "recursive product type '", S(TyId.nameOf tyId),
 					S "'"
 				      ]);
 				    true)
@@ -212,11 +221,11 @@ structure Typecheck : sig
 			      if checkCons (markCxt(cxt, span), tree)
 				then NONE
 				else let
-				  val id = AST.ConsId.new tree
+				  val id = ConId.new tree
 				  val constr = AST.Constr{id = id, owner = owner, fields = []}
 				  in
 				    Env.insertCons (env, id);
-				    AST.ConsId.bind (id, constr);
+				    ConId.bind (id, constr);
 				    SOME constr
 				  end
 			in
@@ -232,12 +241,12 @@ structure Typecheck : sig
 			      if checkCons (markCxt(cxt, span), tree)
 				then NONE
 				else let
-				  val id = AST.ConsId.new tree
+				  val id = ConId.new tree
 				  val fields' = checkFields (cxt, env, attribs', fields)
 				  val constr = AST.Constr{id = id, owner = owner, fields = fields'}
 				  in
 				    Env.insertCons (env, id);
-				    AST.ConsId.bind (id, constr);
+				    ConId.bind (id, constr);
 				    SOME constr
 				  end
 			in
@@ -290,7 +299,7 @@ structure Typecheck : sig
 		      err (cxt, [
 			  S "unknown type '",
 			  case modId
-			   of SOME id => S(AST.ModuleId.nameOf id ^ ".")
+			   of SOME id => S(ModId.nameOf id ^ ".")
 			    | _ => S ""
 			  (* end case *),
 			  I typ, S "'"
@@ -310,7 +319,7 @@ structure Typecheck : sig
 	  end
 
     and checkPrimModule (cxt, gEnv, name, exports) = let
-	  val id = AST.ModuleId.new name
+	  val id = ModId.new name
 	  in
 	    Env.withModule (gEnv, id, fn env => let
 	      val declsRef = ref[]
@@ -321,11 +330,11 @@ structure Typecheck : sig
 		    }
 (* FIXME: check for duplicate exports *)
 	      fun checkExport ({span, tree}, dcls) = let
-		    val tyId = AST.TypeId.new tree
+		    val tyId = TyId.new tree
 		    val dcl = AST.TyDcl{id = tyId, def = ref AST.PrimTy, owner = module}
 		    in
 		    (* set the type Id's binding *)
-		      AST.TypeId.bind (tyId, dcl);
+		      TyId.bind (tyId, dcl);
 		    (* add the type to the module's type environment *)
 		      Env.insertType (env, name, dcl);
 		      dcl :: dcls
@@ -333,7 +342,7 @@ structure Typecheck : sig
 	      val decls = List.foldr checkExport [] exports
 	      in
 		declsRef := decls;
-		AST.ModuleId.bind(id, module);
+		ModId.bind(id, module);
 		SOME module
 	      end)
 	  end
@@ -348,7 +357,8 @@ structure Typecheck : sig
 		(* end case *))
 	  fun chkType (module, {span, tree}) = (case chkModule module
 		 of SOME modId => (case Env.findType (env, SOME modId, tree)
-		       of SOME ty => SOME(modId, ty)
+		       of SOME(AST.LocalTy tyDcl) => SOME tyDcl
+			| SOME _ => raise Fail "expected local type"
 			| NONE => (
 			    err (markCxt(cxt, span), [
 				S "unknown type '", I module, S ".", A tree, S "'"
@@ -360,24 +370,48 @@ structure Typecheck : sig
 	  fun chkEntity (cxt, PT.VEntity_Mark m) = chkEntity (withMark' (cxt, m))
 	    | chkEntity (cxt, PT.VEntity_Module module) = (
 		case chkModule module
-		 of SOME modId => raise Fail "FIXME"
+		 of SOME modId => SOME(View.Module modId)
 		  | NONE => NONE
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_Type(module, ty)) = (
 		case chkType (module, ty)
-		 of SOME(modId, ty') => raise Fail "FIXME"
+		 of SOME(AST.TyDcl{id, ...}) => SOME(View.Type id)
 		  | NONE => NONE
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_AllCons(module, ty)) = (
 		case chkType (module, ty)
-		 of SOME(modId, ty') => raise Fail "FIXME"
+		 of SOME(AST.TyDcl{id, def, ...}) => (case !def
+		       of AST.EnumTy cons => raise Fail "FIXME"
+			| AST.SumTy{cons, ...} => raise Fail "FIXME"
+			| _ => (
+			    err(cxt, [S "type '", I module, S ".", I ty, S "' is not a sum type"]);
+			    NONE)
+		      (* end case *))
 		  | NONE => NONE
 		(* end case *))
-	    | chkEntity (cxt, PT.VEntity_Cons(module, ty, con)) = (
-		case chkType (module, ty)
-		 of SOME modId => raise Fail "FIXME"
-		  | NONE => NONE
-		(* end case *))
+	    | chkEntity (cxt, PT.VEntity_Cons(module, ty, {span, tree})) = let
+		fun chkCons cons = (
+		      case List.find (fn AST.Constr{id, ...} => Atom.same(ConId.atomOf id, tree)) cons
+		       of SOME(AST.Constr{id, ...}) => SOME(View.Constr id)
+			| NONE => (
+			    err (markCxt(cxt, span), [
+				S "unknown constructor '", A tree, S "' for type '",
+				I module, S ".", I ty, S "'"
+			      ]);
+			    NONE)
+		      (* end case *))
+		in
+		  case chkType (module, ty)
+		   of SOME(AST.TyDcl{id, def, ...}) => (case !def
+			 of AST.EnumTy cons => chkCons cons
+			  | AST.SumTy{cons, ...} => chkCons cons
+			  | _ => (
+			      err(cxt, [S "type '", I module, S ".", I ty, S "' is not a sum type"]);
+			      NONE)
+			(* end case *))
+		    | NONE => NONE
+		  (* end case *)
+		end
 	  fun chkPropId (cxt, entity, {span, tree}) = (case View.findProp(view, entity, tree)
 		 of NONE => (
 		      err (markCxt(cxt, span), [

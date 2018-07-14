@@ -8,7 +8,7 @@ local
 
   structure ModuleId = IdentFn()
   structure TypeId = IdentFn()
-  structure ConsId = IdentFn()
+  structure ConId = IdentFn()
   structure ViewId = IdentFn()
 
 (* functor to add a definition property to a IDENTIFIER structure *)
@@ -67,7 +67,7 @@ structure AST =
       | PrimTy
 
     and constructor = Constr of {
-	    id : ConsId.t,
+	    id : ConId.t,
 	    owner : named_ty,
 	    fields : field list		(* fields of the constructor (includes attribs) *)
 	  }
@@ -89,9 +89,9 @@ structure AST =
     structure TypeId = AddDefPropFn(
 	type def = type_decl
 	structure Id = TypeId)
-    structure ConsId = AddDefPropFn(
+    structure ConId = AddDefPropFn(
 	type def = constructor
-	structure Id = ConsId)
+	structure Id = ConId)
 
   end (* structure AST *)
 
