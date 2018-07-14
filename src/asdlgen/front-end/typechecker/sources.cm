@@ -10,6 +10,10 @@ Library
   structure PrimTypes
   structure Typecheck
 
+(* views *)
+  structure SMLView
+  structure CxxView
+
 is
 
   $/basis.cm
@@ -19,8 +23,12 @@ is
   ../parser/sources.cm
 
   ast.sml
+  common-view.sml
+  cxx-view.sml
   env.sml
   ident-fn.sml
   prim-types.sml
+  sml-view.sml
   typecheck.sml
-
+  view.sml
+  view-base-fn.sml

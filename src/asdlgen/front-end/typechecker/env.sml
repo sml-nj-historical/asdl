@@ -35,6 +35,9 @@ structure Env : sig
   (* insert a constructor into the current module's environment *)
     val insertCons : t * AST.ConsId.t -> unit
 
+  (* find a view by name *)
+    val findView : t * Atom.atom -> View.t option
+
   end = struct
 
     structure MId = AST.ModuleId
@@ -48,7 +51,8 @@ structure Env : sig
 
     datatype t
       = GEnv of {
-	    modEnv : module_env ATbl.hash_table		(* the global module environment *)
+	    modEnv : module_env ATbl.hash_table,	(* the global module environment *)
+	    views : View.t list				(* known views *)
 	  }
       | LEnv of {
 	    curMod : module_env,			(* the current module *)
@@ -62,7 +66,8 @@ structure Env : sig
 	    ]))
 
     fun new () = GEnv{
-	    modEnv = ATbl.mkTable(8, Fail "modEnv")
+	    modEnv = ATbl.mkTable(8, Fail "modEnv"),
+	    views = [CxxView.view, SMLView.view]
 	  }
 
     fun findModule (env, m) = let
@@ -140,5 +145,9 @@ structure Env : sig
     fun insertCons (LEnv{curMod=ModEnv{consEnv, ...}, ...}, consId) =
 	  ATbl.insert consEnv (AST.ConsId.atomOf consId, consId)
       | insertCons _ = raise Fail "insertCons applied to global environment"
+
+  (* find a view by name *)
+    fun findView (GEnv{views, ...}, name) = List.find (View.isView name) views
+      | findView _ = raise Fail "findView applied to local environment"
 
   end (* structure Env *)

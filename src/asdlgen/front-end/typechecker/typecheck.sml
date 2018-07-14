@@ -67,7 +67,7 @@ structure Typecheck : sig
 	  (* end case *))
       | checkTop (cxt, env, PT.D_View{name, entries}) = (
 	  case Env.findView(env, #tree name)
-	   of NONE => err (markCxt(cxt, #span name), [S "unknown view '", I name, "'"])
+	   of NONE => err (markCxt(cxt, #span name), [S "unknown view '", I name, S "'"])
 	    | SOME view => checkView (cxt, env, view, entries)
 	  (* end case *);
 	  NONE)
@@ -347,41 +347,42 @@ structure Typecheck : sig
 		  | someId => someId
 		(* end case *))
 	  fun chkType (module, {span, tree}) = (case chkModule module
-		 of SOME modId => (case Env.findType (env, modId, tree)
+		 of SOME modId => (case Env.findType (env, SOME modId, tree)
 		       of SOME ty => SOME(modId, ty)
 			| NONE => (
 			    err (markCxt(cxt, span), [
 				S "unknown type '", I module, S ".", A tree, S "'"
 			      ]);
 			    NONE)
+		      (* end case *))
 		  | NONE => NONE
 		(* end case *))
 	  fun chkEntity (cxt, PT.VEntity_Mark m) = chkEntity (withMark' (cxt, m))
 	    | chkEntity (cxt, PT.VEntity_Module module) = (
 		case chkModule module
-		 of SOME modId =>
+		 of SOME modId => raise Fail "FIXME"
 		  | NONE => NONE
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_Type(module, ty)) = (
 		case chkType (module, ty)
-		 of SOME(modId, ty') =>
+		 of SOME(modId, ty') => raise Fail "FIXME"
 		  | NONE => NONE
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_AllCons(module, ty)) = (
 		case chkType (module, ty)
-		 of SOME(modId, ty') =>
+		 of SOME(modId, ty') => raise Fail "FIXME"
 		  | NONE => NONE
 		(* end case *))
 	    | chkEntity (cxt, PT.VEntity_Cons(module, ty, con)) = (
 		case chkType (module, ty)
-		 of SOME modId =>
+		 of SOME modId => raise Fail "FIXME"
 		  | NONE => NONE
 		(* end case *))
-	  fun chkPropId (cxt, {span, tree}) = (case View.findProp(view, tree)
+	  fun chkPropId (cxt, entity, {span, tree}) = (case View.findProp(view, entity, tree)
 		 of NONE => (
 		      err (markCxt(cxt, span), [
 			  S "unknown property '", A tree, S "' for view '",
-			  S(View.nameOf view), "'"
+			  S(View.nameOf view), S "'"
 			]);
 		      NONE)
 		  | someProp => someProp
@@ -389,11 +390,12 @@ structure Typecheck : sig
 	  fun chkProperty entity = let
 		fun chk (cxt, PT.VProp_Mark m) = chk (withMark' (cxt, m))
 		  | chk (cxt, PT.VProp(key, value)) = (
-		      case chkPropId(view, entity, key)
-		       of NONE => NONE
-			| SOME prop =>
+		      case chkPropId(cxt, entity, key)
+		       of NONE => ()
+			| SOME prop => raise Fail "FIXME"
 		      (* end case *))
 		in
+		  chk
 		end
 	  fun chkEntry (cxt, PT.VEntry_Mark m) = chkEntry (withMark' (cxt, m))
 	    | chkEntry (cxt, PT.VEntry(es, props)) = let
@@ -401,18 +403,21 @@ structure Typecheck : sig
 		val es' = List.mapPartial (fn e => chkEntity (cxt, e)) es
 		in
 		(* for each entity, check each property *)
-		  List.app (fn e => chkProperty e (cxt, p)) props
+		  List.app
+		    (fn e => List.app (fn p => chkProperty e (cxt, p)) props)
+		      es'
 		end
 	    | chkEntry (cxt, PT.VEntry_Multiple(propId, keyValues)) = let
 	      (* check the property for the given entity and value *)
 		fun chk (entity, value) = (case chkEntity (cxt, entity)
-		       of SOME entity' => chkProperty entity' (PT.VProp(propId, value))
+		       of SOME entity' => chkProperty entity' (cxt, PT.VProp(propId, value))
 			| NONE => ()
 		      (* end case *))
 		in
 		  List.app chk keyValues
 		end
 	  in
+	    List.app (fn entry => chkEntry(cxt, entry)) entries
 	  end
 
     (* typechecker for an ASDL specification *)
