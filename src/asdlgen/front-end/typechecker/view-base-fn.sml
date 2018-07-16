@@ -20,5 +20,9 @@ functor ViewBaseFn (V : sig
 
     val view = View.new (V.viewName, V.template)
 
+  (* common properties *)
+    fun moduleName (view, modId) =
+	  View.getValue CommonView.a_name (view, View.Module modId, AST.ModuleId.nameOf modId)
+
   end
 

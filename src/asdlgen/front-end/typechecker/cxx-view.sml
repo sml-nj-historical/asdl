@@ -21,6 +21,7 @@ structure CxxView : sig
 	  val template =  {
 		  moduleProps = #moduleProps CV.template,
 		  typeProps =
+		    CV.prop("base_type", false) ::
 		    CV.prop("public_code", true) ::
 		    CV.prop("protected_code", true) ::
 		    CV.prop("private_code", true) ::
@@ -29,6 +30,7 @@ structure CxxView : sig
 		    CV.prop("public_code", true) ::
 		    CV.prop("protected_code", true) ::
 		    CV.prop("private_code", true) ::
+		    CV.prop("enum_value", false) ::
 		    #consProps CV.template
 		}
 	end)

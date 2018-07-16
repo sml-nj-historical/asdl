@@ -18,9 +18,20 @@ structure CommonView : sig
     fun prop (name, accum) = View.Prop.Desc{name = Atom.atom name, accumulator = accum}
 
     val template = {
-	    moduleProps = [],
-	    typeProps = [],
-	    consProps = []
+	    moduleProps = List.map prop [
+		("name", false)
+	      ],
+	    typeProps = List.map prop [
+		("name", false)
+		("natural_type", false),
+		("encode", false),
+		("decode", false),
+		("writer", false),
+		("reader", false)
+	      ],
+	    consProps = List.map prop [
+		("name", false)
+	      ]
 	  }
 
   end
