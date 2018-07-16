@@ -2,7 +2,7 @@
 #
 # This code is part of the SML/NJ system (http://smlnj.org)
 #
-# COPYRIGHT (c) 2016 The Fellowship of SML/NJ
+# COPYRIGHT (c) 2018 The Fellowship of SML/NJ
 # All rights reserved.
 #
 # @configure_input@
@@ -29,7 +29,7 @@ build:		$(TARGET)
 
 $(HEAP):
 	(cd $(SRCDIR); \
-	$(ML_BUILD) sources.cm Export.asdlGen asdlGen)
+	$(ML_BUILD) driver/sources.cm Main.main $(PROGRAM)
 
 install:	$(HEAP)
 	$(INSTALL_WRAPPER) $(TARGET) $(INSTALL_BINDIR)
@@ -39,10 +39,8 @@ clean:
 	find . \( -name CM -o -name .cm \) -exec rm -rf {} \; -prune -print
 
 distclean:	clean
-	rm -f bin/ml-build
-	rm -f bin/install-sml-wrapper.sh
 	rm -f Makefile
-	rm -rf autom4te.cache config.log config.cache config.status
+	rm -rf common/config.sml
 
 devclean:	distclean
 	rm -f configure
