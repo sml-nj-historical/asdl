@@ -1,0 +1,102 @@
+%!TEX root = manual.tex
+%
+\chapter{Usage}
+\label{chap:usage}
+
+\begin{quote}
+  \texttt{asdl-gen --\textit{command} [ \textit{command options} ] \textit{files} ...}
+\end{quote}%
+
+Where \texttt{\textit{command}} is one of
+\begin{quote}
+  \begin{tabular}{ll}
+    \texttt{c++} or \texttt{cxx}
+      & Generate \Cplusplus{} \\
+    \texttt{sml}
+      & Generate Standard ML \\
+    \texttt{typ}
+      & Generate a machine readable type description of the inputs \\
+    \texttt{check}
+      & Check correctness of inputs \\
+    \texttt{all}
+      & Do all of the above \\	
+  \end{tabular}
+\end{quote}%
+
+The \textit{command options} are specific to each command.
+For a complete list of options examine the output files produced by a given command.
+Each file should include a comment of all the available options and
+the values used to produce the output. 
+
+\asdlgen{} reads the set of \texttt{\textit{files}}, which contain ASDL module
+declarations and view declarations. The module declarations must be
+complete and not refer to any other modules or types not defined in
+one of the input files. The order of the input files is
+unimportant. This closed set of files is referred to as a \emph{type environment}.
+
+\section{Common Options}
+
+Options common to all the commands include
+\begin{description}
+  \item[\normalfont\texttt{-n}] \mbox{}\\
+      Do not write any output files.
+      Instead output the list of files that would have been written to standard out.
+  \item[\normalfont\texttt{--line\char`\_width=}\textit{width}] \mbox{}\\
+    Set the maximum line width for pretty printing code.
+    The default value is 90 characters.
+  \item[\normalfont\texttt{--output\char`\_directory=}\textit{dir} or \texttt{-d} \textit{dir}] \mbox{}\\
+    By default the output will be placed in the same directory as the
+    input file from which it was produced.
+    The \texttt{--output\char`\_directory} option overrides the default output directory.
+  \item[\normalfont\texttt{--pickler=}\textit{name} or \texttt{-p} \textit{name}] \mbox{}\\
+    Specifies which kind of pickler to generate.
+    See \chapref{chap:pickles} for details.
+\end{description}%
+
+\section{Command-specific Options}
+\label{sec:command-specific-options}
+
+All the commands that produce source code as output offer a different
+command option to select the default base environment.
+The base environment is the set of the initial definitions available to the code.
+It defines the set of primitive types and functions used by the generated code.
+For example using the option \texttt{--base\char`\_include=my-base.h}
+when generating C code will insert the directive
+\begin{quote}\begin{lstlisting}[language=c]
+#include "my-base.h"
+\end{lstlisting}\end{quote}%
+in the appropriate place so the resulting code will use the definitions found in
+\texttt{my-base.h} rather than the default set of primitive types.
+Unless there is a need to globally redefine
+the primitive types changing the base environment should be avoided.
+The actual option names vary depending on the output language.
+
+See \chapref{chap:code-interface} for a more detailed description about the interfaces
+to the default set of primitive types and functions.
+
+\subsection{Options for \Cplusplus}
+
+\begin{description}
+  \item[\normalfont\texttt{--base\char`\_include=}\textit{file}\texttt{.hxx}] \mbox{}\\
+    The default value is \texttt{asdl\char`\_base.hxx}. Name of the C++ header file to
+    include that defines the primitive types and functions for all the generated
+    code. 
+  \item[\normalfont\texttt{--simple\char`\_sequences=}\{\texttt{true} $|$ \texttt{false}\}] \mbox{}\\
+    The default value is true. Use a simple linked list representation 
+    for sequences. Set to false to use a template based sequence 
+    representation. See \texttt{asdl\char`\_base.hxx} for a default sequence template 
+    example. 
+\end{description}%
+
+\subsection{Options for Standard ML}
+\begin{description}
+  \item[\normalfont\texttt{--base\char`\_signature=}\textit{signature-name}] \mbox{}\\
+    The default value is \texttt{BASE}.
+    The signature to \lstinline[language=SML]!include! in
+    all signatures generated that define the primitive types.
+  \item[\normalfont\texttt{--base\char`\_structure=}\textit{structure-name}] \mbox{}\\
+    The default value is \texttt{Base}.
+    The structure to \lstinline[language=SML]!open! in
+    all structures generated that define the primitive types and functions.
+\end{description}%
+
