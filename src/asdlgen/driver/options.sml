@@ -11,25 +11,32 @@ structure Options : sig
    *)
     exception Usage of string
 
+    datatype command
+      = HELP
+      | VERSION
+      | CHECK
+      | GENERATE of ??
+
   (* parse the command-line args *)
     val parseCmdLine : string list -> {
-            help : bool,                (* "-h" or "--help" specified? *)
-            version : bool,             (* "--version" specified? *)
-            about : bool,               (* "--about" specified? *)
-	    command : string option,	(* the specified command *)
+	    command : command,		(* the first command-line argument specifies the operation to perform *)
 	    pickler : string option,	(* the specified pickler *)
             files : string list         (* source file *)
           }
 
-  (* return a usage message.  The boolean controls whether all options should be
-   * included (true ==> long; false ==> short).
-   *)
-    val usage : string * bool -> string
+  (* return a usage message. *)
+    val usage : unit -> string
 
   end = struct
 
     structure G = GetOpt
     structure P = OS.Path
+
+    datatype command
+      = HELP
+      | VERSION
+      | CHECK
+      | GENERATE of ??
 
     exception Usage of string
 
@@ -82,22 +89,26 @@ structure Options : sig
 	  } end
 
     val commands = [
-	    "help",
-	    "version",
-	    "c++", "cxx",
-	    "sml",
-	    "typ",
-	    "check"
+	    (["help"],		HELP),
+	    (["version"],	VERSION),
+	    (["c++", "cxx"],	GENERATE ??),
+	    (["sml"],		GENERATE ??),
+	    (["typ"],		GENERATE ??),
+	    (["check"],		CHECK)
 	  ]
 
-    fun parseCmdLine (cmd::rest) =
-	  if List.exists (fn cmd' => (cmd = cmd')) commands
-	    then parse (cmd, rest)
-	    else raise Usage "unknown command"
+    fun parseCmdLine (cmd::rest) = let
+	  fun isCmd (names, _) = List.exists (fn name => (name = cmd)) names
+	  in
+	    case List.find isCmd commands
+	     of SOME(_, cmd) => parse (cmd, rest)
+	      | NONE => raise Usage "unknown command"
+	    (* end case *)
+	  end
 
-    fun usage (cmd, long) = let
+    fun usage () = let
           val hdr = concat[
-                  "usage: ", cmd, " command [options] file ...\n",
+                  "usage: asdl-gen command [options] file ...\n",
                   "  Version: ", Version.message, "\n",
                   "  Commands:",
 (* FIXME: add commands *)

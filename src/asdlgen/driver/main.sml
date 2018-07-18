@@ -10,6 +10,16 @@ structure Main : sig
 
   end = struct
 
-    fun main (cmdName, args) = OS.Process.Failure (* FIXME *)
+    fun main (cmdName, args) = let
+	  val {files, ...} = Options.parseCmdLine args
+	  in
+(* FIXME *)
+	    OS.Process.Success
+	  end
+	    handle Options.Usage msg => (
+	      TextIO.output(TextIO.stdErr, concat[
+		  cmdName, ": ", msg, "\n", Options.usage()
+		]);
+	      OS.Process.Failure)
 
   end
