@@ -12,15 +12,17 @@ structure SML =
     type id = string
 
     datatype top_decl
-      = SIGtop of id * sigbody
-      | STRtop of id * sign option * strexp
+      = SIGtop of id * sigexp
+      | STRtop of id * sigexp option * strexp
       | VERBtop of string list
 
-    and sign
-      = IDsig of id
-      | SIGsig of sigbody
+    and sigexp
+      = IDsig of id				(* signature variable *)
+      | AUGsig of sigexp * where_ty list	(* sig augmented with where specs *)
+      | BASEsig of spec list			(* basic signature (sig...end) *)
 
-    and sigbody = SIG of spec list * where_ty list
+    and where_ty
+      = WHERETY of id list * id list * ty
 
     and strexp
       = IDstr of id
@@ -28,7 +30,7 @@ structure SML =
       | VERBstr of string list
 
     and spec
-      = STRspec of id * sign
+      = STRspec of id * sigexp
       | TYCspec of bool * id list * id * ty option
       | VALspec of id * ty
       | EXNspec of id * ty option
