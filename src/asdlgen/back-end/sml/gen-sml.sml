@@ -16,9 +16,13 @@ structure GenSML : sig
     structure ConV = V.Con
     structure S = SML
 
+structure GenTypes = GenTypes
+
   (* generate SML code for the given list of modules using the "Sml" view *)
+(*
     fun genFile {dir, stem, modules} = let
 	  in
 	  end
+*)
 
   end

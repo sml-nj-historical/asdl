@@ -38,7 +38,7 @@ structure SML =
       | FUNdec of fb list
       | TYPEdec of id list * id * ty
       | DATATYPEdec of db list * (id list * id * ty) list
-      | EXCEPTIONdec of eb list
+      | EXCEPTIONdec of id * ty option
       | STRdec of strb list
       | OPENdec of id list
       | LOCALdec of dec list * dec list
@@ -59,10 +59,10 @@ structure SML =
       | CHARexp of string
       | RECORDexp of (id * exp) list
       | SELECTexp of id * exp
-      | VECTORexp of exp list * Types.ty
+      | VECTORexp of exp list * ty
       | APPexp of exp * exp
       | HANDLEexp of exp * fnrules
-      | RAISEexp of exp * Types.ty
+      | RAISEexp of exp * ty
       | CASEexp of exp * rule list * bool
       | IFexp of exp * exp * exp
       | ANDALSOexp of exp * exp
@@ -70,22 +70,21 @@ structure SML =
       | FNexp of fnrules
       | LETexp of dec * exp
       | SEQexp of exp list
-      | CONSTRAINTexp of exp * Types.ty
+      | CONSTRAINTexp of exp * ty
       | VERBexp of string
 
     and rule = RULE of pat * exp
 
     and pat
       = WILDpat
-      | VARpat of VarCon.var
-      | NUMpat of string * num_lit	(* string is source text of literal *)
+      | VARpat of id
+      | NUMpat of string
       | STRINGpat of string
       | CHARpat of string
-      | CONpat of VarCon.datacon * Types.tyvar list (* instance type *)
-      | RECORDpat of {fields : (Types.label * pat) list,
-		      flex : bool, typ : Types.ty ref}
-      | APPpat of VarCon.datacon * Types.tyvar list * pat
-      | CONSTRAINTpat of pat * Types.ty
+      | CONpat of id
+      | RECORDpat of {fields : (id * pat) list, flex : bool}
+      | APPpat of id * pat
+      | CONSTRAINTpat of pat * ty
       | LAYEREDpat of pat * pat
 
     and ty
