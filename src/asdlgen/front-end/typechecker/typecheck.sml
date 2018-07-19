@@ -42,7 +42,7 @@ structure Typecheck : sig
 
   (* a bogus type to return when there is an error *)
     val bogusTypeId = TyId.new (Atom.atom "**bogus**")
-    val bogusType = AST.BaseTy bogusTypeId
+    val bogusTyExp = AST.Typ(AST.BaseTy bogusTypeId, AST.NoTyc)
 
   (* check for duplicate names in a list of named values *)
     fun anyDups getName = let
@@ -177,7 +177,7 @@ structure Typecheck : sig
 	  fun checkForRecTy tyId' = (case TyId.bindingOf tyId'
 		 of SOME(AST.TyDcl{def=ref(AST.ProdTy{fields}), ...}) => let
 		    (* check the type of a field *)
-		      fun chk {label, ty} = let
+		      fun chk {label, ty=AST.Typ(AST.LocalTy(AST.TyDcl{id, ...}), _)} = let
 			    fun chkId tyId'' = if TyId.same(tyId, tyId'')
 				  then (
 				    err (cxt, [
@@ -187,14 +187,9 @@ structure Typecheck : sig
 				    true)
 				  else checkForRecTy tyId''
 			    in
-			      case ty
-			       of AST.Typ(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
-				| AST.OptTy(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
-				| AST.SeqTy(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
-				| AST.SharedTy(AST.LocalTy(AST.TyDcl{id, ...})) => chkId id
-				| _ => false
-			      (* end case *)
+			      chkId id
 			    end
+			| chk _ = false
 		      in
 			List.exists chk fields
 		      end
@@ -288,10 +283,10 @@ structure Typecheck : sig
     and checkTy (cxt, env, module, typ : PT.id, tycon) = let
 	  fun chkTy modId = (case Env.findType (env, modId, #tree typ)
 		 of SOME ty => (case tycon
-		       of NONE => AST.Typ ty
-			| SOME PT.Optional => AST.OptTy ty
-			| SOME PT.Sequence => AST.SeqTy ty
-			| SOME PT.Shared => AST.SharedTy ty
+		       of NONE => AST.Typ(ty, AST.NoTyc)
+			| SOME PT.Optional => AST.Typ(ty, AST.OptTyc)
+			| SOME PT.Sequence => AST.Typ(ty, AST.SeqTyc)
+			| SOME PT.Shared => AST.Typ(ty, AST.SharedTyc)
 		      (* end case *))
 		  | NONE => (
 		      err (cxt, [
@@ -302,14 +297,14 @@ structure Typecheck : sig
 			  (* end case *),
 			  I typ, S "'"
 			]);
-		      AST.Typ bogusType)
+		      bogusTyExp)
 		(* end case *))
 	  in
 	    case module
 	     of SOME{span, tree} => (case Env.findModule(env, tree)
 		   of NONE => (
 			err (markCxt(cxt, span), [S "unknown module '", A tree, S "'"]);
-			AST.Typ bogusType)
+			bogusTyExp)
 		    | someId => chkTy someId
 		  (* end case *))
 	      | NONE => chkTy NONE

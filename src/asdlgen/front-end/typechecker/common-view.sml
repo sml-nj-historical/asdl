@@ -22,7 +22,7 @@ structure CommonView : sig
 		("name", false)
 	      ],
 	    typeProps = List.map prop [
-		("name", false)
+		("name", false),
 		("natural_type", false),
 		("encode", false),
 		("decode", false),

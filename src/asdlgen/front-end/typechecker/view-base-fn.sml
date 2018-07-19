@@ -20,9 +20,12 @@ functor ViewBaseFn (V : sig
 
     val view = View.new (V.viewName, V.template)
 
+  (* view-property names *)
+    val a_name = Atom.atom "name"
+
   (* common properties *)
     fun moduleName (view, modId) =
-	  View.getValue CommonView.a_name (view, View.Module modId, AST.ModuleId.nameOf modId)
+	  View.getValue a_name (view, View.Module modId, AST.ModuleId.nameOf modId)
 
   end
 

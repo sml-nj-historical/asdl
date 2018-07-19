@@ -31,13 +31,14 @@ structure PPAST : sig
 		  | AST.LocalTy(AST.TyDcl{id, ...}) => string(AST.TypeId.nameOf id)
 		(* end case *))
 	(* pretty print a type expression *)
-	  fun ppTyExp tyExp = (
+	  fun ppTyExp (AST.Typ(ty, tyc)) = (
 		PP.openHBox ppStrm;
-		  case tyExp
-		   of AST.Typ t => ppNamedTy t
-		    | AST.OptTy t => (ppNamedTy t; string "?")
-		    | AST.SeqTy t => (ppNamedTy t; string "*")
-		    | AST.SharedTy t => (ppNamedTy t; string "!")
+		  ppNamedTy ty;
+		  case tyc
+		   of AST.NoTyc => ()
+		    | AST.OptTyc => string "?"
+		    | AST.SeqTyc => string "*"
+		    | AST.SharedTyc => string "!"
 		  (* end case *);
 		PP.closeBox ppStrm)
 	  fun ppDecl (AST.TyDcl{id, def, ...}) = let

@@ -28,12 +28,10 @@ structure SML =
       | VERBstr of string list
 
     and spec
-      = STRspec of {entVar : EntPath.entVar, sign : Signature,
-		    def : (strDef * int) option, slot : int}
+      = STRspec of {id : id, sign : sign, def : strexp}
       | TYCspec of {entVar : EntPath.entVar, info: tycSpecInfo}
-      | VALspec of {spec : Types.ty, slot : int}
-      | CONspec of {spec : Types.datacon, slot : int option}
-      | EXNspec of {spec : Types.datacon, slot : int option}
+      | VALspec of id * ty
+      | EXNspec of id * ty option
 
     and dec
       = VALdec of vb list
