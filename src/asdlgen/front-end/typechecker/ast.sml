@@ -77,14 +77,6 @@ structure AST =
 
     and tyc = NoTyc | OptTyc | SeqTyc | SharedTyc
 
-(*
-    and ty_exp
-      = Typ of named_ty
-      | OptTy of named_ty
-      | SeqTy of named_ty
-      | SharedTy of named_ty
-*)
-
     withtype field = {
 	  label : string option,
 	  ty : ty_exp

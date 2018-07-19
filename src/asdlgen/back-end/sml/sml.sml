@@ -28,37 +28,43 @@ structure SML =
       | VERBstr of string list
 
     and spec
-      = STRspec of {id : id, sign : sign, def : strexp}
-      | TYCspec of {entVar : EntPath.entVar, info: tycSpecInfo}
+      = STRspec of id * sign
+      | TYCspec of bool * id list * id * ty option
       | VALspec of id * ty
       | EXNspec of id * ty option
 
     and dec
-      = VALdec of vb list
-      | FUNdec of rvb list
-      | TYPEdec of Types.tycon list
-      | DATATYPEdec of {datatycs: Types.tycon list, withtycs: Types.tycon list}
+      = VALdec of pat * exp
+      | FUNdec of fb list
+      | TYPEdec of id list * id * ty
+      | DATATYPEdec of db list * (id list * id * ty) list
       | EXCEPTIONdec of eb list
       | STRdec of strb list
-      | OPENdec of (SymPath.path * Modules.Structure) list
-      | LOCALdec of dec * dec
+      | OPENdec of id list
+      | LOCALdec of dec list * dec list
       | VERBdec of string list
 
+  (* function binding *)
+    and fb
+      = FB of (id * (pat list * exp) list)
+
+  (* datatype binding *)
+    and db
+      = DB of id list * id * (id * ty option) list
+
     and exp
-      = VARexp of id
-      | CONexp of VarCon.datacon * Types.tyvar list (* instance type *)
-      | NUMexp of string * num_lit	(* string is source text of literal *)
-      | REALexp of string * real_lit	(* string is source text of literal *)
+      = IDexp of id			(* variables and constuctors *)
+      | NUMexp of string
       | STRINGexp of string
       | CHARexp of string
-      | RECORDexp of (numberedLabel * exp) list
-      | SELECTexp of numberedLabel * exp
+      | RECORDexp of (id * exp) list
+      | SELECTexp of id * exp
       | VECTORexp of exp list * Types.ty
       | APPexp of exp * exp
       | HANDLEexp of exp * fnrules
       | RAISEexp of exp * Types.ty
       | CASEexp of exp * rule list * bool
-      | IFexp of { test: exp, thenCase: exp, elseCase: exp }
+      | IFexp of exp * exp * exp
       | ANDALSOexp of exp * exp
       | ORELSEexp of exp * exp
       | FNexp of fnrules
@@ -81,6 +87,13 @@ structure SML =
       | APPpat of VarCon.datacon * Types.tyvar list * pat
       | CONSTRAINTpat of pat * Types.ty
       | LAYEREDpat of pat * pat
+
+    and ty
+      = VARty of id			(* type variable *)
+      | CONty of ty list * id		(* type constructor *)
+      | RECORDty of (id * ty) list 	(* record *)
+      | TUPLEty of ty list		(* tuple *)
+      | VERBty of string		(* verbatim type expression *)
 
   end
 

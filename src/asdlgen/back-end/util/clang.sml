@@ -311,9 +311,7 @@ structure CLang =
     val mkVar = E_Var
     fun mkIntTy (n, ty) = if n < 0 then E_UnOp(%-, E_Int(~n, ty)) else E_Int(n, ty)
     fun mkInt n = mkIntTy(n, intTy)
-    fun mkFlt (f, ty) = if RealLit.isNeg f
-          then E_UnOp(%-, E_Flt(RealLit.negate f, ty))
-          else E_Flt(f, ty)
+    val mkFlt = E_Flt
     val mkBool = E_Bool
     val mkStr = E_Str
     val mkChar = E_Char
@@ -424,17 +422,5 @@ structure CLang =
            of ^++ => "++"
             | ^-- => "--"
           (* end case *))
-
-  (* generate verbatim text from a template string by substituting for placeholders
-   * Placeholders have the syntax @<id>@ and are replaced with the string associated
-   * with <id> in the list of substitutions.  If <id> is empty, then no substitution
-   * is applied, instead the "@@" is replaced by "@".
-   *)
-    local
-      fun verbatim sl subs = List.map (StringSubst.expand subs) sl
-    in
-    fun verbatimDcl sl subs = D_Verbatim(verbatim sl subs)
-    fun verbatimStm sl subs = S_Verbatim(verbatim sl subs)
-    end (* local *)
 
   end

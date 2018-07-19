@@ -1,0 +1,20 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * All rights reserved.
+ *)
+
+Library
+
+  structure GenSML
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+
+  ../../front-end/sources.cm
+  ../util/sources.cm
+
+  gen-sml.sml
+  gen-types.sml
