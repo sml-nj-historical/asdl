@@ -26,6 +26,22 @@ structure SMLView : sig
     open ViewBase
     end
 
+  (* set the default names for the ASDL primitive types *)
+    val () = let
+	    fun set (id, name) = let
+		  val SOME prop = View.findProp(view, View.Type id, Atom.atom "name")
+		  in
+		    View.Prop.setValue(prop, name)
+		  end
+	    in
+	      List.app set [
+		  (PrimTypes.boolTyId,		"bool"),
+		  (PrimTypes.intTyId,		"int"),
+		  (PrimTypes.uintTyId,		"word"),
+		  (PrimTypes.integerTyId,	"IntInf.int"),
+		  (PrimTypes.identifierTyId,	"Atom.atom"),
+		  (PrimTypes.stringTyId,	"string")
+		]
+	    end
+
   end
-
-
