@@ -92,6 +92,7 @@ structure SML =
     and ty
       = VARty of id			(* type variable *)
       | CONty of ty list * id		(* type constructor *)
+      | FUNty of ty * ty		(* function type *)
       | RECORDty of (id * ty) list 	(* record *)
       | TUPLEty of ty list		(* tuple *)
       | VERBty of string		(* verbatim type expression *)

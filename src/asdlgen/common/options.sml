@@ -118,7 +118,10 @@ structure Options : sig
           val hdr = concat[
                   "usage: asdl-gen command [options] file ...\n",
                   "  Version: ", Config.version, "\n",
-                  "  Commands:",
+                  "  Commands:\n",
+		  "    help\n",
+		  "    version\n",
+		  "    check\n",
 (* FIXME: add commands *)
                   "  Options:"
                 ]

@@ -48,6 +48,7 @@ structure PrintSML : sig
 		  PP.openVBox strm indent2;
 		    List.app (fn dcl => (nl(); ppDec(strm, dcl))) dcls;
 		  PP.closeBox strm;
+		  nl();
 		  str "end";
 		PP.closeBox strm)
 	     | S.VERBstr strs => List.app str strs
@@ -91,7 +92,51 @@ structure PrintSML : sig
 	    (* end case *)
 	  end
 
-    and ppTy (strm, ty) = () (* FIXME *)
+    and ppTy (strm, ty) = let
+          val str = PP.string strm
+          fun sp () = PP.space strm 1
+	  fun pp (S.VARty tv) = str tv
+	    | pp (S.CONty([], tyc)) = str tyc
+	    | pp (S.CONty([ty], tyc)) = (atomic ty; sp(); str tyc)
+	    | pp (S.CONty(ty::tys, tyc)) = (
+		str "(";
+		pp ty;
+		List.app (fn ty => (str ","; sp(); pp ty)) tys;
+		str ")"; sp(); str tyc)
+	    | pp (S.FUNty(ty1, ty2)) = (atomic ty1; sp(); str "->"; sp(); pp ty)
+	    | pp (S.RECORDty fields) = let
+		fun field (label, ty) = (str label; sp(); str ":"; sp(); pp ty)
+		in
+		  str "{";
+		  case fields
+		   of [] => ()
+		    | [fld] => field fld
+		    | fld::flds => (
+			field fld;
+			List.app (fn fld => (str ","; sp(); field fld)) flds)
+		  (* end case *);
+		  str "}"
+		end
+	    | pp (S.TUPLEty[]) = str "unit"
+	    | pp (S.TUPLEty[ty]) = pp ty
+	    | pp (S.TUPLEty(ty::tys)) = (
+		atomic ty;
+		List.app (fn ty => (sp(); str "*"; sp(); atomic ty)) tys)
+	    | pp (S.VERBty ty) = str ty
+	  and atomic ty = let
+		fun paren () = (str "("; pp ty; str ")")
+		in
+		  case ty
+		   of (S.TUPLEty _) => paren()
+		    | (S.FUNty _) => paren()
+		    | _ => pp ty
+		  (* end case *)
+		end
+	  in
+	    PP.openHBox strm;
+	      pp ty;
+	    PP.closeBox strm
+	  end
 
     fun output strm decl = (
 	  PP.openVBox strm indent0;

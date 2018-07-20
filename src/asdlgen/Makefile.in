@@ -12,35 +12,68 @@ SHELL =			/bin/sh
 PREFIX =		@prefix@
 INSTALL_BINDIR =	$(PREFIX)/bin
 INSTALL_HEAPDIR =	$(INSTALL_BINDIR)/.heap
-INSTALL_WRAPPER =	@top_srcdir@/bin/install-sml-wrapper.sh
+INSTALL_WRAPPER =	@ASDL_ROOT@/bin/install-sml-wrapper.sh
 SML =			@SMLNJ_CMD@
 ML_BUILD =		@ML_BUILD@
 
 PROGRAM =		asdl-gen
+HEAP =			$(PROGRAM).@SMLNJ_HEAP_SUFFIX@
+ROOT_CM =		driver/sources.cm
+CM_FILES =		back-end/sml/sources.cm \
+			back-end/sources.cm \
+			back-end/util/sources.cm \
+			common/sources.cm \
+			driver/sources.cm \
+			front-end/common/sources.cm \
+			front-end/parser/sources.cm \
+			front-end/sources.cm \
+			front-end/tests/sources.cm \
+			front-end/typechecker/sources.cm
 
-SRCDIR =		@top_srcdir@/src/sml
+SRCDIR =		@ASDLGEN_SRCDIR@
 
 TARGET =		$(SRCDIR)/$(PROGRAM)
 HEAP =			$(TARGET).@SMLNJ_HEAP_SUFFIX@
 
 INSTALL=@INSTALL@
 
-build:		$(TARGET)
+.PHONY:		build
+build:		$(HEAP)
 
-$(HEAP):
-	(cd $(SRCDIR); \
+$(HEAP):  .depend
 	$(ML_BUILD) driver/sources.cm Main.main $(PROGRAM)
 
 install:	$(HEAP)
 	$(INSTALL_WRAPPER) $(TARGET) $(INSTALL_BINDIR)
 
-clean:
-	rm -f $(HEAP)
-	find . \( -name CM -o -name .cm \) -exec rm -rf {} \; -prune -print
+#
+# Dependency file rules
+#
+.depend:        $(CM_FILES)
+	touch .depend
+	$(ML_MAKEDEPEND) $(ML_MAKEDEPEND_FLAGS) -n -f .depend $(ROOT_CM) $(HEAP_IMAGE) || rm -f .depend
 
-distclean:	clean
-	rm -f Makefile
-	rm -rf common/config.sml
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),devclean)
+ifneq ($(MAKECMDGOALS),distclean)
+sinclude .depend
+endif
+endif
+endif
 
-devclean:	distclean
-	rm -f configure
+#################### Cleanup ####################
+
+CLEAN_SUBDIRS =
+
+CLEAN_FILES +=          $(HEAP_IMAGE) \
+                        front-end/parser/*.grm.sml \
+                        front-end/parser/*.lex.sml \
+                        .depend
+
+DISTCLEAN_FILES +=      Makefile \
+                        common/config.sml
+
+DEVCLEAN_FILES =
+
+include @ASDL_MKDIR@/clean-rules.gmk
+
