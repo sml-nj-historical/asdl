@@ -9,7 +9,8 @@ structure View : sig
     type t
 
     datatype entity
-      = Module of AST.ModuleId.t
+      = File
+      | Module of AST.ModuleId.t
       | Type of AST.TypeId.t
       | Constr of AST.ConstrId.t
 
@@ -50,10 +51,15 @@ structure View : sig
    *)
     val getValue : Atom.atom -> t * entity * string -> string list
 
+    val getOptValue : Atom.atom -> t * entity -> string list option
+
+    val getValues : Atom.atom -> t * entity -> string list
+
   (* a view template describes the properties that the various entities of a module
    * might have.
    *)
     type template = {
+	fileProps : Prop.desc list,
 	moduleProps : Prop.desc list,
 	typeProps : Prop.desc list,
 	consProps : Prop.desc list
@@ -67,7 +73,8 @@ structure View : sig
     structure ATbl = AtomTable
 
     datatype entity
-      = Module of AST.ModuleId.t
+      = File
+      | Module of AST.ModuleId.t
       | Type of AST.TypeId.t
       | Constr of AST.ConstrId.t
 
@@ -75,10 +82,12 @@ structure View : sig
     structure ETbl = HashTableFn (
       struct
 	type hash_key = entity
-	fun hashVal (Module id) = Word.<<(AST.ModuleId.hash id, 0w2) + 0w1
+	fun hashVal File = 0w17
+          | hashVal (Module id) = Word.<<(AST.ModuleId.hash id, 0w2) + 0w1
 	  | hashVal (Type id) = Word.<<(AST.TypeId.hash id, 0w2) + 0w2
 	  | hashVal (Constr id) = Word.<<(AST.ConstrId.hash id, 0w2) + 0w3
-	fun sameKey (Module id1, Module id2) = AST.ModuleId.same(id1, id2)
+	fun sameKey (File, File) = true
+          | sameKey (Module id1, Module id2) = AST.ModuleId.same(id1, id2)
 	  | sameKey (Type id1, Type id2) = AST.TypeId.same(id1, id2)
 	  | sameKey (Constr id1, Constr id2) = AST.ConstrId.same(id1, id2)
 	  | sameKey _ = false
@@ -129,6 +138,7 @@ structure View : sig
    * might have.
    *)
     type template = {
+	fileProps : Prop.desc list,
 	moduleProps : Prop.desc list,
 	typeProps : Prop.desc list,
 	consProps : Prop.desc list
@@ -138,6 +148,7 @@ structure View : sig
 	name : Atom.atom,	(* the view's name *)
 	template : {		(* template that specifies which properties are supported by
 				 * the view *)
+	    fileProps : Prop.desc ATbl.hash_table,
 	    moduleProps : Prop.desc ATbl.hash_table,
 	    typeProps : Prop.desc ATbl.hash_table,
 	    consProps : Prop.desc ATbl.hash_table
@@ -158,6 +169,7 @@ structure View : sig
 	    View{
 		name = Atom.atom name,
 		template = {
+		    fileProps = mkTbl (#fileProps tmp),
 		    moduleProps = mkTbl (#moduleProps tmp),
 		    typeProps = mkTbl (#typeProps tmp),
 		    consProps = mkTbl (#consProps tmp)
@@ -174,7 +186,8 @@ structure View : sig
     fun findProp (View{eTbl, template, ...}, entity, name) = let
 	(* extract the appropriate prop descriptor table for the entity *)
 	  fun propDescTable () = (case entity
-		 of Module _ => #moduleProps template
+		 of File => #fileProps template
+		  | Module _ => #moduleProps template
 		  | Type _ => #typeProps template
 		  | Constr _ => #consProps template
 		(* end case *))
@@ -217,6 +230,24 @@ structure View : sig
 		    | NONE => [default]
 		  (* end case *))
 	      | NONE => [default]
+	  (* end case *))
+
+    fun getOptValue name (View{eTbl, ...}, entity) = (
+	  case ETbl.find eTbl entity
+	     of SOME pTbl => (case ATbl.find pTbl name
+		   of SOME(Prop{value=ref s, ...}) => SOME s
+		    | NONE => NONE
+		  (* end case *))
+	      | NONE => NONE
+	  (* end case *))
+
+    fun getValues name (View{eTbl, ...}, entity) = (
+	  case ETbl.find eTbl entity
+	     of SOME pTbl => (case ATbl.find pTbl name
+		   of SOME(Prop{value=ref s, ...}) => s
+		    | NONE => []
+		  (* end case *))
+	      | NONE => []
 	  (* end case *))
 
   end

@@ -77,6 +77,7 @@ structure ParseTree =
 
     and view_entity
       = VEntity_Mark of view_entity mark
+      | VEntity_File			(* '<top>' *)
       | VEntity_Module of id		(* 'module' <module> *)
       | VEntity_Type of id * id		(* <module> '.' <type> *)
       | VEntity_AllCons of id * id	(* <module> '.' <type> '.*' *)

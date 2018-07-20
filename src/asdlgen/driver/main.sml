@@ -36,7 +36,7 @@ structure Main : sig
 			  | (SOME dir, {file, ...}) => (dir, getStem file)
 			(* end case *))
 		  in
-		    gen {dir = dir, stem = stem, modules = modules};
+		    gen {src = file, dir = dir, stem = stem, modules = modules};
 		    false
 		  end
 	      | NONE => true
@@ -60,9 +60,14 @@ structure Main : sig
 	    (* end case *)
 	  end
 	    handle Options.Usage msg => (
-	      TextIO.output(TextIO.stdErr, concat[
-		  cmdName, ": ", msg, "\n", Options.usage()
-		]);
-	      OS.Process.failure)
+		    TextIO.output(TextIO.stdErr, concat[
+			cmdName, ": ", msg, "\n", Options.usage()
+		      ]);
+		    OS.Process.failure)
+		| Fail msg => (
+		    TextIO.output(TextIO.stdErr, concat[
+			cmdName, ": uncaught exception ", msg, "\n"
+		      ]);
+		    OS.Process.failure)
 
   end

@@ -33,6 +33,7 @@ structure Typecheck : sig
 	  fun tok2str (S s) = s
 	    | tok2str (A a) = Atom.toString a
 	    | tok2str (I{tree, ...}) = Atom.toString tree
+            | tok2str (E View.File) = "<file>"
 	    | tok2str (E(View.Module modId)) = ModId.nameOf modId
 	    | tok2str (E(View.Type tyId)) = TyId.nameOf tyId
 	    | tok2str (E(View.Constr conId)) = ConId.nameOf conId
@@ -361,6 +362,7 @@ structure Typecheck : sig
 		  | NONE => NONE
 		(* end case *))
 	  fun chkEntity (cxt, PT.VEntity_Mark m) = chkEntity (withMark' (cxt, m))
+	    | chkEntity (cxt, PT.VEntity_File) = [View.File]
 	    | chkEntity (cxt, PT.VEntity_Module module) = (
 		case chkModule module
 		 of SOME modId => [View.Module modId]

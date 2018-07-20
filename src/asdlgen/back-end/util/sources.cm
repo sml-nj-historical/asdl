@@ -8,6 +8,7 @@ Library
 
   structure CLang
   structure SortDecls
+  structure StringSubst
 
 is
 
@@ -18,3 +19,5 @@ is
 
   clang.sml
   sort-decls.sml
+  string-subst.sml
+

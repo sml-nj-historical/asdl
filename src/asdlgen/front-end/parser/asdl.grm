@@ -32,7 +32,8 @@
     | SHARED			("!")
     | EQ			("=")
     | PIPE			("|")
-    | TOP			("<Top>")
+    | TOP			("<top>")
+    | FILE			("<file>")
     | CODE of string		(* raw code *)
     | LID of Atom.atom		(* lower-case identifier *)
     | UID of Atom.atom		(* upper-case identifier *)
@@ -81,7 +82,7 @@ Decl
 
 ModuleId
 	: Id			=> (Id)
-	| "<Top>"		=> (markId(FULL_SPAN, PT.topId))
+	| "<top>"		=> (markId(FULL_SPAN, PT.topId))
 	;
 
 ModuleImport
@@ -203,7 +204,9 @@ MarkViewEntity
 	;
 
 ViewEntity
-	: "module" ModuleId
+	: "<file>"
+		=> (PT.VEntity_File)
+	| "module" ModuleId
 		=> (PT.VEntity_Module ModuleId)
 	| ModuleId "." Id
 		=> (PT.VEntity_Type(ModuleId, Id))

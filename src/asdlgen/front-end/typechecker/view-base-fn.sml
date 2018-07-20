@@ -13,7 +13,17 @@ functor ViewBaseFn (V : sig
 
     val view = View.new (V.viewName, V.template)
 
+    val getHeaderValue = View.getOptValue (Atom.atom "header")
     val getNameValue = View.getValue (Atom.atom "name")
+
+    structure File =
+      struct
+	fun getHeader () = (
+	      case getHeaderValue (view, View.File)
+	       of NONE => []
+		| SOME text => text
+	      (* end case *))
+      end
 
     structure Module =
       struct

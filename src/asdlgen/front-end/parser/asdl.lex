@@ -45,7 +45,6 @@
 <INITIAL>"]"		=> (T.RBRACK);
 <INITIAL>"{"		=> (T.LBRACE);
 <INITIAL>"}"		=> (T.RBRACE);
-<INITIAL>"<Top>"	=> (T.TOP);
 <INITIAL>"<="		=> (T.LEQ);
 <INITIAL>","		=> (T.COMMA);
 <INITIAL>"*"		=> (T.SEQUENCE);
@@ -68,6 +67,11 @@
 <INITIAL>"%%"{ws}*	=> (YYBEGIN CODE; continue());
 <CODE>"%%"		=> (YYBEGIN INITIAL; makeCode());
 <CODE>.*		=> (addString(yytext); continue());
+
+<INITIAL>"<"[Tt][Oo][Pp]">"
+			=> (T.TOP);
+<INITIAL>"<"[Ff][Ii][Ll][Ee]">"
+			=> (T.FILE);
 
 <INITIAL>.              => (lexErr(yypos, ["bad character `", String.toString yytext, "'"]);
                             continue());

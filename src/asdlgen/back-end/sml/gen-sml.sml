@@ -8,7 +8,7 @@
 
 structure GenSML : sig
 
-    val gen : {dir : string, stem : string, modules : AST.module list} -> unit
+    val gen : {src : string, dir : string, stem : string, modules : AST.module list} -> unit
 
   end = struct
 
@@ -18,6 +18,16 @@ structure GenSML : sig
     structure ConV = V.Constr
     structure S = SML
     structure PP = TextIOPP
+
+  (* generate the file header as a verbatim top_decl *)
+    fun genHeader (src, file) = let
+	  val expand = StringSubst.expand [
+		  ("FILENAME", file),
+		  ("SRCFILE", src)
+		]
+	  in
+	    S.VERBtop(List.map expand (V.File.getHeader()))
+	  end
 
   (* output SML declarations to a file *)
     fun output (outFile, dcls) = let
@@ -31,14 +41,14 @@ structure GenSML : sig
 	  end
 
   (* generate the type declarations *)
-    fun genTypes (outFile, modules) =
-	  output (outFile, List.map GenTypes.gen modules)
+    fun genTypes (src, outFile, modules) =
+	  output (outFile, genHeader (src, outFile) :: List.map GenTypes.gen modules)
 
   (* generate SML code for the given list of modules using the "Sml" view *)
-    fun gen {dir, stem, modules} = let
+    fun gen {src, dir, stem, modules} = let
 	  val basePath = OS.Path.joinDirFile{dir=dir, file=stem}
 	  in
-	    genTypes (OS.Path.joinBaseExt{base=basePath, ext=SOME "sml"}, modules)
+	    genTypes (src, OS.Path.joinBaseExt{base=basePath, ext=SOME "sml"}, modules)
 	  end
 
   end

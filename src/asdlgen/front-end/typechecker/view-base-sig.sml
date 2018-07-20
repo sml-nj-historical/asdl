@@ -4,6 +4,13 @@
  * All rights reserved.
  *)
 
+signature VIEW_FILE_BASE =
+  sig
+
+    val getHeader : unit -> string list
+
+  end
+
 signature VIEW_MODULE_BASE =
   sig
 
@@ -30,6 +37,7 @@ signature VIEW_BASE =
 
     val view : View.t
 
+    structure File : VIEW_FILE_BASE
     structure Module : VIEW_MODULE_BASE
     structure Type : VIEW_TYPE_BASE
     structure Constr : VIEW_CONSTR_BASE

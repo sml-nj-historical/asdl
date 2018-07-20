@@ -10,6 +10,7 @@ structure SMLView : sig
 
     val view : View.t
 
+    structure File : VIEW_FILE_BASE
     structure Module : VIEW_MODULE_BASE
     structure Type : VIEW_TYPE_BASE
     structure Constr : VIEW_CONSTR_BASE
@@ -25,6 +26,20 @@ structure SMLView : sig
     in
     open ViewBase
     end
+
+  (* the default header template *)
+    val header =
+	  "(* @FILENAME@\n\
+	  \ *\n\
+	  \ * Generated from @SRCFILE@ by asdl-gen.\n\
+	  \ *)\n"
+
+  (* set the default header property *)
+    val () = let
+	  val SOME prop = View.findProp(view, View.File, Atom.atom "header")
+	  in
+	    View.Prop.setValue(prop, header)
+	  end
 
   (* set the default names for the ASDL primitive types *)
     val () = let

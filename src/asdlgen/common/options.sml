@@ -11,7 +11,12 @@ structure Options : sig
    *)
     exception Usage of string
 
-    type generator = {dir : string, stem : string, modules : AST.module list} -> unit
+    type generator = {
+	src : string,			(* name of source file from command line *)
+	dir : string,			(* output directory for generated files *)
+	stem : string,			(* stem of output files *)
+	modules : AST.module list	(* modules from source file *)
+      } -> unit
 
     datatype command
       = HELP
@@ -42,7 +47,12 @@ structure Options : sig
     structure G = GetOpt
     structure P = OS.Path
 
-    type generator = {dir : string, stem : string, modules : AST.module list} -> unit
+    type generator = {
+	src : string,			(* name of source file from command line *)
+	dir : string,			(* output directory for generated files *)
+	stem : string,			(* stem of output files *)
+	modules : AST.module list	(* modules from source file *)
+      } -> unit
 
     datatype command
       = HELP
