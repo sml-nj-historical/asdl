@@ -30,10 +30,10 @@ structure Env : sig
     val insertType : t * Atom.atom * AST.type_decl -> unit
 
   (* find a constructor in the current module's environment *)
-    val findCons : t * Atom.atom -> AST.ConId.t option
+    val findConstr : t * Atom.atom -> AST.ConstrId.t option
 
   (* insert a constructor into the current module's environment *)
-    val insertCons : t * AST.ConId.t -> unit
+    val insertConstr : t * AST.ConstrId.t -> unit
 
   (* find a view by name *)
     val findView : t * Atom.atom -> View.t option
@@ -46,7 +46,7 @@ structure Env : sig
     datatype module_env = ModEnv of {
 	id : MId.t,
 	tyEnv : AST.named_ty ATbl.hash_table,
-	consEnv : AST.ConId.t ATbl.hash_table
+	consEnv : AST.ConstrId.t ATbl.hash_table
       }
 
     datatype t
@@ -138,13 +138,13 @@ structure Env : sig
 	  ATbl.insert tyEnv (name, AST.LocalTy dcl)
 
   (* find a constructor in the current module's environment *)
-    fun findCons (LEnv{curMod=ModEnv{consEnv, ...}, ...}, name) = ATbl.find consEnv name
-      | findCons _ = raise Fail "findCons applied to global environment"
+    fun findConstr (LEnv{curMod=ModEnv{consEnv, ...}, ...}, name) = ATbl.find consEnv name
+      | findConstr _ = raise Fail "findConstr applied to global environment"
 
   (* insert a constructor into the current module's environment *)
-    fun insertCons (LEnv{curMod=ModEnv{consEnv, ...}, ...}, consId) =
-	  ATbl.insert consEnv (AST.ConId.atomOf consId, consId)
-      | insertCons _ = raise Fail "insertCons applied to global environment"
+    fun insertConstr (LEnv{curMod=ModEnv{consEnv, ...}, ...}, consId) =
+	  ATbl.insert consEnv (AST.ConstrId.atomOf consId, consId)
+      | insertConstr _ = raise Fail "insertConstr applied to global environment"
 
   (* find a view by name *)
     fun findView (GEnv{views, ...}, name) = List.find (View.isView name) views

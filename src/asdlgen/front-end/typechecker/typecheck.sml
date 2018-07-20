@@ -16,7 +16,7 @@ structure Typecheck : sig
     structure PT = ParseTree
     structure ModId = AST.ModuleId
     structure TyId = AST.TypeId
-    structure ConId = AST.ConId
+    structure ConId = AST.ConstrId
     structure Prop = View.Prop
 
     fun markCxt ((errStrm, _), span) = (errStrm, span)
@@ -196,7 +196,7 @@ structure Typecheck : sig
 		  | _ => false
 		(* end case *))
 	(* check if a constructor has already been defined in this scope *)
-	  fun checkCons (cxt, cons) = (case Env.findCons (env, cons)
+	  fun checkCons (cxt, cons) = (case Env.findConstr (env, cons)
 		 of SOME _ => (
 		      err (cxt, [S "multiple definitions of constuctor '", A cons, S "'"]);
 		      true)
@@ -217,7 +217,7 @@ structure Typecheck : sig
 				  val id = ConId.new tree
 				  val constr = AST.Constr{id = id, owner = owner, fields = []}
 				  in
-				    Env.insertCons (env, id);
+				    Env.insertConstr (env, id);
 				    ConId.bind (id, constr);
 				    SOME constr
 				  end
@@ -238,7 +238,7 @@ structure Typecheck : sig
 				  val fields' = checkFields (cxt, env, attribs', fields)
 				  val constr = AST.Constr{id = id, owner = owner, fields = fields'}
 				  in
-				    Env.insertCons (env, id);
+				    Env.insertConstr (env, id);
 				    ConId.bind (id, constr);
 				    SOME constr
 				  end

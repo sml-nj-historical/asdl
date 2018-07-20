@@ -13,7 +13,7 @@ structure SML =
 
     datatype top_decl
       = SIGtop of id * sigexp
-      | STRtop of id * sigexp option * strexp
+      | STRtop of id * (bool * sigexp) option * strexp
       | VERBtop of string list
 
     and sigexp
@@ -41,7 +41,7 @@ structure SML =
       | TYPEdec of id list * id * ty
       | DATATYPEdec of db list * (id list * id * ty) list
       | EXCEPTIONdec of id * ty option
-      | STRdec of strb list
+      | STRdec of id * sigexp option * strexp
       | OPENdec of id list
       | LOCALdec of dec list * dec list
       | VERBdec of string list
@@ -63,13 +63,13 @@ structure SML =
       | SELECTexp of id * exp
       | VECTORexp of exp list * ty
       | APPexp of exp * exp
-      | HANDLEexp of exp * fnrules
+      | HANDLEexp of exp * (pat * exp) list
       | RAISEexp of exp * ty
       | CASEexp of exp * rule list * bool
       | IFexp of exp * exp * exp
       | ANDALSOexp of exp * exp
       | ORELSEexp of exp * exp
-      | FNexp of fnrules
+      | FNexp of (pat * exp) list
       | LETexp of dec * exp
       | SEQexp of exp list
       | CONSTRAINTexp of exp * ty

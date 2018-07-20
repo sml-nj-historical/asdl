@@ -12,10 +12,14 @@ is
 
   $/basis.cm
   $/smlnj-lib.cm
+  $/pp-lib.cm
 
+  ../../common/sources.cm
   ../../front-end/sources.cm
   ../util/sources.cm
 
   gen-sml.sml
   gen-types.sml
+  print-sml.sml
   sml.sml
+

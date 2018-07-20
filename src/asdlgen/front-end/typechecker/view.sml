@@ -11,7 +11,7 @@ structure View : sig
     datatype entity
       = Module of AST.ModuleId.t
       | Type of AST.TypeId.t
-      | Constr of AST.ConId.t
+      | Constr of AST.ConstrId.t
 
     structure Prop : sig
 	type t
@@ -69,7 +69,7 @@ structure View : sig
     datatype entity
       = Module of AST.ModuleId.t
       | Type of AST.TypeId.t
-      | Constr of AST.ConId.t
+      | Constr of AST.ConstrId.t
 
   (* hash table on entities *)
     structure ETbl = HashTableFn (
@@ -77,10 +77,10 @@ structure View : sig
 	type hash_key = entity
 	fun hashVal (Module id) = Word.<<(AST.ModuleId.hash id, 0w2) + 0w1
 	  | hashVal (Type id) = Word.<<(AST.TypeId.hash id, 0w2) + 0w2
-	  | hashVal (Constr id) = Word.<<(AST.ConId.hash id, 0w2) + 0w3
+	  | hashVal (Constr id) = Word.<<(AST.ConstrId.hash id, 0w2) + 0w3
 	fun sameKey (Module id1, Module id2) = AST.ModuleId.same(id1, id2)
 	  | sameKey (Type id1, Type id2) = AST.TypeId.same(id1, id2)
-	  | sameKey (Constr id1, Constr id2) = AST.ConId.same(id1, id2)
+	  | sameKey (Constr id1, Constr id2) = AST.ConstrId.same(id1, id2)
 	  | sameKey _ = false
       end)
 

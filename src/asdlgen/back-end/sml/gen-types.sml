@@ -16,23 +16,24 @@ structure GenTypes : sig
     structure V = SMLView
     structure ModV = V.Module
     structure TyV = V.Type
-    structure ConV = V.Con
+    structure ConV = V.Constr
     structure S = SML
 
-    fun gen (AST.Module{isPrim=false, id, decls}, dcls) = let
+    fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val name = ModV.getName id
-	  fun genGrp (dcls, dcls') = (case List.foldr genTyp ([], []) dcls
+	  fun genGrp (dcls, dcls') = (case List.foldr genType ([], []) dcls
 		 of ([], tbs) => List.map S.TYPEdec tbs @ dcls'
-		  | (dbs, tbs) => S.DATATYPEdec(dbs, tbs) :: dcls
+		  | (dbs, tbs) => S.DATATYPEdec(dbs, tbs) :: dcls'
 		(* end case *))
 	  in
-	    S.STRtop(name, NONE, List.foldr genGrp [] (SortDecls.sort decls))
+	    S.STRtop(name, NONE, S.STRstr(List.foldr genGrp [] (SortDecls.sort (!decls))))
 	  end
 
     and genType (AST.TyDcl{id, def, ...}, (dbs, tbs)) = let
 	  val name = TyV.getName id
 	  fun db cons = let
-		fun con (AST.Constr{id, fields, ...}) = (ConV.getName id, genProdTy fields)
+		fun con (AST.Constr{id, fields=[], ...}) = (ConV.getName id, NONE)
+		  | con (AST.Constr{id, fields, ...}) = (ConV.getName id, SOME(genProdTy fields))
 		in
 		  (S.DB([], name, List.map con cons)::dbs, tbs)
 		end
@@ -58,11 +59,14 @@ structure GenTypes : sig
 	  end
 
     and genTyExp (AST.Typ(ty, tyc)) = let
-	  val ty' = (case ty
-		 of AST.BaseTy tyId => TyV.name tyId
-		  | AST.ImportTy(modId, tyId) => String.concat[ModV.name modId, ".", TyV.name tyId]
-		  | AST.LocalTy(AST.TyDcl{id, ...}) => TyV.name id
+	  val tyName = (case ty
+		 of AST.BaseTy tyId => TyV.getName tyId
+		  | AST.ImportTy(modId, tyId) => String.concat[
+			ModV.getName modId, ".", TyV.getName tyId
+		      ]
+		  | AST.LocalTy(AST.TyDcl{id, ...}) => TyV.getName id
 		(* end case *))
+	  val ty' = S.CONty([], tyName)
 	  in
 	    case tyc
 	     of AST.NoTyc => ty'

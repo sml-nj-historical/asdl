@@ -13,8 +13,9 @@ is
   $/basis.cm
   $/smlnj-lib.cm
 
+  ../common/sources.cm
   ../front-end/sources.cm
   ../back-end/sources.cm
 
   main.sml
-  options.sml
+

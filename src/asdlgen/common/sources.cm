@@ -2,18 +2,19 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
- *
- * CM sources file for asdlGen backend.
  *)
 
 Library
 
-  structure GenSML
+  structure Config
+  structure Options
 
 is
 
   $/basis.cm
   $/smlnj-lib.cm
 
-  sml/sources.cm
+  ../front-end/sources.cm
 
+  config.sml
+  options.sml

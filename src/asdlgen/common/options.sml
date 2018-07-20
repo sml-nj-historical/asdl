@@ -11,38 +11,52 @@ structure Options : sig
    *)
     exception Usage of string
 
+    type generator = {dir : string, stem : string, modules : AST.module list} -> unit
+
     datatype command
       = HELP
       | VERSION
       | CHECK
-      | GENERATE of ??
+      | GENERATE of generator
+
+  (* register the generators *)
+    val registerGen : string list * generator -> unit
 
   (* parse the command-line args *)
     val parseCmdLine : string list -> {
-	    command : command,		(* the first command-line argument specifies the operation to perform *)
-	    pickler : string option,	(* the specified pickler *)
+	    command : command,		(* the first command-line argument, which specifies the
+					 * operation to perform *)
             files : string list         (* source file *)
           }
 
   (* return a usage message. *)
     val usage : unit -> string
 
+  (* get option values *)
+    val lineWidth : unit -> int			(* set by `--line-width` *)
+    val outputDir : unit -> string option	(* set by `-d` / `--output-directory` *)
+    val pickler : unit -> string		(* set by `--pickler` *)
+
   end = struct
 
     structure G = GetOpt
     structure P = OS.Path
 
+    type generator = {dir : string, stem : string, modules : AST.module list} -> unit
+
     datatype command
       = HELP
       | VERSION
       | CHECK
-      | GENERATE of ??
+      | GENERATE of generator
 
     exception Usage of string
 
   (* option flags that are set by getOpt *)
     val viewOpt : string option ref = ref NONE
     val picklerOpt : string option ref = ref NONE
+    val lineWidOpt : int ref = ref 90
+    val outputDirOpt : string option ref = ref NONE
 
     fun setFlag (flg, value) = G.NoArg(fn () => (flg := value))
 
@@ -61,46 +75,40 @@ structure Options : sig
 
 (* TODO: view-specific options *)
 
-    fun parse (cmd, [])) = {
-            help = SOME false,
-            version = false,
+    fun parse (cmd, []) = {
 	    command = cmd,
             files = []
           }
-      | parse args = let
+      | parse (cmd, args) = let
 	  val (opts, files) = G.getOpt {
 		  argOrder = G.RequireOrder,
-		  options = optionList @ ctlOptions,
+		  options = optionList,
 		  errFn = fn s => raise Usage s
-		} rest
+		} args
 	(* figure out filename pieces *)
-	  val srcFiles =
-		if isSome(!helpFlg) orelse !versionFlg orelse !aboutFlg
-		  then []
-		  else (case files
-		     of [] => raise Usage "missing file argument"
-		      | fs => fs
-		    (* end case *))
+	  val srcFiles = (case (cmd, files)
+		 of (HELP, _) => []
+		  | (VERSION, _) => []
+		  | (_, []) => raise Usage "no input files specified"
+		  | _ => files
+		(* end case *))
 	  in {
-	    help = !helpFlg,
-	    version = !versionFlg,
 	    command = cmd,
-	    file = srcFile
+	    files = srcFiles
 	  } end
 
-    val commands = [
+    val commands = ref [
 	    (["help"],		HELP),
 	    (["version"],	VERSION),
-	    (["c++", "cxx"],	GENERATE ??),
-	    (["sml"],		GENERATE ??),
-	    (["typ"],		GENERATE ??),
 	    (["check"],		CHECK)
 	  ]
+
+    fun registerGen (names, genFn) = commands := (names, GENERATE genFn) :: !commands
 
     fun parseCmdLine (cmd::rest) = let
 	  fun isCmd (names, _) = List.exists (fn name => (name = cmd)) names
 	  in
-	    case List.find isCmd commands
+	    case List.find isCmd (!commands)
 	     of SOME(_, cmd) => parse (cmd, rest)
 	      | NONE => raise Usage "unknown command"
 	    (* end case *)
@@ -109,13 +117,20 @@ structure Options : sig
     fun usage () = let
           val hdr = concat[
                   "usage: asdl-gen command [options] file ...\n",
-                  "  Version: ", Version.message, "\n",
+                  "  Version: ", Config.version, "\n",
                   "  Commands:",
 (* FIXME: add commands *)
                   "  Options:"
                 ]
           in
-            G.usageInfo {header = hdr, options = options}
+            G.usageInfo {header = hdr, options = optionList}
           end
+
+  (* get option values *)
+    fun lineWidth () = !lineWidOpt
+
+    fun outputDir () = !outputDirOpt
+
+    fun pickler () = Option.getOpt(!picklerOpt, "binary")
 
   end

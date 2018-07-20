@@ -8,7 +8,11 @@
 
 structure CxxView : sig
 
-    include VIEW_BASE
+    val view : View.t
+
+    structure Module : VIEW_MODULE_BASE
+    structure Type : VIEW_TYPE_BASE
+    structure Constr : VIEW_CONSTR_BASE
 
   end = struct
 

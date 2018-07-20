@@ -32,3 +32,5 @@ is
   typecheck.sml
   view.sml
   view-base-fn.sml
+  view-base-sig.sml
+

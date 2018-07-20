@@ -4,13 +4,6 @@
  * All rights reserved.
  *)
 
-signature VIEW_BASE =
-  sig
-
-    val view : View.t
-
-  end
-
 functor ViewBaseFn (V : sig
 
     val viewName : string
@@ -20,12 +13,34 @@ functor ViewBaseFn (V : sig
 
     val view = View.new (V.viewName, V.template)
 
-  (* view-property names *)
-    val a_name = Atom.atom "name"
+    val getNameValue = View.getValue (Atom.atom "name")
 
-  (* common properties *)
-    fun moduleName (view, modId) =
-	  View.getValue a_name (view, View.Module modId, AST.ModuleId.nameOf modId)
+    structure Module =
+      struct
+	fun getName modId = (
+	      case getNameValue (view, View.Module modId, AST.ModuleId.nameOf modId)
+	       of [name] => name
+		| _ => raise Fail "Module.getName"
+	      (* end case *))
+      end
+
+    structure Type =
+      struct
+	fun getName id = (
+	      case getNameValue (view, View.Type id, AST.TypeId.nameOf id)
+	       of [name] => name
+		| _ => raise Fail "Type.getName"
+	      (* end case *))
+      end
+
+    structure Constr =
+      struct
+	fun getName id = (
+	      case getNameValue (view, View.Constr id, AST.ConstrId.nameOf id)
+	       of [name] => name
+		| _ => raise Fail "Constr.getName"
+	      (* end case *))
+      end
 
   end
 

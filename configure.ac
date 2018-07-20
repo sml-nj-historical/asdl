@@ -6,7 +6,7 @@ dnl COPYRIGHT (c) 2018 The Fellowship of SML/NJ
 dnl All rights reserved.
 dnl
 
-AC_INIT(asdl-gen,2.0,)
+AC_INIT(asdl-gen,3.0,)
 
 AC_PREREQ(2.60)
 AC_COPYRIGHT([[COPYRIGHT (c) 2018 The Fellowship of SML/NJ]])
@@ -84,9 +84,9 @@ if test x"$with_mlton" = xno ; then
   dnl
   CHECK_SMLNJ([AC_MSG_ERROR([unable to find SML/NJ installation; check your PATH or set SMLNJ_CMD])])
   if test $SMLNJ_MAJOR_VERSION -lt 110 \
-    -o $SMLNJ_MINOR_VERSION -lt 80
+    -o $SMLNJ_MINOR_VERSION -lt 83
   then
-    AC_MSG_ERROR([installation requires SML/NJ version 110.80+ (available from smlnj.org)])
+    AC_MSG_ERROR([installation requires SML/NJ version 110.83+ (available from smlnj.org)])
   fi
 
   dnl determine the heap-image suffix
@@ -143,7 +143,8 @@ dnl
 dnl ***** Makefiles *****
   Makefile
   doc/Makefile
-  doc/manual/Makefile
+  doc/manual-2.0/Makefile
+  doc/manual-3.0/Makefile
   examples/Makefile
   src/asdlgen/Makefile$SRC_MAKEFILE_IN
 dnl
