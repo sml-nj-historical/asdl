@@ -20,16 +20,45 @@ structure GenPickle : sig
     structure ConV = V.Constr
     structure S = SML
 
-    fun gen (AST.Module{isPrim=false, id, decls}) = let
+  (***** Signature generation *****)
+
+    fun genSig (AST.Module{isPrim=false, id, decls}) = let
 	  val baseModName = ModV.getName id
-	  fun genGrp (dcls, dcls') = (case List.foldr genType ([], []) dcls
-		 of ([], tbs) => List.map S.TYPEdec tbs @ dcls'
-		  | (dbs, tbs) => S.DATATYPEdec(dbs, tbs) :: dcls'
-		(* end case *))
+	  val sigName = Util.sigName(baseModName, SOME "PICKLE")
+	  val specs = List.foldr (genSpec baseModName) [] (!decls)
 	  in
-	    S.STRtop(name, NONE, S.STRstr(List.foldr genGrp [] (SortDecls.sort (!decls))))
+	    S.SIGtop(sigName, S.BASEsig specs)
 	  end
-      | gen _ = raise Fail "unexpected primitive module"
+      | genSig _ = raise Fail "genSig: unexpected primitive module"
+
+  (* generate the encoder/decoder specifications for a type *)
+    and genSpec modName (AST.TyDcl{id, ...}, specs) = let
+	  val ty = S.CONty([], TyV.getName id)
+	  val bufTy = S.CONty([], "Word8Buffer.buf")
+	  val vecTy = S.CONty([], "Word8Vector.vector")
+	  val sliceTy = S.CONty([], "Word8VectorSlice.slice")
+	  val unitTy = S.CONty([], "unit")
+	(* encoder *)
+	  val encTy = S.FUNty(S.TUPLEty[bufTy, ty], unitTy)
+	  val encSpc = S.VALspec(V.Type.getEncoder id, encTy)
+	(* decoder *)
+	  val decTy = S.FUNty(sliceTy, S.TUPLEty[ty, sliceTy])
+	  val decSpc = S.VALspec(V.Type.getDecoder id, decTy)
+	  in
+	    encSpc :: decSpc :: specs
+	  end
+
+  (***** Structure generation *****)
+
+    fun genStr (AST.Module{isPrim=false, id, decls}) = let
+	  val baseModName = ModV.getName id
+	  val sigName = Util.sigName(baseModName, SOME "PICKLE")
+	  val strName = baseModName ^ "Pickle"
+	  val decls = [] (* FIXME *)
+	  in
+	    S.STRtop(strName, SOME(false, S.IDsig sigName), S.BASEstr decls)
+	  end
+      | genStr _ = raise Fail "genStr: unexpected primitive module"
 
   end
 

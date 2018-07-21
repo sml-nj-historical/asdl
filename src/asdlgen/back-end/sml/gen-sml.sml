@@ -30,25 +30,32 @@ structure GenSML : sig
 	  end
 
   (* output SML declarations to a file *)
-    fun output (outFile, dcls) = let
+    fun output (src, outFile, dcls) = let
 	  val outS = TextIO.openOut outFile
 (* FIXME: output width is a command-line option! *)
 	  val ppStrm = TextIOPP.openOut {dst = outS, wid = Options.lineWidth()}
 	  in
-	    List.map (PrintSML.output ppStrm) dcls;
+	    List.map (PrintSML.output ppStrm) (genHeader (src, outFile) :: dcls);
 	    TextIOPP.closeStream ppStrm;
 	    TextIO.closeOut outS
 	  end
 
-  (* generate the type declarations *)
+  (* generate the type-declaration file *)
     fun genTypes (src, outFile, modules) =
-	  output (outFile, genHeader (src, outFile) :: List.map GenTypes.gen modules)
+	  output (src, outFile, List.map GenTypes.gen modules)
+
+  (* generate the pickler-signature file *)
+    fun genPicklerSig (src, outFile, modules) =
+	  output (src, outFile, List.map GenPickle.genSig modules)
 
   (* generate SML code for the given list of modules using the "Sml" view *)
     fun gen {src, dir, stem, modules} = let
 	  val basePath = OS.Path.joinDirFile{dir=dir, file=stem}
+	  fun smlFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sml"}
+	  fun sigFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sig"}
 	  in
-	    genTypes (src, OS.Path.joinBaseExt{base=basePath, ext=SOME "sml"}, modules)
+	    genTypes (src, smlFilename basePath, modules);
+	    genPicklerSig (src, sigFilename(basePath ^ "-pickle"), modules)
 	  end
 
   end

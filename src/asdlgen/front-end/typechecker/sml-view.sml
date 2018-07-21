@@ -22,7 +22,8 @@ structure SMLView : sig
 	struct
 	  val viewName = "Sml"
 	  val template = CommonView.template
-	  fun mkFunName {operation, ty} = String.concat[operation, ty]
+(* FIXME: add conversion to camlCase *)
+	  fun mkFunName {operation, ty} = String.concat[operation, "_", ty]
 	end)
     in
     open ViewBase

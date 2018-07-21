@@ -23,7 +23,12 @@ structure PrintSML : sig
           fun nl () = PP.newline strm
 	  in
 	    case dcl
-	     of S.SIGtop(id, sigExp) => () (* FIXME *)
+	     of S.SIGtop(id, sigExp) => (
+		  PP.openHBox strm;
+		    str "signature"; sp(); str id; sp(); str "="; sp();
+		  PP.closeBox strm;
+		  ppSigExp (strm, sigExp);
+		  nl())
 	      | S.STRtop(id, NONE, strExp) => (
 		  PP.openHBox strm;
 		    str "structure"; sp(); str id; sp(); str "="; sp();
@@ -35,6 +40,45 @@ structure PrintSML : sig
 	    (* end case *)
 	  end
 
+    and ppSigExp (strm, sigExp) = let
+          val str = PP.string strm
+          fun sp () = PP.space strm 1
+          fun nl () = PP.newline strm
+	  fun ppSpec (S.STRspec _) = () (* FIXME *)
+	    | ppSpec (S.TYPEspec(eqTy, tvs, tyc, rhs)) = (
+		PP.openHBox strm;
+		  if eqTy then str "eqtype" else str "type";
+		  sp(); ppTycBind(strm, tvs, tyc);
+		  case rhs
+		   of SOME ty => (sp(); str "="; sp(); ppTy(strm, ty))
+		    | NONE => ()
+		  (* end case *);
+		PP.closeBox strm)
+	    | ppSpec (S.DATATYPEspec dbs) = () (* FIXME *)
+	    | ppSpec (S.VALspec(id, ty)) = (
+		PP.openHBox strm;
+		  str "val"; sp(); str id; sp(); str ":"; sp(); ppTy(strm, ty);
+		PP.closeBox strm)
+	    | ppSpec (S.EXNspec con) = (
+		PP.openHBox strm;
+		  str "exception"; sp(); ppCon (strm, con);
+		PP.closeBox strm)
+	  in
+	    case sigExp
+	     of S.IDsig id => str id
+	      | S.AUGsig(sigExp, whereTys) => () (* FIXME *)
+	      | S.BASEsig specs => (
+		  PP.openVBox strm indent2;
+		    str "sig";
+		    PP.openVBox strm indent2;
+		      List.app (fn spc => (nl(); ppSpec spc)) specs;
+		    PP.closeBox strm;
+		    nl();
+		    str "end";
+		  PP.closeBox strm)
+	    (* end case *)
+	  end
+
     and ppStrExp (strm, strExp) = let
           val str = PP.string strm
           fun sp () = PP.space strm 1
@@ -42,7 +86,7 @@ structure PrintSML : sig
 	  in
 	   case strExp
 	    of S.IDstr id => str id
-	     | S.STRstr dcls => (
+	     | S.BASEstr dcls => (
 		PP.openVBox strm indent2;
 		  str "struct";
 		  PP.openVBox strm indent2;
@@ -66,11 +110,6 @@ structure PrintSML : sig
 		  sp(); str "="; sp();
 		  ppTy (strm, ty);
 		PP.closeBox strm)
-	  fun ppCon (id, NONE) = str id
-	    | ppCon (id, SOME ty) = (
-		PP.openHBox strm;
-		  str id; sp(); str "of"; sp(); ppTy(strm, ty);
-		PP.closeBox strm)
 	  in
 	    case dcl
 	     of S.VALdec(pat, exp) => () (* FIXME *)
@@ -85,13 +124,13 @@ structure PrintSML : sig
 			  sp(); ppTycBind (strm, tvs, tyc);
 			  case cons
 			   of [] => raise Fail "impossible"
-			    | [con] => (sp(); str "="; sp(); ppCon con)
+			    | [con] => (sp(); str "="; sp(); ppCon(strm, con))
 			    | cons => let
 				fun ppCon' (con, isFirst) = (
 				      nl();
 				      PP.openHBox strm;
 					if isFirst then str "=" else str "|";
-					sp(); ppCon con;
+					sp(); ppCon(strm, con);
 				      PP.closeBox strm;
 				      false)
 				in
@@ -109,9 +148,9 @@ structure PrintSML : sig
 		      List.foldl tb "withtype" tbs;
 		    PP.closeBox strm
 		  end
-	      | S.EXCEPTIONdec(id, optTy) => (
+	      | S.EXCEPTIONdec con => (
 		  PP.openHBox strm;
-		    str "exception"; sp(); ppCon (id, optTy);
+		    str "exception"; sp(); ppCon (strm, con);
 		  PP.closeBox strm)
 	      | S.STRdec(id, sign, strExp) => () (* FIXME *)
 	      | S.OPENdec ids => () (* FIXME *)
@@ -143,7 +182,8 @@ structure PrintSML : sig
 		pp ty;
 		List.app (fn ty => (str ","; sp(); pp ty)) tys;
 		str ")"; sp(); str tyc)
-	    | pp (S.FUNty(ty1, ty2)) = (atomic ty1; sp(); str "->"; sp(); pp ty)
+	    | pp (S.FUNty(ty1 as S.FUNty _, ty2)) = (atomic ty1; sp(); str "->"; sp(); pp ty2)
+	    | pp (S.FUNty(ty1, ty2)) = (pp ty1; sp(); str "->"; sp(); pp ty2)
 	    | pp (S.RECORDty fields) = let
 		fun field (label, ty) = (str label; sp(); str ":"; sp(); pp ty)
 		in
@@ -176,6 +216,19 @@ structure PrintSML : sig
 	    PP.openHBox strm;
 	      pp ty;
 	    PP.closeBox strm
+	  end
+
+    and ppCon (strm, con) = let
+          val str = PP.string strm
+	  fun sp () = PP.space strm 1
+	  in
+	    case con
+	     of (id, NONE) => str id
+	      | (id, SOME ty) => (
+		  PP.openHBox strm;
+		    str id; sp(); str "of"; sp(); ppTy(strm, ty);
+		  PP.closeBox strm)
+	    (* end case *)
 	  end
 
     fun output strm decl = (

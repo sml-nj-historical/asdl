@@ -18,8 +18,10 @@ is
   ../../front-end/sources.cm
   ../util/sources.cm
 
+  gen-pickle.sml
   gen-sml.sml
   gen-types.sml
   print-sml.sml
   sml.sml
+  util.sml
 

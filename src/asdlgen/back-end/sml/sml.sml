@@ -26,12 +26,13 @@ structure SML =
 
     and strexp
       = IDstr of id
-      | STRstr of dec list
+      | BASEstr of dec list
       | VERBstr of string list
 
     and spec
       = STRspec of id * sigexp
-      | TYCspec of bool * id list * id * ty option
+      | TYPEspec of bool * id list * id * ty option
+      | DATATYPEspec of db list
       | VALspec of id * ty
       | EXNspec of id * ty option
 

@@ -26,7 +26,7 @@ structure GenTypes : sig
 		  | (dbs, tbs) => S.DATATYPEdec(dbs, tbs) :: dcls'
 		(* end case *))
 	  in
-	    S.STRtop(name, NONE, S.STRstr(List.foldr genGrp [] (SortDecls.sort (!decls))))
+	    S.STRtop(name, NONE, S.BASEstr(List.foldr genGrp [] (SortDecls.sort (!decls))))
 	  end
       | gen _ = raise Fail "unexpected primitive module"
 
