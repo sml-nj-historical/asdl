@@ -9,7 +9,7 @@ This section lists the primitive functions and types that are required for
 the code produced by \asdlgen{} to correctly compile.
 Note that this presentation is language independent. 
 
-\subsection{Required for All Languages}
+\section{Required for All Languages}
 All languages require the following
 \newcommand{\ITEM}[1]{\item[\normalfont\color{\cdColor}\texttt{#1}]}
 \begin{description}
@@ -41,7 +41,7 @@ be a bignum in C use the flag \texttt{--base\char`\_include cii\char`\_big\char`
 SML the flags are \texttt{--base\char`\_signature BIG\char`\_BASE} and
 \texttt{--base\char`\_structure BigBase}.
 
-\subsection{Lists and Options}
+\section{Lists and Options}
 For code that does not use polymorphic list and option the following extra
 types are needed along with the corresponding read and write functions
 \begin{description}
@@ -65,7 +65,7 @@ functions are required
     function for a specific type that reads or writes a option of that type.
 \end{description}%
 
-\subsection{Note about \texttt{--mono\char`\_types=false} for C}
+\section{Note about \texttt{--mono\char`\_types=false} for C}
 For the \texttt{--mono\char`\_types false} option in C these function expect functions
 pointers that correspond to the following C \lstinline[language=c]!typedef!s
 %

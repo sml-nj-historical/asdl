@@ -28,6 +28,7 @@ is
   env.sml
   ident-fn.sml
   prim-types.sml
+  prop-names.sml
   sml-view.sml
   typecheck.sml
   view.sml

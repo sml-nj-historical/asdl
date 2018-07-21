@@ -22,6 +22,7 @@ structure SMLView : sig
 	struct
 	  val viewName = "Sml"
 	  val template = CommonView.template
+	  fun mkFunName {operation, ty} = String.concat[operation, ty]
 	end)
     in
     open ViewBase
@@ -44,7 +45,7 @@ structure SMLView : sig
   (* set the default names for the ASDL primitive types *)
     val () = let
 	    fun set (id, name) = let
-		  val SOME prop = View.findProp(view, View.Type id, Atom.atom "name")
+		  val SOME prop = View.findProp(view, View.Type id, PropNames.name)
 		  in
 		    View.Prop.setValue(prop, name)
 		  end

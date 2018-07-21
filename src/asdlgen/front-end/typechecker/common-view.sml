@@ -11,29 +11,31 @@ structure CommonView : sig
     val template : View.template
 
   (* `prop (name, accum)` constructs a property description *)
-    val prop : string * bool -> View.Prop.desc
+    val prop : Atom.atom * bool -> View.Prop.desc
 
   end = struct
 
-    fun prop (name, accum) = View.Prop.Desc{name = Atom.atom name, accumulator = accum}
+    structure PN = PropNames
+
+    fun prop (name, accum) = View.Prop.Desc{name = name, accumulator = accum}
 
     val template = {
 	    fileProps = List.map prop [
-		("header", false)
+		(PN.header, false)
 	      ],
 	    moduleProps = List.map prop [
-		("name", false)
+		(PN.name, false)
 	      ],
 	    typeProps = List.map prop [
-		("name", false),
-		("natural_type", false),
-		("encode", false),
-		("decode", false),
-		("writer", false),
-		("reader", false)
+		(PN.name, false),
+		(PN.natural_type, false),
+		(PN.encoder, false),
+		(PN.decoder, false),
+		(PN.writer, false),
+		(PN.reader, false)
 	      ],
 	    consProps = List.map prop [
-		("name", false)
+		(PN.name, false)
 	      ]
 	  }
 

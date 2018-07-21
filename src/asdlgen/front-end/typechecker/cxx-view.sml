@@ -32,6 +32,7 @@ structure CxxView : sig
   end = struct
 
     structure CV = CommonView
+    structure PN = PropNames
 
     structure ViewBase = ViewBaseFn (
       struct
@@ -40,18 +41,19 @@ structure CxxView : sig
 		fileProps = #fileProps CV.template,
 		moduleProps = #moduleProps CV.template,
 		typeProps =
-		  CV.prop("base_type", false) ::
-		  CV.prop("public_code", true) ::
-		  CV.prop("protected_code", true) ::
-		  CV.prop("private_code", true) ::
+		  CV.prop(PN.base_type, false) ::
+		  CV.prop(PN.public_code, true) ::
+		  CV.prop(PN.protected_code, true) ::
+		  CV.prop(PN.private_code, true) ::
 		  #typeProps CV.template,
 		consProps =
-		  CV.prop("public_code", true) ::
-		  CV.prop("protected_code", true) ::
-		  CV.prop("private_code", true) ::
-		  CV.prop("enum_value", false) ::
+		  CV.prop(PN.public_code, true) ::
+		  CV.prop(PN.protected_code, true) ::
+		  CV.prop(PN.private_code, true) ::
+		  CV.prop(PN.enum_value, false) ::
 		  #consProps CV.template
 	      }
+	  fun mkFunName {operation, ty} = operation
       end)
 
     open ViewBase
@@ -62,9 +64,9 @@ structure CxxView : sig
 
 	fun getCode prop id = View.getValues prop (view, View.Type id)
 
-	val getPublicCode = getCode (Atom.atom "public_code")
-	val getProtectedCode = getCode (Atom.atom "protected_code")
-	val getPrivateCode = getCode (Atom.atom "private_code")
+	val getPublicCode = getCode PN.public_code
+	val getProtectedCode = getCode PN.protected_code
+	val getPrivateCode = getCode PN.private_code
 (* TODO: base_type *)
       end
 
@@ -74,9 +76,9 @@ structure CxxView : sig
 
 	fun getCode prop id = View.getValues prop (view, View.Constr id)
 
-	val getPublicCode = getCode (Atom.atom "public_code")
-	val getProtectedCode = getCode (Atom.atom "protected_code")
-	val getPrivateCode = getCode (Atom.atom "private_code")
+	val getPublicCode = getCode PN.public_code
+	val getProtectedCode = getCode PN.protected_code
+	val getPrivateCode = getCode PN.private_code
 (* TODO: enum_value *)
       end
 
@@ -89,7 +91,7 @@ structure CxxView : sig
 
   (* set the default header property *)
     val () = let
-	  val SOME prop = View.findProp(view, View.File, Atom.atom "header")
+	  val SOME prop = View.findProp(view, View.File, PN.header)
 	  in
 	    View.Prop.setValue(prop, header)
 	  end
@@ -97,7 +99,7 @@ structure CxxView : sig
   (* set the default names for the ASDL primitive types *)
     val () = let
 	    fun set (id, name) = let
-		  val SOME prop = View.findProp(view, View.Type id, Atom.atom "name")
+		  val SOME prop = View.findProp(view, View.Type id, PN.name)
 		  in
 		    View.Prop.setValue(prop, name)
 		  end
@@ -113,5 +115,3 @@ structure CxxView : sig
 	    end
 
   end
-
-

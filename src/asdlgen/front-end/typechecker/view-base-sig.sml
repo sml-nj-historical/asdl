@@ -22,6 +22,10 @@ signature VIEW_TYPE_BASE =
   sig
 
     val getName : AST.TypeId.t -> string
+    val getEncoder : AST.TypeId.t -> string
+    val getDecoder : AST.TypeId.t -> string
+    val getReader : AST.TypeId.t -> string
+    val getWriter : AST.TypeId.t -> string
 
   end
 

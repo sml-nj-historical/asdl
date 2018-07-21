@@ -28,6 +28,7 @@ structure GenTypes : sig
 	  in
 	    S.STRtop(name, NONE, S.STRstr(List.foldr genGrp [] (SortDecls.sort (!decls))))
 	  end
+      | gen _ = raise Fail "unexpected primitive module"
 
     and genType (AST.TyDcl{id, def, ...}, (dbs, tbs)) = let
 	  val name = TyV.getName id

@@ -9,12 +9,19 @@ functor ViewBaseFn (V : sig
     val viewName : string
     val template : View.template
 
+  (* target-specific name mangling for the operation (read/write/encode/decode)
+   * and type name.
+   *)
+    val mkFunName : {operation : string, ty : string} -> string
+
   end) : VIEW_BASE = struct
+
+    structure PN = PropNames
 
     val view = View.new (V.viewName, V.template)
 
-    val getHeaderValue = View.getOptValue (Atom.atom "header")
-    val getNameValue = View.getValue (Atom.atom "name")
+    val getHeaderValue = View.getOptValue PropNames.header
+    val getNameValue = View.getValue PropNames.name
 
     structure File =
       struct
@@ -41,6 +48,21 @@ functor ViewBaseFn (V : sig
 	       of [name] => name
 		| _ => raise Fail "Type.getName"
 	      (* end case *))
+	local
+	  fun getFn (prop, operation) = let
+		val get = View.getOptValue prop
+		in
+		  fn id => (case get (view, View.Type id)
+		       of SOME[name] => name
+			| _ => V.mkFunName{operation=operation, ty=AST.TypeId.nameOf id}
+		      (* end case *))
+		end
+	in
+	val getEncoder = getFn (PN.encoder, "encode")
+	val getDecoder = getFn (PN.decoder, "encode")
+	val getReader = getFn (PN.reader, "read")
+	val getWriter = getFn (PN.writer, "write")
+	end (* local *)
       end
 
     structure Constr =
