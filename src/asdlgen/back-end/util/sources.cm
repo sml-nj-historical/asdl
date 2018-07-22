@@ -7,6 +7,7 @@
 Library
 
   structure CLang
+  structure Encoding
   structure SortDecls
   structure StringSubst
 
@@ -18,6 +19,7 @@ is
   ../../front-end/sources.cm
 
   clang.sml
+  encoding.sml
   sort-decls.sml
   string-subst.sml
 

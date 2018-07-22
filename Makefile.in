@@ -71,6 +71,9 @@ CLEAN_FILES =
 
 DISTCLEAN_FILES +=	Makefile config.status config.log \
 			autom4te*.cache \
+			src/gen/fragments/Makefile \
+			src/gen/fragments/mkfrags.sh \
+			src/gen/fragments/mkmk.sh \
 			bin \
 			lib \
 			include

@@ -18,6 +18,7 @@ is
   ../../front-end/sources.cm
   ../util/sources.cm
 
+  fragments.sml		(* generated *)
   gen-pickle.sml
   gen-sml.sml
   gen-types.sml

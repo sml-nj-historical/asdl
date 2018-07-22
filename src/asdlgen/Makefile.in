@@ -15,6 +15,14 @@ INSTALL_HEAPDIR =	$(INSTALL_BINDIR)/.heap
 INSTALL_WRAPPER =	@ASDL_ROOT@/bin/install-sml-wrapper.sh
 SML =			@SMLNJ_CMD@
 ML_BUILD =		@ML_BUILD@
+ML_MAKEDEPEND =		@ML_MAKEDEPEND@
+ML_MAKEDEPEND_FLAGS =
+
+#
+# generator tools
+#
+MKMK =			@ASDL_SRCDIR@/gen/fragments/mkmk.sh
+MKFRAGS =		@ASDL_SRCDIR@/gen/fragments/mkfrags.sh
 
 PROGRAM =		asdl-gen
 HEAP =			$(PROGRAM).@SMLNJ_HEAP_SUFFIX@
@@ -30,6 +38,11 @@ CM_FILES =		back-end/sml/sources.cm \
 			front-end/tests/sources.cm \
 			front-end/typechecker/sources.cm
 
+CODE_FRAG_DIRS =	back-end/sml
+
+CODE_FRAG_FILES =	$(patsubst %,%/fragments.sml,$(CODE_FRAG_DIRS))
+CODE_FRAG_MKFILES =	$(patsubst %,%/fragments.gmk,$(CODE_FRAG_DIRS))
+
 SRCDIR =		@ASDLGEN_SRCDIR@
 
 TARGET =		$(SRCDIR)/$(PROGRAM)
@@ -40,23 +53,34 @@ INSTALL=@INSTALL@
 .PHONY:		build
 build:		$(HEAP)
 
-$(HEAP):  .depend
+$(HEAP):  .depend $(CODE_FRAG_MKFILES)
 	$(ML_BUILD) driver/sources.cm Main.main $(PROGRAM)
 
 install:	$(HEAP)
 	$(INSTALL_WRAPPER) $(TARGET) $(INSTALL_BINDIR)
 
 #
+# Rules for generating the fragment dependency and source files
+#
+
+back-end/sml/fragments.gmk: back-end/sml/fragments/CATALOG $(wildcard back-end/sml/fragments/*in)
+	$(MKMK) back-end/sml
+
+back-end/sml/fragments.sml:
+	$(MKFRAGS) back-end/sml
+
+#
 # Dependency file rules
 #
-.depend:        $(CM_FILES)
+.depend:        $(CM_FILES) $(CODE_FRAG_FILES)
 	touch .depend
-	$(ML_MAKEDEPEND) $(ML_MAKEDEPEND_FLAGS) -n -f .depend $(ROOT_CM) $(HEAP_IMAGE) || rm -f .depend
+	$(ML_MAKEDEPEND) $(ML_MAKEDEPEND_FLAGS) -n -f .depend $(ROOT_CM) $(HEAP) || rm -f .depend
 
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),devclean)
 ifneq ($(MAKECMDGOALS),distclean)
 sinclude .depend
+sinclude back-end/sml/fragments.gmk
 endif
 endif
 endif
@@ -68,6 +92,8 @@ CLEAN_SUBDIRS =
 CLEAN_FILES +=          $(HEAP_IMAGE) \
                         front-end/parser/*.grm.sml \
                         front-end/parser/*.lex.sml \
+			$(CODE_FRAG_FILES) \
+			$(CODE_FRAG_MKFILES) \
                         .depend
 
 DISTCLEAN_FILES +=      Makefile \

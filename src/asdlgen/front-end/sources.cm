@@ -10,6 +10,7 @@ Library
 
   structure AST
   structure FrontEnd
+  structure PrimTypes
 
 (* views *)
   structure CxxView

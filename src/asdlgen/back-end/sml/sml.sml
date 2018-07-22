@@ -61,32 +61,30 @@ structure SML =
       | STRINGexp of string
       | CHARexp of string
       | RECORDexp of (id * exp) list
+      | TUPLEexp of exp list
       | SELECTexp of id * exp
-      | VECTORexp of exp list * ty
       | APPexp of exp * exp
       | HANDLEexp of exp * (pat * exp) list
-      | RAISEexp of exp * ty
-      | CASEexp of exp * rule list * bool
+      | RAISEexp of exp
+      | CASEexp of exp * (pat * exp) list
       | IFexp of exp * exp * exp
       | ANDALSOexp of exp * exp
       | ORELSEexp of exp * exp
       | FNexp of (pat * exp) list
-      | LETexp of dec * exp
+      | LETexp of dec list * exp
       | SEQexp of exp list
       | CONSTRAINTexp of exp * ty
       | VERBexp of string
 
-    and rule = RULE of pat * exp
-
     and pat
       = WILDpat
-      | VARpat of id
+      | IDpat of id
       | NUMpat of string
       | STRINGpat of string
       | CHARpat of string
-      | CONpat of id
+      | CONpat of id * pat
       | RECORDpat of {fields : (id * pat) list, flex : bool}
-      | APPpat of id * pat
+      | TUPLEpat of pat list
       | CONSTRAINTpat of pat * ty
       | LAYEREDpat of pat * pat
 
@@ -97,6 +95,20 @@ structure SML =
       | RECORDty of (id * ty) list 	(* record *)
       | TUPLEty of ty list		(* tuple *)
       | VERBty of string		(* verbatim type expression *)
+
+  (* construct a simple function binding of the form `f (x1, ..., xn) = e` *)
+    fun simpleFB (f, [x], e) = FB(f, [([IDpat x], e)])
+      | simpleFB (f, xs, e) = FB(f, [([TUPLEpat(List.map IDpat xs)], e)])
+
+    fun tupleTy [] = CONty([], "unit")
+      | tupleTy [ty] = ty
+      | tupleTy tys = TUPLEty tys
+
+    fun tupleExp [e] = e
+      | tupleExp es = TUPLEexp es
+
+    fun tuplePat [p] = p
+      | tuplePat ps = TUPLEpat ps
 
   end
 

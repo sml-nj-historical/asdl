@@ -62,7 +62,6 @@ structure MkFrags : sig
   end = struct
 
     structure F = Format
-    structure J = JSON
 
   (* load the catalog from the file *)
     fun loadCatalog file = let

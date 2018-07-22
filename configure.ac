@@ -34,13 +34,15 @@ ASDL_MKDIR=$ASDL_ROOT/mk
 ASDL_BINDIR=$ASDL_ROOT/bin
 ASDL_LIBDIR=$ASDL_ROOT/lib
 ASDL_INCDIR=$ASDL_ROOT/include
-ASDLGEN_SRCDIR=$ASDL_ROOT/src/asdlgen
+ASDL_SRCDIR=$ASDL_ROOT/src
+ASDLGEN_SRCDIR=$ASDL_SRCDIR/asdlgen
 
 AC_SUBST(ASDL_ROOT)
 AC_SUBST(ASDL_MKDIR)
 AC_SUBST(ASDL_BINDIR)
 AC_SUBST(ASDL_LIBDIR)
 AC_SUBST(ASDL_INCDIR)
+AC_SUBST(ASDL_SRCDIR)
 AC_SUBST(ASDLGEN_SRCDIR)
 
 dnl check for standard programs
@@ -168,6 +170,12 @@ dnl
 AC_CONFIG_FILES([
   bin/install-sml-wrapper.sh:config/install-sml-wrapper_sh.in
 ], [chmod +x bin/install-sml-wrapper.sh])
+AC_CONFIG_FILES([
+  src/gen/fragments/mkfrags.sh:src/gen/fragments/mkfrags_sh.in
+], [chmod +x src/gen/fragments/mkfrags.sh])
+AC_CONFIG_FILES([
+  src/gen/fragments/mkmk.sh:src/gen/fragments/mkmk_sh.in
+], [chmod +x src/gen/fragments/mkmk.sh])
 
 AC_OUTPUT
 
