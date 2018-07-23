@@ -17,6 +17,11 @@ structure PrintSML : sig
     val indent2 = (PP.Abs 2)
     val indent4 = (PP.Abs 4)
 
+    fun isParenPat (S.RECORDpat _) = true
+      | isParenPat (S.TUPLEpat _) = true
+      | isParenPat (S.GRPpat _) = true
+      | isParenPat _ = false
+
     fun ppTopDecl (strm, dcl) = let
           val str = PP.string strm
           fun sp () = PP.space strm 1
@@ -105,6 +110,7 @@ structure PrintSML : sig
 	  end
 
     and ppDec (strm, dcl) = let
+          fun inHBox f = (PP.openHBox strm; f(); PP.closeBox strm)
           val str = PP.string strm
           fun sp () = PP.space strm 1
           fun nl () = PP.newline strm
@@ -120,38 +126,72 @@ structure PrintSML : sig
 	    | ppPat (S.NUMpat n) = str n
 	    | ppPat (S.STRINGpat s) = str(concat["\"", String.toString s, "\""])
 	    | ppPat (S.CHARpat s) = str(concat["#\"", String.toString s, "\""])
-	    | ppPat (S.CONpat(c, p)) = ??
-	    | ppPat (S.RECORDpat{fields, flex}) = ??
-	    | ppPat (S.TUPLEpat ps) = ??
-	    | ppPat (S.CONSTRAINTpat(p, ty)) = ??
-	    | ppPat (S.ASpat(x, p)) = ??
+	    | ppPat (S.CONpat(c, p)) = inHBox (fn () => (
+		str c;
+		if isParenPat p then () else sp();
+		ppPat p))
+            | ppPat (S.INFIXpat(p1, con, p2)) = raise Fail "FIXME"
+	    | ppPat (S.RECORDpat{fields, flex}) = raise Fail "FIXME"
+	    | ppPat (S.TUPLEpat[]) = str "()"
+	    | ppPat (S.TUPLEpat(p::ps)) = inHBox (fn () => (
+		str "("; ppPat p;
+		List.app (fn p => (str ","; sp(); ppPat p)) ps;
+		str ")"))
+	    | ppPat (S.CONSTRAINTpat(p, ty)) = raise Fail "FIXME"
+	    | ppPat (S.ASpat(x, p)) = inHBox (fn () => (
+		str x; sp(); str "as"; sp(); ppPat p))
+            | ppPat (S.GRPpat p) = inHBox (fn () => (str "("; ppPat p; str ")"))
 	  fun ppExp (S.IDexp id) = str id
 	    | ppExp (S.NUMexp n) = str n
 	    | ppExp (S.STRINGexp s) = str(concat["\"", String.toString s, "\""])
 	    | ppExp (S.CHARexp s) = str(concat["#\"", String.toString s, "\""])
-(*
-	    | ppExp (S.RECORDexp of (id * exp) list
-	    | ppExp (S.TUPLEexp of exp list
-	    | ppExp (S.SELECTexp of id * exp
-	    | ppExp (S.APPexp of exp * exp
-	    | ppExp (S.HANDLEexp of exp * (pat * exp) list
-	    | ppExp (S.RAISEexp of exp
-	    | ppExp (S.CASEexp of exp * (pat * exp) list
-	    | ppExp (S.IFexp(e1, e2, e3)) =
-	    | ppExp (S.ANDALSOexp of exp * exp
-	    | ppExp (S.ORELSEexp of exp * exp
-	    | ppExp (S.FNexp of (pat * exp) list
-	    | ppExp (S.LETexp of dec list * exp
-	    | ppExp (S.SEQexp es) =
-	    | ppExp (S.CONSTRAINTexp of exp * ty
-*)
+	    | ppExp (S.RECORDexp fields) = raise Fail "FIXME"
+	    | ppExp (S.TUPLEexp es) = raise Fail "FIXME"
+	    | ppExp (S.SELECTexp(proj, e)) = raise Fail "FIXME"
+	    | ppExp (S.APPexp(e1, e2)) = raise Fail "FIXME"
+	    | ppExp (S.INFIXexp(e1, rator, e2)) = raise Fail "FIXME"
+	    | ppExp (S.HANDLEexp(e, rules)) = raise Fail "FIXME"
+	    | ppExp (S.RAISEexp e) = raise Fail "FIXME"
+	    | ppExp (S.CASEexp(e, rules)) = raise Fail "FIXME"
+	    | ppExp (S.IFexp(e1, e2, e3)) = raise Fail "FIXME"
+	    | ppExp (S.FNexp rules) = raise Fail "FIXME"
+	    | ppExp (S.LETexp([dec], e)) = (
+		PP.openHVBox strm indent0;
+		  str "let"; sp(); ppDec(strm, dec); sp(); str "in";
+		  PP.break strm {nsp=1, offset=2};
+		  ppExp e;
+		  sp(); str "end";
+		PP.closeBox strm)
+	    | ppExp (S.LETexp(decs, e)) = (
+		PP.openVBox strm indent0;
+		  str "let"; nl();
+		  List.app (fn d => (ppDec(strm, d); nl())) decs;
+		  PP.openVBox strm indent2;
+		    str "in"; nl(); ppExp e;
+		  PP.closeBox strm;
+		  nl(); str "end";
+		PP.closeBox strm)
+	    | ppExp (S.SEQexp es) = let
+		fun pp [] = raise Fail "empty sequence expression"
+		  | pp [e] = ppExp e
+		  | pp (e::es) = (
+		      inHBox (fn () => (ppExp e; str ";"));
+		      sp();
+		      pp es)
+		in
+		  PP.openHVBox strm indent0;
+		    pp es;
+		  PP.closeBox strm
+		end
+	    | ppExp (S.CONSTRAINTexp(e, ty)) = raise Fail "FIXME"
+            | ppExp (S.GRPexp e) = inHBox (fn () => (str "("; ppExp e; str ")"))
 	    | ppExp (S.VERBexp s) = str s
 	  in
 	    case dcl
 	     of S.VALdec(pat, exp) => (
-		  PP.openHBox ppStrm;
+		  PP.openHBox strm;
 		    str "val"; sp(); ppPat pat; sp(); str "="; sp(); ppExp exp;
-		  PP.closeBox)
+		  PP.closeBox strm)
 	      | S.FUNdec fbs => () (* FIXME *)
 	      | S.TYPEdec tb => ppTB ("type", tb)
 	      | S.DATATYPEdec(dbs, tbs) => let

@@ -64,16 +64,16 @@ structure SML =
       | TUPLEexp of exp list
       | SELECTexp of id * exp
       | APPexp of exp * exp
+      | INFIXexp of exp * id * exp
       | HANDLEexp of exp * (pat * exp) list
       | RAISEexp of exp
       | CASEexp of exp * (pat * exp) list
       | IFexp of exp * exp * exp
-      | ANDALSOexp of exp * exp
-      | ORELSEexp of exp * exp
       | FNexp of (pat * exp) list
       | LETexp of dec list * exp
       | SEQexp of exp list
       | CONSTRAINTexp of exp * ty
+      | GRPexp of exp			(* '(' exp ')' *)
       | VERBexp of string
 
     and pat
@@ -83,10 +83,12 @@ structure SML =
       | STRINGpat of string
       | CHARpat of string
       | CONpat of id * pat
+      | INFIXpat of pat * id * pat
       | RECORDpat of {fields : (id * pat) list, flex : bool}
       | TUPLEpat of pat list
       | CONSTRAINTpat of pat * ty
       | ASpat of id * pat
+      | GRPpat of pat			(* '(' pat ')' *)
 
     and ty
       = VARty of id			(* type variable *)
