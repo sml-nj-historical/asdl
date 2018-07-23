@@ -134,9 +134,9 @@ structure MkFrags : sig
           in
             prf ("\n", []);
             prf ("    val %s = \"\\\n", [F.STR smlVar]);
-            prf ("          \\/*---------- begin %s ----------*/\\n\\\n", [F.STR srcFile]);
+            prf ("          \\(*---------- begin %s ----------*)\\n\\\n", [F.STR srcFile]);
             List.app (fn ln => prf("          \\%s\\\n", [F.STR(String.toString ln)])) text;
-            prf ("          \\/*---------- end %s ----------*/\\n\\\n", [F.STR srcFile]);
+            prf ("          \\(*---------- end %s ----------*)\\n\\\n", [F.STR srcFile]);
             prf ("          \\\"\n", [])
           end
 
