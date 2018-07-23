@@ -86,7 +86,7 @@ structure SML =
       | RECORDpat of {fields : (id * pat) list, flex : bool}
       | TUPLEpat of pat list
       | CONSTRAINTpat of pat * ty
-      | LAYEREDpat of pat * pat
+      | ASpat of id * pat
 
     and ty
       = VARty of id			(* type variable *)

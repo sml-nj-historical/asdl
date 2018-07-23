@@ -48,6 +48,10 @@ structure GenSML : sig
     fun genPicklerSig (src, outFile, modules) =
 	  output (src, outFile, List.map GenPickle.genSig modules)
 
+  (* generate the pickler-signature file *)
+    fun genPicklerStr (src, outFile, modules) =
+	  output (src, outFile, List.map GenPickle.genStr modules)
+
   (* generate SML code for the given list of modules using the "Sml" view *)
     fun gen {src, dir, stem, modules} = let
 	  val basePath = OS.Path.joinDirFile{dir=dir, file=stem}
@@ -55,7 +59,8 @@ structure GenSML : sig
 	  fun sigFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sig"}
 	  in
 	    genTypes (src, smlFilename basePath, modules);
-	    genPicklerSig (src, sigFilename(basePath ^ "-pickle"), modules)
+	    genPicklerSig (src, sigFilename(basePath ^ "-pickle"), modules);
+	    genPicklerStr (src, smlFilename(basePath ^ "-pickle"), modules)
 	  end
 
   end

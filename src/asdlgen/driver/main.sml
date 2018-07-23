@@ -43,6 +43,12 @@ structure Main : sig
 	    (* end case *)
 	  end
 
+    fun fail (cmdName, msg) = (
+	  TextIO.output(TextIO.stdErr, concat[
+	      cmdName, ": ", msg, "\n", Options.usage()
+	    ]);
+	  OS.Process.failure)
+
     fun main (cmdName, args) = let
 	  val {command, files} = Options.parseCmdLine args
 	  in
@@ -59,15 +65,8 @@ structure Main : sig
 		  else OS.Process.success
 	    (* end case *)
 	  end
-	    handle Options.Usage msg => (
-		    TextIO.output(TextIO.stdErr, concat[
-			cmdName, ": ", msg, "\n", Options.usage()
-		      ]);
-		    OS.Process.failure)
-		| Fail msg => (
-		    TextIO.output(TextIO.stdErr, concat[
-			cmdName, ": uncaught exception ", msg, "\n"
-		      ]);
-		    OS.Process.failure)
+	    handle Options.Usage msg => fail (cmdName, msg)
+		| Fail msg => fail (cmdName, "uncaught exception Fail: " ^ msg)
+		| ex => fail (cmdName, "uncaught exception " ^ exnName ex)
 
   end

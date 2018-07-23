@@ -29,13 +29,18 @@ structure PrintSML : sig
 		  PP.closeBox strm;
 		  ppSigExp (strm, sigExp);
 		  nl())
-	      | S.STRtop(id, NONE, strExp) => (
+	      | S.STRtop(id, optSig, strExp) => (
 		  PP.openHBox strm;
-		    str "structure"; sp(); str id; sp(); str "="; sp();
+		    str "structure"; sp(); str id; sp();
+		    case optSig
+		     of SOME(true, sigExp) => (str ":>"; sp(); ppSigExp(strm, sigExp); sp())
+		      | SOME(false, sigExp) => (str ":"; sp(); ppSigExp(strm, sigExp); sp())
+		      | NONE => ()
+		    (* end case *);
+		    str "="; sp();
 		  PP.closeBox strm;
 		  ppStrExp (strm, strExp);
 		  nl())
-	      | S.STRtop(id, SOME(isOpaque, sigExp), strExp) => () (* FIXME *)
 	      | S.VERBtop strs => List.app str strs
 	    (* end case *)
 	  end
@@ -110,9 +115,43 @@ structure PrintSML : sig
 		  sp(); str "="; sp();
 		  ppTy (strm, ty);
 		PP.closeBox strm)
+	  fun ppPat S.WILDpat = str "_"
+	    | ppPat (S.IDpat id) = str id
+	    | ppPat (S.NUMpat n) = str n
+	    | ppPat (S.STRINGpat s) = str(concat["\"", String.toString s, "\""])
+	    | ppPat (S.CHARpat s) = str(concat["#\"", String.toString s, "\""])
+	    | ppPat (S.CONpat(c, p)) = ??
+	    | ppPat (S.RECORDpat{fields, flex}) = ??
+	    | ppPat (S.TUPLEpat ps) = ??
+	    | ppPat (S.CONSTRAINTpat(p, ty)) = ??
+	    | ppPat (S.ASpat(x, p)) = ??
+	  fun ppExp (S.IDexp id) = str id
+	    | ppExp (S.NUMexp n) = str n
+	    | ppExp (S.STRINGexp s) = str(concat["\"", String.toString s, "\""])
+	    | ppExp (S.CHARexp s) = str(concat["#\"", String.toString s, "\""])
+(*
+	    | ppExp (S.RECORDexp of (id * exp) list
+	    | ppExp (S.TUPLEexp of exp list
+	    | ppExp (S.SELECTexp of id * exp
+	    | ppExp (S.APPexp of exp * exp
+	    | ppExp (S.HANDLEexp of exp * (pat * exp) list
+	    | ppExp (S.RAISEexp of exp
+	    | ppExp (S.CASEexp of exp * (pat * exp) list
+	    | ppExp (S.IFexp(e1, e2, e3)) =
+	    | ppExp (S.ANDALSOexp of exp * exp
+	    | ppExp (S.ORELSEexp of exp * exp
+	    | ppExp (S.FNexp of (pat * exp) list
+	    | ppExp (S.LETexp of dec list * exp
+	    | ppExp (S.SEQexp es) =
+	    | ppExp (S.CONSTRAINTexp of exp * ty
+*)
+	    | ppExp (S.VERBexp s) = str s
 	  in
 	    case dcl
-	     of S.VALdec(pat, exp) => () (* FIXME *)
+	     of S.VALdec(pat, exp) => (
+		  PP.openHBox ppStrm;
+		    str "val"; sp(); ppPat pat; sp(); str "="; sp(); ppExp exp;
+		  PP.closeBox)
 	      | S.FUNdec fbs => () (* FIXME *)
 	      | S.TYPEdec tb => ppTB ("type", tb)
 	      | S.DATATYPEdec(dbs, tbs) => let
