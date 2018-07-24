@@ -138,6 +138,17 @@ structure SML =
     fun raiseExp e = RAISEexp(grpArg e)
     end (* local *)
 
+    local
+      fun grpAction e = (case e
+	     of HANDLEexp _ => GRPexp e
+	      | RAISEexp _ => GRPexp e
+	      | CASEexp _ => GRPexp e
+	      | FNexp _ => GRPexp e
+	      | SEQexp _ => GRPexp e
+	      | CONSTRAINTexp _ => GRPexp e
+	      | _ => e
+	    (* end case *))
+    in
     fun funBind (f, rules) = let
 	  fun mkArgPat p = (case p
 		 of CONpat _ => GRPpat p
@@ -146,22 +157,17 @@ structure SML =
 		  | ASpat _ => GRPpat p
 		  | p => p
 		(* end case *))
-	  fun mkRule (pats, e) = let
-		val e = (case e
-		       of HANDLEexp _ => GRPexp e
-			| RAISEexp _ => GRPexp e
-			| CASEexp _ => GRPexp e
-			| FNexp _ => GRPexp e
-			| SEQexp _ => GRPexp e
-			| CONSTRAINTexp _ => GRPexp e
-			| _ => e
-		      (* end case *))
-		in
-		  (List.map mkArgPat pats, e)
-		end
+	  fun mkRule (pats, e) = (List.map mkArgPat pats, grpAction e)
 	  in
 	    FB(f, List.map mkRule rules)
 	  end
+
+    fun caseExp (e, rules) = let
+	  fun mkRule (pat, e) = (pat, grpAction e)
+	  in
+	    CASEexp(e, List.map mkRule rules)
+	  end
+    end (* local *)
 
   (* construct a simple function binding of the form `f (x1, ..., xn) = e` *)
     fun simpleFB (f, [x], e) = funBind(f, [([IDpat x], e)])

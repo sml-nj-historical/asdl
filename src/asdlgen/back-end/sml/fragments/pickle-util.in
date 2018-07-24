@@ -7,7 +7,7 @@
     fun decode_option decFn slice = (case ASDLPickle.decode_uint slice
            of (0w0, slice) => (NONE, slice)
             | (0w1, slice) => let val (obj, slice) = decFn in (SOME obj, slice) end
-            | _ => raise ASDLPickle.DecodeError
+            | _ => raise ASDL.DecodeError
           (* end case *))
   (* encode a list of values as a sequence *)
     fun encode_list encFn (buf, xs) = let

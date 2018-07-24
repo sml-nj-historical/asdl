@@ -258,7 +258,7 @@ structure PrintSML : sig
 		      pp es)
 		in
 		  PP.openHVBox strm indent0;
-		    pp es;
+		    PP.cut strm; pp es;
 		  PP.closeBox strm
 		end
 	    | ppExp (S.CONSTRAINTexp(e, ty)) = raise Fail "FIXME: CONSTRAINTexp"

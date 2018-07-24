@@ -20,6 +20,7 @@ is
 
   fragments.sml		(* generated *)
   gen-pickle.sml
+  gen-io.sml
   gen-sml.sml
   gen-types.sml
   print-sml.sml

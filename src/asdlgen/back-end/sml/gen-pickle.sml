@@ -25,9 +25,9 @@ structure GenPickle : sig
   (***** Signature generation *****)
 
     fun genSig (AST.Module{isPrim=false, id, decls}) = let
-	  val baseModName = ModV.getName id
-	  val sigName = Util.sigName(baseModName, SOME "PICKLE")
-	  val specs = List.foldr (genSpec baseModName) [] (!decls)
+	  val typeModName = ModV.getName id
+	  val sigName = Util.sigName(ModV.getPickleName id, NONE)
+	  val specs = List.foldr (genSpec typeModName) [] (!decls)
 	  in
 	    S.SIGtop(sigName, S.BASEsig specs)
 	  end
@@ -59,14 +59,14 @@ structure GenPickle : sig
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
     fun genStr (AST.Module{isPrim=false, id, decls}) = let
-	  val baseModName = ModV.getName id
-	  val sigName = Util.sigName(baseModName, SOME "PICKLE")
-	  val strName = baseModName ^ "Pickle"
+	  val typeModName = ModV.getName id
+	  val pickleModName = ModV.getPickleName id
+	  val sigName = Util.sigName(pickleModName, NONE)
 	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr genType [] dcls) :: dcls'
 	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
 	  val decls = S.VERBdec[Fragments.pickleUtil] :: decls
 	  in
-	    S.STRtop(strName, SOME(false, S.IDsig sigName), S.BASEstr decls)
+	    S.STRtop(pickleModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
 	  end
       | genStr _ = raise Fail "genStr: unexpected primitive module"
 
@@ -82,8 +82,10 @@ structure GenPickle : sig
     and genEncoder (encName, encoding) = let
 	  val bufV = S.IDexp "buf"
 	  fun baseEncode (NONE, tyId) = TyV.getEncoder tyId
-	    | baseEncode (SOME modId, tyId) = concat[ModV.getName modId, ".", TyV.getEncoder tyId]
-	  fun gen (arg, E.SWITCH rules) = S.CASEexp(arg, List.map genRule rules)
+	    | baseEncode (SOME modId, tyId) = concat[
+		  ModV.getPickleName modId, ".", TyV.getEncoder tyId
+		]
+	  fun gen (arg, E.SWITCH rules) = S.caseExp(arg, List.map genRule rules)
 	    | gen (arg, E.TUPLE tys) = let
 		fun decode (i, ty) = gen (S.selectExp(Int.toString i, arg), ty)
 		in
@@ -144,14 +146,16 @@ structure GenPickle : sig
 	  val sliceP = S.IDpat "slice"
 	  val sliceV = S.IDexp "slice"
 	  fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
-	    | baseDecode (SOME modId, tyId) = concat[ModV.getName modId, ".", TyV.getDecoder tyId]
+	    | baseDecode (SOME modId, tyId) = concat[
+		  ModV.getPickleName modId, ".", TyV.getDecoder tyId
+		]
 	  fun gen (E.SWITCH rules) = let
 		val decodeTag = funApp(
 		      baseDecode(SOME PT.primTypesId, PT.uintTyId),
 		      [sliceV])
-		val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDLPickle.DecodeError"))
+		val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
 		in
-		  S.CASEexp(decodeTag, List.map genRule rules @ [dfltRule])
+		  S.caseExp(decodeTag, List.map genRule rules @ [dfltRule])
 		end
 	    | gen (E.TUPLE tys) = genTuple (tys, fn x => x)
 	    | gen (E.RECORD fields) = genRecord (fields, fn x => x)
@@ -181,18 +185,18 @@ structure GenPickle : sig
 	  and genTuple (tys, k) = let
 		val xs = List.mapi (fn (i, _) => "x"^Int.toString i) tys
 		val decs = ListPair.map
-		      (fn (x, ty) => S.VALdec(S.TUPLEpat[S.IDpat x, sliceP], gen ty))
+		      (fn (x, ty) => S.VALdec(pairPat(S.IDpat x, sliceP), gen ty))
 			(xs, tys)
 		in
-		  S.LETexp(decs, S.TUPLEexp[k(S.TUPLEexp(List.map S.IDexp xs)), sliceV])
+		  S.LETexp(decs, pairExp (k(S.TUPLEexp(List.map S.IDexp xs)), sliceV))
 		end
 	  and genRecord (fields, k) = let
 		val decs = List.map
-		      (fn (lab, ty) => S.VALdec(S.TUPLEpat[S.IDpat lab, sliceP], gen ty))
+		      (fn (lab, ty) => S.VALdec(pairPat(S.IDpat lab, sliceP), gen ty))
 			fields
 		val fields = List.map (fn (lab, _) => (lab, S.IDexp lab)) fields
 		in
-		  S.LETexp(decs, S.TUPLEexp[k(S.RECORDexp fields), sliceV])
+		  S.LETexp(decs, pairExp (k(S.RECORDexp fields), sliceV))
 		end
 	  in
 	    S.simpleFB(decName, ["slice"], gen encoding)

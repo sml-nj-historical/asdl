@@ -40,17 +40,20 @@ structure GenSML : sig
 	    TextIO.closeOut outS
 	  end
 
+  (* generate a file using the given code generator *)
+    fun genFile codeGen (src, outFile, modules) =
+	  output (src, outFile, List.map codeGen modules)
+
   (* generate the type-declaration file *)
-    fun genTypes (src, outFile, modules) =
-	  output (src, outFile, List.map GenTypes.gen modules)
+    val genTypes = genFile GenTypes.gen
 
-  (* generate the pickler-signature file *)
-    fun genPicklerSig (src, outFile, modules) =
-	  output (src, outFile, List.map GenPickle.genSig modules)
+  (* generate the pickler files *)
+    val genPicklerSig = genFile GenPickle.genSig
+    val genPicklerStr = genFile GenPickle.genStr
 
-  (* generate the pickler-signature file *)
-    fun genPicklerStr (src, outFile, modules) =
-	  output (src, outFile, List.map GenPickle.genStr modules)
+  (* generate the pickle-io files *)
+    val genIOSig = genFile GenIO.genSig
+    val genIOStr = genFile GenIO.genStr
 
   (* generate SML code for the given list of modules using the "Sml" view *)
     fun gen {src, dir, stem, modules} = let
@@ -60,7 +63,9 @@ structure GenSML : sig
 	  in
 	    genTypes (src, smlFilename basePath, modules);
 	    genPicklerSig (src, sigFilename(basePath ^ "-pickle"), modules);
-	    genPicklerStr (src, smlFilename(basePath ^ "-pickle"), modules)
+	    genPicklerStr (src, smlFilename(basePath ^ "-pickle"), modules);
+	    genIOSig (src, sigFilename(basePath ^ "-pickle-io"), modules);
+	    genIOStr (src, smlFilename(basePath ^ "-pickle-io"), modules)
 	  end
 
   end

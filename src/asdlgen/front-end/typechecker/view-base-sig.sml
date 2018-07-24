@@ -14,6 +14,7 @@ signature VIEW_FILE_BASE =
 signature VIEW_MODULE_BASE =
   sig
 
+  (* get the name of the module *)
     val getName : AST.ModuleId.t -> string
 
   end
