@@ -53,7 +53,7 @@ structure GenPickle : sig
   (***** Structure generation *****)
 
   (* generate a simple application *)
-    fun funApp (f, args) = S.APPexp(S.IDexp f, S.tupleExp args)
+    fun funApp (f, args) = S.appExp(S.IDexp f, S.tupleExp args)
   (* pairs *)
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
@@ -85,21 +85,21 @@ structure GenPickle : sig
 	    | baseEncode (SOME modId, tyId) = concat[ModV.getName modId, ".", TyV.getEncoder tyId]
 	  fun gen (arg, E.SWITCH rules) = S.CASEexp(arg, List.map genRule rules)
 	    | gen (arg, E.TUPLE tys) = let
-		fun decode (i, ty) = gen (S.SELECTexp(Int.toString i, arg), ty)
+		fun decode (i, ty) = gen (S.selectExp(Int.toString i, arg), ty)
 		in
 		  S.SEQexp(List.mapi decode tys)
 		end
 	    | gen (arg, E.RECORD fields) = let
-		fun decode (lab, ty) = gen (S.SELECTexp(lab, arg), ty)
+		fun decode (lab, ty) = gen (S.selectExp(lab, arg), ty)
 		in
 		  S.SEQexp(List.map decode fields)
 		end
 	    | gen (arg, E.OPTION ty) =
-		S.APPexp(
+		S.appExp(
 		  funApp ("encode_option", [S.IDexp(baseEncode ty)]),
 		  pairExp(bufV, arg))
 	    | gen (arg, E.SEQUENCE ty) =
-		S.APPexp(
+		S.appExp(
 		  funApp ("encode_list", [S.IDexp(baseEncode ty)]),
 		  pairExp(bufV, arg))
 	    | gen (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
@@ -143,24 +143,24 @@ structure GenPickle : sig
     and genDecoder (decName, encoding) = let
 	  val sliceP = S.IDpat "slice"
 	  val sliceV = S.IDexp "slice"
-	  fun baseDecode (NONE, tyId) = TyV.getEncoder tyId
+	  fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
 	    | baseDecode (SOME modId, tyId) = concat[ModV.getName modId, ".", TyV.getDecoder tyId]
 	  fun gen (E.SWITCH rules) = let
 		val decodeTag = funApp(
 		      baseDecode(SOME PT.primTypesId, PT.uintTyId),
 		      [sliceV])
-		val dfltRule = (S.WILDpat, S.RAISEexp(S.IDexp "ASDLPickle.DecodeError"))
+		val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDLPickle.DecodeError"))
 		in
 		  S.CASEexp(decodeTag, List.map genRule rules @ [dfltRule])
 		end
 	    | gen (E.TUPLE tys) = genTuple (tys, fn x => x)
 	    | gen (E.RECORD fields) = genRecord (fields, fn x => x)
 	    | gen (E.OPTION ty) =
-		S.APPexp(
+		S.appExp(
 		  funApp ("decode_option", [S.IDexp(baseDecode ty)]),
 		  sliceV)
 	    | gen (E.SEQUENCE ty) =
-		S.APPexp(
+		S.appExp(
 		  funApp ("decode_list", [S.IDexp(baseDecode ty)]),
 		  sliceV)
 	    | gen (E.SHARED ty) = raise Fail "shared types not supported yet"
@@ -172,9 +172,9 @@ structure GenPickle : sig
 		  case optArg
 		   of NONE => (pat, pairExp(S.IDexp conName, sliceV))
 		    | SOME(E.TUPLE tys) =>
-			(pat, genTuple(tys, fn x => S.APPexp(S.IDexp conName, x)))
+			(pat, genTuple(tys, fn x => S.appExp(S.IDexp conName, x)))
 		    | SOME(E.RECORD fields) =>
-			(pat, genRecord(fields, fn x => S.APPexp(S.IDexp conName, x)))
+			(pat, genRecord(fields, fn x => S.appExp(S.IDexp conName, x)))
 		    | SOME ty => (pat, gen ty)
 		  (* end case *)
 		end

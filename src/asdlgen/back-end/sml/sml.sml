@@ -98,9 +98,74 @@ structure SML =
       | TUPLEty of ty list		(* tuple *)
       | VERBty of string		(* verbatim type expression *)
 
+    local
+      fun grpArg e = (case e
+	     of APPexp _ => GRPexp e
+	      | INFIXexp _ => GRPexp e
+	      | HANDLEexp _ => GRPexp e
+	      | RAISEexp _ => GRPexp e
+	      | CASEexp _ => GRPexp e
+	      | IFexp _ => GRPexp e
+	      | FNexp _ => GRPexp e
+	      | SEQexp _ => GRPexp e
+	      | CONSTRAINTexp _ => GRPexp e
+	      | VERBexp _ => GRPexp e
+	      | _ => e
+	    (* end case *))
+    in
+  (* smart constructor for application *)
+    fun appExp (e1, e2) = let
+	  val e1 = (case e1
+		 of INFIXexp _ => GRPexp e1
+		  | HANDLEexp _ => GRPexp e1
+		  | RAISEexp _ => GRPexp e1
+		  | CASEexp _ => GRPexp e1
+		  | IFexp _ => GRPexp e1
+		  | FNexp _ => GRPexp e1
+		  | SEQexp _ => GRPexp e1
+		  | CONSTRAINTexp _ => GRPexp e1
+		  | VERBexp _ => GRPexp e1
+		  | _ => e1
+		(* end case *))
+	  in
+	    APPexp(e1, grpArg e2)
+	  end
+
+  (* smart constructor for field-select *)
+    fun selectExp (proj, e) = SELECTexp(proj, grpArg e)
+
+  (* smart constructor for raise expressio *)
+    fun raiseExp e = RAISEexp(grpArg e)
+    end (* local *)
+
+    fun funBind (f, rules) = let
+	  fun mkArgPat p = (case p
+		 of CONpat _ => GRPpat p
+		  | INFIXpat _ => GRPpat p
+		  | CONSTRAINTpat _ => GRPpat p
+		  | ASpat _ => GRPpat p
+		  | p => p
+		(* end case *))
+	  fun mkRule (pats, e) = let
+		val e = (case e
+		       of HANDLEexp _ => GRPexp e
+			| RAISEexp _ => GRPexp e
+			| CASEexp _ => GRPexp e
+			| FNexp _ => GRPexp e
+			| SEQexp _ => GRPexp e
+			| CONSTRAINTexp _ => GRPexp e
+			| _ => e
+		      (* end case *))
+		in
+		  (List.map mkArgPat pats, e)
+		end
+	  in
+	    FB(f, List.map mkRule rules)
+	  end
+
   (* construct a simple function binding of the form `f (x1, ..., xn) = e` *)
-    fun simpleFB (f, [x], e) = FB(f, [([IDpat x], e)])
-      | simpleFB (f, xs, e) = FB(f, [([TUPLEpat(List.map IDpat xs)], e)])
+    fun simpleFB (f, [x], e) = funBind(f, [([IDpat x], e)])
+      | simpleFB (f, xs, e) = funBind(f, [([TUPLEpat(List.map IDpat xs)], e)])
 
     fun tupleTy [] = CONty([], "unit")
       | tupleTy [ty] = ty
