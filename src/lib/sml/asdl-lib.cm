@@ -1,23 +1,27 @@
 (* asdl-lib.cm
  *
- * COPYRIGHT (c) 2017 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *)
 
 Library
 
-  signature ASDL_PKL
-  signature ASDL_TYPES
+  signature ASDL
+  signature ASDL_PICKLE
+  signature ASDL_PICKLE_IO
 
-  structure ASDLPkl
-  structure ASDLTypes
+  structure ASDL
+  structure ASDLPickle
+  structure ASDLPickleIO
 
 is
 
   $/basis.cm
   $/smlnj-lib.cm
 
-  asdl-pkl.sig
-  asdl-pkl.sml
-  asdl-types.sig
-  asdl-types.sml
+  asdl.sig
+  asdl.sml
+  asdl-pickle.sig
+  asdl-pickle.sml
+  asdl-pickle-io.sig
+  asdl-pickle-io.sml
