@@ -1,0 +1,33 @@
+  (* write an option *)
+    fun write_option wrFn (outS, NONE) = ASDLPickleIO.write_uint(outS, 0w0)
+      | write_option wrFn (outS, SOME obj) = (
+          ASDL.Pickle.write_uint(outS, 0w1);
+          wrFn(outS, obj))
+  (* read an option *)
+    fun read_option rdFn inS = (case ASDLPickleIO.read_uint inS
+           of 0w0 => NONE
+            | 0w1 => let val obj = rdFn in SOME obj end
+            | _ => raise ASDL.DecodeError
+          (* end case *))
+  (* write a list of values as a sequence *)
+    fun write_list wrFn (outS, xs) = let
+          fun write [] = ()
+            | write (x::xr) = (wrFn(outS, x); write xr)
+          in
+            ASDLPickleIO.write_uint(outS, Word.fromInt(length xs));
+            write xs
+          end
+  (* read a sequence into a sequence of values *)
+    fun read_list rdFn inS = let
+          val len = ASDLPickleIO.read_uint inS
+          fun read (0w0, xs) = reverse (xs, [])
+            | read (n, xs) = let
+                val x = rdFn slice
+                in
+                  read (n-0w1, x::xs)
+                end
+          and reverse ([], xs) = xs
+            | reverse (x::xr, xs) = reverse (xr, x::xs)
+          in
+            read (len, [])
+          end
