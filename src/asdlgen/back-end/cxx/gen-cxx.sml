@@ -1,12 +1,14 @@
-(* cxx-generate.sml
+(* gen-cxx.sml
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * Generate the C++ view of the ASDL modules.
  *)
 
-structure CxxGenerate : sig
+structure GenCxx : sig
 
-    val gen : ?? -> ??
+    val gen : {src : string, dir : string, stem : string, modules : AST.module list} -> unit
 
   end = struct
 
@@ -32,6 +34,14 @@ structure CxxGenerate : sig
 		}
 	  in
 	    {cls :: #hxx cd, fns @ #cxx cd}
+	  end
+
+  (* generate C++ code for the given list of modules using the "Cxx" view *)
+    fun gen {src, dir, stem, modules} = let
+	  val basePath = OS.Path.joinDirFile{dir=dir, file=stem}
+	  fun cxxFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "cxx"}
+	  fun hxxFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "hxx"}
+	  in
 	  end
 
   end

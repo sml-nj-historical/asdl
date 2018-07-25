@@ -114,4 +114,18 @@ structure CxxView : sig
 		]
 	    end
 
+  (* set the default name for the ASDL primitive-types module *)
+    val () = let
+	    val primMod = View.Module PrimTypes.primTypesId
+	    fun set (propName, name) = let
+		  val SOME prop = View.findProp(view, primMod, propName)
+		  in
+		    View.Prop.setValue(prop, name)
+		  end
+	    in
+	      List.app set [
+		  (PN.name,		"asdl")
+		]
+	    end
+
   end
