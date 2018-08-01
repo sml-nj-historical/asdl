@@ -28,6 +28,10 @@ structure PrimTypes : sig
     val identifierTy	: AST.named_ty
     val stringTy	: AST.named_ty
 
+  (* pseudo types for sum-type tags *)
+    val tag8TyId	: AST.TypeId.t		(* tag values in 0..255 *)
+    val tag16TyId	: AST.TypeId.t		(* tag values in 0..65535 *)
+
   (* lookup a primitive type by name *)
     val find : Atom.atom -> AST.named_ty option
 
@@ -50,6 +54,12 @@ structure PrimTypes : sig
     val integerTy	= AST.BaseTy integerTyId
     val identifierTy	= AST.BaseTy identifierTyId
     val stringTy	= AST.BaseTy stringTyId
+
+  (* pseudo types for sum-type tags.  These are used to access encode/decode functions, but are not
+   * actual types either the source or generated code.
+   *)
+    val tag8TyId	= TId.new (Atom.atom "_tag8_")
+    val tag16TyId	= TId.new (Atom.atom "_tag16_)
 
     val primTypes = let
 	  val decls = ref[]

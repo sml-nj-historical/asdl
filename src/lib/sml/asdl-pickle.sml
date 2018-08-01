@@ -16,9 +16,9 @@ structure ASDLPickle : ASDL_PICKLE =
     val ++ = W.orb
     val & = W.andb
     val !! = W.notb
-    infix << >>
-    infix ++
-    infix &
+    infix 5 << >>
+    infix 6 ++
+    infix 7 &
 
     fun toByte w = W8.fromLarge (W.toLarge w)
     fun fromByte b = W.fromLarge (W8.toLarge b)
@@ -28,16 +28,16 @@ structure ASDLPickle : ASDL_PICKLE =
 	    | NONE => raise ASDL.DecodeError
 	  (* end case *))
 
-    fun encode_bool (buf, false) = W8B.add1(buf, 0w0)
-      | encode_bool (buf, true) = W8B.add1(buf, 0w1)
+    fun encodeBool (buf, false) = W8B.add1(buf, 0w0)
+      | encodeBool (buf, true) = W8B.add1(buf, 0w1)
 
-    fun decode_bool slice = (case W8S.getItem slice
+    fun decodeBool slice = (case W8S.getItem slice
 	   of SOME(0w0, slice) => (false, slice)
 	    | SOME(0w1, slice) => (true, slice)
 	    | _ => raise ASDL.DecodeError
 	  (* end case *))
 
-    fun encode_uint (buf, w) = if (w <= 0wx3f)
+    fun encodeUInt (buf, w) = if (w <= 0wx3f)
 	    then W8B.add1(buf, toByte w)
 	  else if (w <= 0wx3fff)
 	    then ( (* two bytes *)
@@ -54,7 +54,7 @@ structure ASDLPickle : ASDL_PICKLE =
 	      W8B.add1(buf, toByte(w >> 0w8));
 	      W8B.add1(buf, toByte w))
 
-    fun decode_uint slice = let
+    fun decodeUInt slice = let
 	  val (b0, slice) = getByte slice
 	  val nb = b0 & 0wxc0
 	  val res = b0 & 0wx3f
@@ -80,7 +80,7 @@ structure ASDLPickle : ASDL_PICKLE =
 	  end
 
   (* encode a signed integer.  We assume that the value is in the range -2^29..2^29 - 1 *)
-    fun encode_int (buf, n) = let
+    fun encodeInt (buf, n) = let
 	  val (sign, w)) = if (n < 0) then (0wx20, W.fromInt(~n)) else (0w0, Word.fromInt n)
 	  in
 	    if (w <= 0wx1f)
@@ -101,7 +101,7 @@ structure ASDLPickle : ASDL_PICKLE =
 		W8B.add1(buf, toByte w))
 	  end
 
-    fun decode_int slice = let
+    fun decodeInt slice = let
 	  val (b0, slice) = getByte slice
 	  val nb = b0 & 0wxc0
 	  val isNeg = (b0 & 0wx20 <> 0w0)
@@ -131,14 +131,27 @@ structure ASDLPickle : ASDL_PICKLE =
 	  end
 
 (* TODO
-    val encode_integer : Word8Buffer.buffer * ASDL.integer -> unit
-    val decode_integer : Word8VectorSlice.slice -> ASDL.integer * Word8VectorSlice.slice
+    val encodeInteger : Word8Buffer.buffer * ASDL.integer -> unit
+    val decodeInteger : Word8VectorSlice.slice -> ASDL.integer * Word8VectorSlice.slice
 
-    val encode_string : Word8Buffer.buffer * ASDL.string -> unit
-    val decode_string : Word8VectorSlice.slice -> ASDL.string * Word8VectorSlice.slice
+    val encodeString : Word8Buffer.buffer * ASDL.string -> unit
+    val decodeString : Word8VectorSlice.slice -> ASDL.string * Word8VectorSlice.slice
 
-    val encode_identifier : Word8Buffer.buffer * ASDL.identifier -> unit
-    val decode_identifier : Word8VectorSlice.slice -> ASDL.identifier * Word8VectorSlice.slice
+    val encodeIdentifier : Word8Buffer.buffer * ASDL.identifier -> unit
+    val decodeIdentifier : Word8VectorSlice.slice -> ASDL.identifier * Word8VectorSlice.slice
 *)
+
+  (* utility functions for sum-type tags *)
+    fun encodeTag8 (buf, tag) = W8B.add1(buf, toByte tag)
+    val decodeTag8 slice = getByte slice
+    val encodeTag16 (buf, tag) = (
+	  W8B.add1(buf, toByte(tag >> 0w8));
+	  W8B.add1(buf, toByte tag));
+    val decodeTag16 slice = let
+	  val (b0, slice) = getByte slice
+	  val (b1, slice) = getByte slice
+	  in
+	    ((b0 << 0w8) ++ b1, slice)
+	  end
 
   end

@@ -79,21 +79,29 @@ structure SMLView : sig
 	    View.Prop.setValue(prop, header)
 	  end
 
-  (* set the default names for the ASDL primitive types *)
+  (* set the default properties for the ASDL primitive types *)
     val () = let
-	    fun set (id, name) = let
-		  val SOME prop = View.findProp(view, View.Type id, PropNames.name)
+	    fun set (id, proName, name) = let
+		  val SOME prop = View.findProp(view, View.Type id, propName)
 		  in
 		    View.Prop.setValue(prop, name)
 		  end
 	    in
 	      List.app set [
-		  (PrimTypes.boolTyId,		"bool"),
-		  (PrimTypes.intTyId,		"int"),
-		  (PrimTypes.uintTyId,		"word"),
-		  (PrimTypes.integerTyId,	"IntInf.int"),
-		  (PrimTypes.identifierTyId,	"Atom.atom"),
-		  (PrimTypes.stringTyId,	"string")
+		  (PTy.boolTyId,	PN.name,	"bool"),
+		  (PTy.intTyId,		PN.name,	"int"),
+		  (PTy.uintTyId,	PN.name,	"word"),
+		  (PTy.integerTyId,	PN.name,	"IntInf.int"),
+		  (PTy.identifierTyId,	PN.name,	"Atom.atom"),
+		  (PTy.stringTyId,	PN.name,	"string"),
+		  (PTy.tag8TyId,	PN.encoder,	"encodeTag8"),
+		  (PTy.tag8TyId,	PN.decoder,	"decodeTag8"),
+		  (PTy.tag8TyId,	PN.writer,	"writeTag8"),
+		  (PTy.tag8TyId,	PN.reader,	"readTag8"),
+		  (PTy.tag16TyId,	PN.encoder,	"encodeTag16"),
+		  (PTy.tag16TyId,	PN.decoder,	"decodeTag16")
+		  (PTy.tag16TyId,	PN.writer,	"writeTag16"),
+		  (PTy.tag16TyId,	PN.reader,	"readTag16")
 		]
 	    end
 

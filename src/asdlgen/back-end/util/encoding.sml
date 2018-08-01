@@ -9,7 +9,7 @@
 structure Encoding : sig
 
     datatype t
-      = SWITCH of (int * AST.ConstrId.t * t option) list
+      = SWITCH of int * (int * AST.ConstrId.t * t option) list
       | TUPLE of t list
       | RECORD of (string * t) list
       | OPTION of base
@@ -24,7 +24,7 @@ structure Encoding : sig
   end = struct
 
     datatype t
-      = SWITCH of (int * AST.ConstrId.t * t option) list
+      = SWITCH of int * (int * AST.ConstrId.t * t option) list
       | TUPLE of t list
       | RECORD of (string * t) list
       | OPTION of base
@@ -57,8 +57,8 @@ structure Encoding : sig
 	    | encConstr (tag, AST.Constr{id, fields, ...}) = (tag, id, SOME(encFields fields))
 	  in
 	    case !def
-	     of AST.EnumTy cons => (id, SWITCH(List.mapi encConstr cons))
-	      | AST.SumTy{cons, ...} => (id, SWITCH(List.mapi encConstr cons))
+	     of AST.EnumTy cons => (id, SWITCH(length cons, List.mapi encConstr cons))
+	      | AST.SumTy{cons, ...} => (id, SWITCH(length cons, List.mapi encConstr cons))
 	      | AST.ProdTy{fields} => (id, encFields fields)
 	      | AST.PrimTy => raise Fail "encoding: unexpected primitive type decl"
 	    (* end case *)

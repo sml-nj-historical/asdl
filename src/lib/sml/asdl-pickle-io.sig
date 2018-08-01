@@ -7,25 +7,28 @@
 signature ASDL_PICKLE =
   sig
 
-    val write_bool : BinIO.outstream * ASDL.bool -> unit
-    val read_bool : BinIO.instream -> ASDL.bool
+    val writeBool : BinIO.outstream * ASDL.bool -> unit
+    val readBool : BinIO.instream -> ASDL.bool
 
-    val write_int : BinIO.outstream * ASDL.int -> unit
-    val read_int : BinIO.instream -> ASDL.int
+    val writeInt : BinIO.outstream * ASDL.int -> unit
+    val readInt : BinIO.instream -> ASDL.int
 
-    val write_uint : BinIO.outstream * ASDL.uint -> unit
-    val read_uint : BinIO.instream -> ASDL.uint
+    val writeUInt : BinIO.outstream * ASDL.uint -> unit
+    val readUInt : BinIO.instream -> ASDL.uint
 
-    val write_integer : BinIO.outstream * ASDL.integer -> unit
-    val read_integer : BinIO.instream -> ASDL.integer
+    val writeInteger : BinIO.outstream * ASDL.integer -> unit
+    val readInteger : BinIO.instream -> ASDL.integer
 
-    val write_string : BinIO.outstream * ASDL.string -> unit
-    val read_string : BinIO.instream -> ASDL.string
+    val writeString : BinIO.outstream * ASDL.string -> unit
+    val readString : BinIO.instream -> ASDL.string
 
-    val write_identifier : BinIO.outstream * ASDL.identifier -> unit
-    val read_identifier : BinIO.instream -> ASDL.identifier
+    val writeIdentifier : BinIO.outstream * ASDL.identifier -> unit
+    val readIdentifier : BinIO.instream -> ASDL.identifier
+
+  (* utility functions for sum-type tags *)
+    val writeTag8 : BinIO.outstream * word -> unit
+    val readTag8 : BinIO.instream -> word
+    val writeTag16 : BinIO.outstream * word -> unit
+    val readTag16 : BinIO.instream -> word
 
   end
-
-
-

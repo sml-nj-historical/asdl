@@ -20,6 +20,14 @@ structure GenCxx : sig
 	cxx : CL.decl list
       }
 
+  (* include directives to include in the .hxx and .cxx files *)
+    val hxxIncls = CL.D_Verbatim[
+	    "#include \"asdl/asdl.hxx\"\n",
+	  ]
+    val cxxIncls = CL.D_Verbatim[
+	    "#include \"@HXX_FILENAME@\"\n",
+	  ]
+
   (* generate code for a constructor *)
     fun defConstr view tyName (cons, cd : code) = let
 

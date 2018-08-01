@@ -2,120 +2,110 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * Generate the encoder/decoder methods for the typed of an ASDL module.  For an ASDL
+ * type "TYPE", the encoder is a method with the following signature:
+ *
+ *	void encode (asdl::outstream &os);
+ *
+ * and the decoder is a constructor with the following signature:
+ *
+ *	TYPE (asdl::instream &os);
+ *
+ * For enumeration types, we generate functions:
+ *
+ *	void encode_TYPE (asdl::outstream &os, TYPE const &v);
+ *	TYPE decode_TYPE (asdl::instream &os);
  *)
 
 structure GenPickle : sig
 
-  (* generate the signature for the pickler structure *)
-    val genSig : AST.module -> SML.top_decl
-
-  (* generate the pickler structure *)
-    val genStr : AST.module -> SML.top_decl
+  (* generate the implementation of the pickler functions *)
+    val genDcls : AST.module -> CL.decl
 
   end = struct
 
     structure PT = PrimTypes
-    structure V = SMLView
+    structure V = CxxView
     structure ModV = V.Module
     structure TyV = V.Type
     structure ConV = V.Constr
     structure E = Encoding
-    structure S = SML
+    structure CL = CLang
 
-  (***** Signature generation *****)
+    val instrm = CL.T_Named "asdl::instream"
+    val instrmRef = CL.T_Ref(CL.T_Named "asdl::instream")
+    val outstrm = CL.T_Named "asdl::outstream"
+    val outstrmRef = CL.T_Ref(CL.T_Named "asdl::outstream")
 
-    fun genSig (AST.Module{isPrim=false, id, decls}) = let
-	  val typeModName = ModV.getName id
-	  val sigName = Util.sigName(ModV.getPickleName id, NONE)
-	  val specs = List.foldr (genSpec typeModName) [] (!decls)
+    fun genDcls (AST.Module{isPrim=false, id, decls}) = let
+	  val namespace = ModV.getName id
 	  in
-	    S.SIGtop(sigName, S.BASEsig specs)
+	    CL.D_Namespace(namespace, List.foldr genType [] decls)
 	  end
-      | genSig _ = raise Fail "genSig: unexpected primitive module"
+      | genDcls _ = raise Fail "genDcls: unexpected primitive module"
 
-  (* generate the encoder/decoder specifications for a type *)
-    and genSpec modName (AST.TyDcl{id, ...}, specs) = let
-	  val ty = S.CONty([], TyV.getName id)
-	  val bufTy = S.CONty([], "Word8Buffer.buf")
-	  val vecTy = S.CONty([], "Word8Vector.vector")
-	  val sliceTy = S.CONty([], "Word8VectorSlice.slice")
-	  val unitTy = S.CONty([], "unit")
-	(* encoder *)
-	  val encTy = S.FUNty(S.TUPLEty[bufTy, ty], unitTy)
-	  val encSpc = S.VALspec(TyV.getEncoder id, encTy)
-	(* decoder *)
-	  val decTy = S.FUNty(sliceTy, S.TUPLEty[ty, sliceTy])
-	  val decSpc = S.VALspec(TyV.getDecoder id, decTy)
-	  in
-	    encSpc :: decSpc :: specs
-	  end
-
-  (***** Structure generation *****)
-
-  (* generate a simple application *)
-    fun funApp (f, args) = S.appExp(S.IDexp f, S.tupleExp args)
-  (* pairs *)
-    fun pairPat (a, b) = S.TUPLEpat[a, b]
-    fun pairExp (a, b) = S.TUPLEexp[a, b]
-
-    fun genStr (AST.Module{isPrim=false, id, decls}) = let
-	  val typeModName = ModV.getName id
-	  val pickleModName = ModV.getPickleName id
-	  val sigName = Util.sigName(pickleModName, NONE)
-	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr genType [] dcls) :: dcls'
-	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
-	  val decls = S.VERBdec[Fragments.pickleUtil] :: decls
-	  in
-	    S.STRtop(pickleModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
-	  end
-      | genStr _ = raise Fail "genStr: unexpected primitive module"
-
-    and genType (dcl, fbs) = let
+    and genType scope (dcl, dcls) = let
 	  val (id, encoding) = E.encoding dcl
 	  val name = TyV.getName id
 	  in
-	    genEncoder (TyV.getEncoder id, encoding) ::
-	    genDecoder (TyV.getDecoder id, encoding) ::
-	      fbs
+	    genEncoder (id, encoding) ::
+	    genDecoder (id, encoding) ::
+	      dcls
 	  end
 
-    and genEncoder (encName, encoding) = let
-	  val bufV = S.IDexp "buf"
+    and genEncoder (tyId, encoding) = let
+	  val encName = TyV.getEncoder tyId
+	  val objTy = CL.T_Named(TyV.getName id)
+	  val osV = CL.mkVar "os"
 	  fun baseEncode (NONE, tyId) = TyV.getEncoder tyId
 	    | baseEncode (SOME modId, tyId) = concat[
-		  ModV.getPickleName modId, ".", TyV.getEncoder tyId
+		  ModV.getName modId, "::", TyV.getEncoder tyId
 		]
-	  fun gen (arg, E.SWITCH(_, rules)) = let
+	  fun genStm arg = CL.mkBlock(gen arg)
+	  and gen (arg, E.SWITCH rules) = let
 	      (* determine the "type" of the tag *)
 		val tagTyId = if (ncons <= 256) then PT.tag8TyId
 		      then if (ncons <= 65536) then PT.tag16TyId
 		      else raise Fail "too many constructors"
 		in
-		  S.caseExp(arg, List.map (genRule tagTyId) rules)
+		  if Util.isEnum tyId
+		    then [S.mkCall(baseEncode (SOME PT.primTypesId, tagTyId), [arg])]
+		    else [
+			S.mkCall(baseEncode (SOME PT.primTypesId, tagTyId), [arg]),
+			CL.mkSwitch(CL.mkIndirect(arg, "_tag"), List.map genCase rules)
+		      ]
 		end
 	    | gen (arg, E.TUPLE tys) = let
-		fun encode (i, ty) = gen (S.selectExp(Int.toString i, arg), ty)
+		fun encode (i, ty) = gen (CL.mkIndirect(arg, Util.posName lab), ty)
 		in
-		  S.SEQexp(List.mapi encode tys)
+		  List.mapi encode tys
 		end
 	    | gen (arg, E.RECORD fields) = let
-		fun encode (lab, ty) = gen (S.selectExp(lab, arg), ty)
+		fun encode (lab, ty) = gen (CL.mkIndirect(arg, Util.fieldName lab), ty)
 		in
-		  S.SEQexp(List.map encode fields)
+		  List.map encode fields
 		end
 	    | gen (arg, E.OPTION ty) =
-		S.appExp(
-		  funApp ("encode_option", [S.IDexp(baseEncode ty)]),
-		  pairExp(bufV, arg))
-	    | gen (arg, E.SEQUENCE ty) =
-		S.appExp(
-		  funApp ("encode_list", [S.IDexp(baseEncode ty)]),
-		  pairExp(bufV, arg))
+		CL.mkIf(
+		  CL.mkBinOp(CL.mkVar "nullptr", CL.#==, arg),
+		  CL.mkCall("asdl::encode_tag8", [osV, CL.mkInt 0]),
+		  if Util.isBoxed(#2 ty)
+		    then genStm (arg, ty)
+		    else genStm (CL.mkIndirectDispatch(arg, "value", [])))
+	    | gen (arg, E.SEQUENCE ty) = [
+		  CL.mkCall("asdl::encode_uint", [osV, CL.mkIndirectDispatch(arg, "size", [])]),
+		  CL.mkFor(
+		    CL.autoTy, ["it", CL.mkIndirectDispatch(arg, "cbegin", [])],
+		    CL.mkBinOp(CL.mkVar "it", CL.#!=, CL.mkIndirectDispatch(arg, "cend", [])),
+		    CL.mkUnOp(CL.%++, CL.mkVar "it"),
+		    genStm (CL.mkUnOp(CL.%*, CL.mkVar "it"), ty))
+		]
 	    | gen (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | gen (arg, E.BASE ty) = funApp (baseEncode ty, [bufV, arg])
-	  and genRule tagTyId (tag, conId, optArg) = let
+	  and genRule (tag, conId, optArg) = let
 		val encTag = funApp(
-		      baseEncode(SOME PT.primTypesId, PT.tagTyId),
+		      baseEncode(SOME PT.primTypesId, PT.uintTyId),
 		      [bufV, S.NUMexp("0w" ^ Int.toString tag)])
 		val conName = ConV.getName conId
 		in
@@ -146,23 +136,25 @@ structure GenPickle : sig
 		end
 	  and gen' (x, ty) = gen (S.IDexp x, ty)
 	  in
-	    S.simpleFB(encName, ["buf", "obj"], gen(S.IDexp "obj", encoding))
+	    if Util.isEnum tyId
+	      then CL.mkFuncDcl(
+		CL.voidTy, encName,
+		[osParam, CL.PARAM([], constRefTyf(CL.T_Named(TyV.getName id)), "v")],
+		gen' (mkVar "v"))
+	      else CL.mkMethDcl(TyV.getName id, CL.voidTy, encName, [osParam], body)
 	  end
 
-    and genDecoder (decName, encoding) = let
+    and genDecoder (tyId, encoding) = let
+	  val decName = TyV.getDecoder tyId
 	  val sliceP = S.IDpat "slice"
 	  val sliceV = S.IDexp "slice"
 	  fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
 	    | baseDecode (SOME modId, tyId) = concat[
 		  ModV.getPickleName modId, ".", TyV.getDecoder tyId
 		]
-	  fun gen (E.SWITCH(ncons, rules)) = let
-	      (* determine the "type" of the tag *)
-		val tagTyId = if (ncons <= 256) then PT.tag8TyId
-		      then if (ncons <= 65536) then PT.tag16TyId
-		      else raise Fail "too many constructors"
+	  fun gen (E.SWITCH rules) = let
 		val decodeTag = funApp(
-		      baseDecode(SOME PT.primTypesId, tagTyId),
+		      baseDecode(SOME PT.primTypesId, PT.uintTyId),
 		      [sliceV])
 		val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
 		in
@@ -214,3 +206,5 @@ structure GenPickle : sig
 	  end
 
   end
+
+

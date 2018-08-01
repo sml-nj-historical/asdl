@@ -33,6 +33,7 @@ structure CxxView : sig
 
     structure CV = CommonView
     structure PN = PropNames
+    structure PTy = PrimTypes
 
     structure ViewBase = ViewBaseFn (
       struct
@@ -96,21 +97,25 @@ structure CxxView : sig
 	    View.Prop.setValue(prop, header)
 	  end
 
-  (* set the default names for the ASDL primitive types *)
+  (* set the default properties for the ASDL primitive types *)
     val () = let
-	    fun set (id, name) = let
-		  val SOME prop = View.findProp(view, View.Type id, PN.name)
+	    fun set (id, proName, name) = let
+		  val SOME prop = View.findProp(view, View.Type id, propName)
 		  in
 		    View.Prop.setValue(prop, name)
 		  end
 	    in
 	      List.app set [
-		  (PrimTypes.boolTyId,		"bool"),
-		  (PrimTypes.intTyId,		"int"),
-		  (PrimTypes.uintTyId,		"unsigned int"),
-		  (PrimTypes.integerTyId,	"asdl::integer"),
-		  (PrimTypes.identifierTyId,	"asdl::identifier"),
-		  (PrimTypes.stringTyId,	"std::string")
+		  (PTy.boolTyId,	PN.name,	"bool"),
+		  (PTy.intTyId,		PN.name,	"int"),
+		  (PTy.uintTyId,	PN.name,	"unsigned int"),
+		  (PTy.integerTyId,	PN.name,	"asdl::integer"),
+		  (PTy.identifierTyId,	PN.name,	"asdl::identifier"),
+		  (PTy.stringTyId,	PN.name,	"std::string"),
+		  (PTy.tag8TyId,	PN.encoder,	"encode_tag8"),
+		  (PTy.tag8TyId,	PN.decoder,	"decode_tag8"),
+		  (PTy.tag16TyId,	PN.encoder,	"encode_tag16"),
+		  (PTy.tag16TyId,	PN.decoder,	"decode_tag16")
 		]
 	    end
 
