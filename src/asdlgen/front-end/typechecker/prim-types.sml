@@ -59,7 +59,7 @@ structure PrimTypes : sig
    * actual types either the source or generated code.
    *)
     val tag8TyId	= TId.new (Atom.atom "_tag8_")
-    val tag16TyId	= TId.new (Atom.atom "_tag16_)
+    val tag16TyId	= TId.new (Atom.atom "_tag16_")
 
     val primTypes = let
 	  val decls = ref[]

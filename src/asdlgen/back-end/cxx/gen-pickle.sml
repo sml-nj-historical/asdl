@@ -20,8 +20,10 @@
 
 structure GenPickle : sig
 
-  (* generate the implementation of the pickler functions *)
-    val genDcls : AST.module -> CL.decl
+  (* generate the implementation of the pickler functions.  The result will be
+   * a namespace declaration enclosing the function definitions.
+   *)
+    val gen : AST.module -> CL.decl
 
   end = struct
 
@@ -38,14 +40,14 @@ structure GenPickle : sig
     val outstrm = CL.T_Named "asdl::outstream"
     val outstrmRef = CL.T_Ref(CL.T_Named "asdl::outstream")
 
-    fun genDcls (AST.Module{isPrim=false, id, decls}) = let
+    fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val namespace = ModV.getName id
 	  in
 	    CL.D_Namespace(namespace, List.foldr genType [] decls)
 	  end
-      | genDcls _ = raise Fail "genDcls: unexpected primitive module"
+      | gen _ = raise Fail "genDcls: unexpected primitive module"
 
-    and genType scope (dcl, dcls) = let
+    and genType (dcl, dcls) = let
 	  val (id, encoding) = E.encoding dcl
 	  val name = TyV.getName id
 	  in

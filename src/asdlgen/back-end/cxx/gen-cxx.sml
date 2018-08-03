@@ -28,21 +28,22 @@ structure GenCxx : sig
 	    "#include \"@HXX_FILENAME@\"\n",
 	  ]
 
-  (* generate code for a constructor *)
-    fun defConstr view tyName (cons, cd : code) = let
-
-	(* the class definition for the constructor *)
-	  val cls = CL.D_ClassDef{
-		  name = Cons.nameOf(view, cons),
-		  args = NONE,
-		  from = SOME tyName,
-		  public = ??,
-		  protected = [],
-		  private = fields
-		}
+  (* output C++ declarations to a file *)
+    fun output (src, outFile, dcls) = let
+	  val outS = TextIO.openOut outFile
+(* FIXME: output width is a command-line option! *)
+	  val ppStrm = TextIOPP.openOut {dst = outS, wid = Options.lineWidth()}
 	  in
-	    {cls :: #hxx cd, fns @ #cxx cd}
+	    List.app
+	      (fn dcl => (PrintAsCxx.output (ppStrm, dcl)))
+		(genHeader (src, outFile) :: dcls);
+	    TextIOPP.closeStream ppStrm;
+	    TextIO.closeOut outS
 	  end
+
+  (* generate a file using the given code generator *)
+    fun genFile codeGen (src, outFile, modules) =
+	  output (src, outFile, List.map codeGen modules)
 
   (* generate C++ code for the given list of modules using the "Cxx" view *)
     fun gen {src, dir, stem, modules} = let
@@ -50,6 +51,10 @@ structure GenCxx : sig
 	  fun cxxFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "cxx"}
 	  fun hxxFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "hxx"}
 	  in
+	  (* generate the header file *)
+	    genFile GenTypes.gen (src, hxxFilename basePath, modules);
+	  (* generate the pickler implementation *)
+	    genFile GenPickler.gen (src, cxxFilename(basePath ^ "-pickle"), modules)
 	  end
 
   end

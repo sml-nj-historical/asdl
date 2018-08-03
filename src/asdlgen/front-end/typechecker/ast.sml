@@ -77,8 +77,11 @@ structure AST =
 
     and tyc = NoTyc | OptTyc | SeqTyc | SharedTyc
 
+  (* field labels are either positional or labelled *)
+    and label = Pos of int | Lab of string
+
     withtype field = {
-	  label : string option,
+	  label : label,
 	  ty : ty_exp
 	}
 

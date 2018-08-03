@@ -99,7 +99,7 @@ structure CxxView : sig
 
   (* set the default properties for the ASDL primitive types *)
     val () = let
-	    fun set (id, proName, name) = let
+	    fun set (id, propName, name) = let
 		  val SOME prop = View.findProp(view, View.Type id, propName)
 		  in
 		    View.Prop.setValue(prop, name)

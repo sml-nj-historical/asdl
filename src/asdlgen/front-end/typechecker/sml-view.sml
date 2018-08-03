@@ -28,6 +28,7 @@ structure SMLView : sig
 
     structure CV = CommonView
     structure PN = PropNames
+    structure PTy = PrimTypes
 
     structure ViewBase = ViewBaseFn (
       struct
@@ -81,7 +82,7 @@ structure SMLView : sig
 
   (* set the default properties for the ASDL primitive types *)
     val () = let
-	    fun set (id, proName, name) = let
+	    fun set (id, propName, name) = let
 		  val SOME prop = View.findProp(view, View.Type id, propName)
 		  in
 		    View.Prop.setValue(prop, name)
@@ -99,7 +100,7 @@ structure SMLView : sig
 		  (PTy.tag8TyId,	PN.writer,	"writeTag8"),
 		  (PTy.tag8TyId,	PN.reader,	"readTag8"),
 		  (PTy.tag16TyId,	PN.encoder,	"encodeTag16"),
-		  (PTy.tag16TyId,	PN.decoder,	"decodeTag16")
+		  (PTy.tag16TyId,	PN.decoder,	"decodeTag16"),
 		  (PTy.tag16TyId,	PN.writer,	"writeTag16"),
 		  (PTy.tag16TyId,	PN.reader,	"readTag16")
 		]

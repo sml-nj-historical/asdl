@@ -269,15 +269,20 @@ structure Typecheck : sig
    * `attribs` list is a list of previously checked attributes (for sum types).
    *)
     and checkFields (cxt, env, attribs, fields) = let
-	  fun chkField (cxt, PT.Field_Mark m) = chkField (withMark' (cxt, m))
-	    | chkField (cxt, PT.Field{module, typ, tycon, label}) = let
+	  val baseIdx = List.length attribs
+	  fun chkField (cxt, i, PT.Field_Mark m) = chkField (withMark (cxt, i, m))
+	    | chkField (cxt, i, PT.Field{module, typ, tycon, label}) = let
+		val lab = (case label
+		       of NONE => AST.Pos(baseIdx + i)
+			| SOME{tree, ...} => AST.Lab(Atom.toString tree)
+		      (* end case *))
 		val ty = checkTy (cxt, env, module, typ, tycon)
 		in
-		  {label = Option.map (Atom.toString o #tree) label, ty = ty}
+		  {label = lab, ty = ty}
 		end
 	  in
-(* FIXME: check for duplicate field names *)
-	    attribs @ List.map (fn fld => chkField (cxt, fld)) fields
+(* FIXME: check for duplicate field names and inconsistent labeling *)
+	    attribs @ List.mapi (fn (i, fld) => chkField (cxt, i, fld)) fields
 	  end
 
   (* check a type expression, where the module name and tycon are optional *)

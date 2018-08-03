@@ -35,7 +35,7 @@ structure GenSML : sig
 (* FIXME: output width is a command-line option! *)
 	  val ppStrm = TextIOPP.openOut {dst = outS, wid = Options.lineWidth()}
 	  in
-	    List.map (PrintSML.output ppStrm) (genHeader (src, outFile) :: dcls);
+	    List.app (PrintSML.output ppStrm) (genHeader (src, outFile) :: dcls);
 	    TextIOPP.closeStream ppStrm;
 	    TextIO.closeOut outS
 	  end
