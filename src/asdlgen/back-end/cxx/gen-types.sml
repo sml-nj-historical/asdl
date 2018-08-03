@@ -18,27 +18,29 @@ structure GenTypes : sig
     structure TyV = V.Type
     structure ConV = V.Constr
     structure CL = CLang
+    structure U = Util
 
-  (* generate code for a constructor *)
-    fun defConstr tyName (cons, cd : code) = let
-
-	(* the class definition for the constructor *)
-	  val cls = CL.D_ClassDef{
-		  name = Cons.nameOf(view, cons),
-		  args = NONE,
-		  from = SOME tyName,
-		  public = ??,
-		  protected = [],
-		  private = fields
-		}
+  (* generate the inlinw access-methods for a field *)
+    fun genAccessMethods {label, ty} = let
+	  val fieldTy = U.tyexpToCxx ty
+	  val field = CL.mkIndirect(CL.mkVar "this", U.fieldName label)
+	  val get = CL.D_Func(
+		[], fieldTy, [], U.fieldGetName label, [],
+		CL.mkReturn(SOME field))
+	  val set = CL.D_Func(
+		[], CL.voidTy, [], U.fieldSetName label, [CL.PARAM([], fieldTy, "v")],
+		CL.mkAssign(field, CL.mkVar "v"))
 	  in
-	    {cls :: #hxx cd, fns @ #cxx cd}
+	    [get, set]
 	  end
+
+  (* generate a field declaration *)
+    fun genField {label, ty} = CL.mkVarDcl(U.tyexpToCxx ty, U.fieldName label)
 
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val namespace = ModV.getName id
 	  val fwdDefs = List.map genForwardDcl decls
-	  val repDefs = List.map genType decls
+	  val repDefs = List.foldr genType [] decls
 	  in
 	    CL.D_Namespace(namespace, fwdDefs @ repDefs)
 	  end
@@ -57,8 +59,8 @@ structure GenTypes : sig
 	    CL.D_Verbatim[concat[prefix, name, ";\n"]]
 	  end
 
-    and genType (AST.TyDcl{id, def, ...}) = let
-	  val name = Util.repName(TyV.getName id)
+    and genType (AST.TyDcl{id, def, ...}, dcls) = let
+	  val name = U.repName(TyV.getName id)
 	  fun db cons = let
 		fun con (AST.Constr{id, fields=[], ...}) = (ConV.getName id, NONE)
 		  | con (AST.Constr{id, fields, ...}) = (ConV.getName id, SOME(genProdTy fields))
@@ -67,41 +69,51 @@ structure GenTypes : sig
 		end
 	  in
 	    case !def
-	     of AST.EnumTy cons => db cons
-	      | AST.SumTy{attribs, cons} => db cons
-	      | AST.ProdTy{fields} => (dbs, ([], name, genProdTy fields)::tbs)
+	     of AST.EnumTy cons =>
+		  genEnumClass (name, cons) :: dcls
+	      | AST.SumTy{attribs, cons} =>
+		  genBaseClass (name, attribs) ::
+		  List.foldr (genConsClass (name, attribs)) dcls cons
+	      | AST.ProdTy{fields} =>
+		  genProdClass (name, fields) :: dcls
 	      | AST.PrimTy => raise Fail "unexpected primitive type"
 	    (* end case *)
 	  end
 
-  (* generate a type expression for a list of fields *)
-    and genProdTy [] = S.CONty([], "unit")
-      | genProdTy [{label=NONE, ty}] = genTyExp ty
-      | genProdTy (fields as {label=NONE, ...}::_) =
-	  S.TUPLEty(List.map (genTyExp o #ty) fields)
-      | genProdTy fields = let
-	  fun field {label=SOME lab, ty} = (lab, genTyExp ty)
-	    | field _ = raise Fail "missing label in record type"
+  (* generate a enum-class definition and function declarations for an enumeration
+   * type.
+   *)
+    and genEnumClass (name, cons) =
+
+  (* generate the base-class definition for a sum type *)
+    and genBaseClass (name, attribs) = let
+	  val accessMeths = List.foldr
+		(fn (fld, meths) => genAccessMethods fld @ meths)
+		  [] attribs
 	  in
-	    S.RECORDty(List.map field fields)
+	    CL.D_ClassDef{
+		name = name, args = NONE, from = NONE,
+		public = accessMeths,
+		protected = constr :: destr :: List.map genField attribs,
+		private = []
+	      }
 	  end
 
-    and genTyExp (AST.Typ(ty, tyc)) = let
-	  val tyName = (case ty
-		 of AST.BaseTy tyId => TyV.getName tyId
-		  | AST.ImportTy(modId, tyId) => String.concat[
-			ModV.getName modId, ".", TyV.getName tyId
-		      ]
-		  | AST.LocalTy(AST.TyDcl{id, ...}) => TyV.getName id
-		(* end case *))
-	  val ty' = S.CONty([], tyName)
+  (* generate a derived-class definition for a constructor in a sum type *)
+    and genConsClass (name, attribs) (AST.Constr{id, fields, ...}) =
+
+  (* generate the class definition for a product type *)
+    and genProdClass (name, fields) = let
+	  val accessMeths = List.foldr
+		(fn (fld, meths) => genAccessMethods fld @ meths)
+		  [] attribs
 	  in
-	    case tyc
-	     of AST.NoTyc => ty'
-	      | AST.OptTyc => S.CONty([ty'], "option")
-	      | AST.SeqTyc => S.CONty([ty'], "list")
-	      | AST.SharedTyc => raise Fail "FIXME: shared types not implemented"
-	    (* end case *)
+	    CL.D_ClassDef{
+		name = name, args = NONE, from = NONE,
+		public = constr :: destr :: accessMeths,
+		protected = [],
+		private = List.map genField attribs
+	      }
 	  end
 
   end

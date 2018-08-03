@@ -12,7 +12,6 @@ structure GenCxx : sig
 
   end = struct
 
-    structure Cons = ASDL.Constr
     structure CL = CLang
 
     type code = {
