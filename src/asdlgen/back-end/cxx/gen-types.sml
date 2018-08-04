@@ -9,7 +9,7 @@ structure GenTypes : sig
   (* generate the type definitions for an ASDL module.  The result will be
    * a namespace declaration enclosing the definitions.
    *)
-    val genDcls : AST.module -> CL.decl
+    val gen : AST.module -> Cxx.decl
 
   end = struct
 
@@ -17,10 +17,10 @@ structure GenTypes : sig
     structure ModV = V.Module
     structure TyV = V.Type
     structure ConV = V.Constr
-    structure CL = CLang
+    structure CL = Cxx
     structure U = Util
 
-  (* generate the inlinw access-methods for a field *)
+  (* generate the inline access-methods for a field *)
     fun genAccessMethods {label, ty} = let
 	  val fieldTy = U.tyexpToCxx ty
 	  val field = CL.mkIndirect(CL.mkVar "this", U.fieldName label)
@@ -37,10 +37,14 @@ structure GenTypes : sig
   (* generate a field declaration *)
     fun genField {label, ty} = CL.mkVarDcl(U.tyexpToCxx ty, U.fieldName label)
 
+  (* a field initialization expression *)
+    fun genFieldInit {label, ty} =
+	  CL.mkApply(U.fieldName label, [U.fieldParam label])
+
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val namespace = ModV.getName id
-	  val fwdDefs = List.map genForwardDcl decls
-	  val repDefs = List.foldr genType [] decls
+	  val fwdDefs = List.map genForwardDcl (!decls)
+	  val repDefs = List.foldr genType [] (!decls)
 	  in
 	    CL.D_Namespace(namespace, fwdDefs @ repDefs)
 	  end
@@ -56,21 +60,15 @@ structure GenTypes : sig
 		  | AST.PrimTy => raise Fail "unexpected primitive type"
 		(* end case *))
 	  in
-	    CL.D_Verbatim[concat[prefix, name, ";\n"]]
+	    CL.D_Verbatim[concat[prefix, name, ";"]]
 	  end
 
     and genType (AST.TyDcl{id, def, ...}, dcls) = let
-	  val name = U.repName(TyV.getName id)
-	  fun db cons = let
-		fun con (AST.Constr{id, fields=[], ...}) = (ConV.getName id, NONE)
-		  | con (AST.Constr{id, fields, ...}) = (ConV.getName id, SOME(genProdTy fields))
-		in
-		  (S.DB([], name, List.map con cons)::dbs, tbs)
-		end
+	  val name = TyV.getName id
 	  in
 	    case !def
 	     of AST.EnumTy cons =>
-		  genEnumClass (name, cons) :: dcls
+		  genEnumClass (name, cons) @ dcls
 	      | AST.SumTy{attribs, cons} =>
 		  genBaseClass (name, attribs) ::
 		  List.foldr (genConsClass (name, attribs)) dcls cons
@@ -83,36 +81,82 @@ structure GenTypes : sig
   (* generate a enum-class definition and function declarations for an enumeration
    * type.
    *)
-    and genEnumClass (name, cons) =
+    and genEnumClass (name, cons) = let
+	  val con::conr = List.map (fn (AST.Constr{id, ...}) => ConV.getName id) cons
+	  val enumDcl = CL.D_EnumDef{
+		  isClass = true,
+		  name = name,
+		  repTy = NONE,
+		  cons = (con, SOME(CL.mkInt 1)) :: List.map (fn c => (c, NONE)) conr
+		}
+	(* prototypes for pickler functions *)
+	  val protos = [] (* FIXME *)
+	  in
+	    enumDcl :: protos
+	  end
 
   (* generate the base-class definition for a sum type *)
     and genBaseClass (name, attribs) = let
 	  val accessMeths = List.foldr
 		(fn (fld, meths) => genAccessMethods fld @ meths)
 		  [] attribs
+	  val constr = CL.D_Constr(
+		[], [], name, List.map U.fieldToParam attribs,
+		SOME(List.map genFieldInit attribs, CL.mkBlock[]))
+	  val destr = CL.D_Destr(["virtual"], [], name, NONE)
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,
-		public = accessMeths,
-		protected = constr :: destr :: List.map genField attribs,
+		public = destr :: accessMeths,
+		protected = constr :: List.map genField attribs,
 		private = []
 	      }
 	  end
 
   (* generate a derived-class definition for a constructor in a sum type *)
-    and genConsClass (name, attribs) (AST.Constr{id, fields, ...}) =
+    and genConsClass (baseName, attribs) = let
+	  val nAttribs = List.length attribs
+	  val attribParams = List.map U.fieldToParam attribs
+	  val baseInit = CL.mkApply(baseName, List.map (U.fieldParam o #label) attribs)
+	  fun gen (AST.Constr{id, fields, ...}, dcls) = let
+		val name = ConV.getName id
+		val extra = List.drop(fields, nAttribs)
+		val accessMeths = List.foldr
+		      (fn (fld, meths) => genAccessMethods fld @ meths)
+			[] extra
+		val constr = CL.D_Constr(
+		      [], [], name, List.map U.fieldToParam fields,
+		      SOME(baseInit :: List.map genFieldInit extra, CL.mkBlock[]))
+(* FIXME: eventually we need something better for the destructor *)
+		val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
+		in
+		  CL.D_ClassDef{
+		      name = name, args = NONE, from = SOME baseName,
+		      public = constr :: destr :: accessMeths,
+		      protected = List.map genField attribs,
+		      private = []
+		    } :: dcls
+		end
+	  in
+	    gen
+	  end
 
   (* generate the class definition for a product type *)
     and genProdClass (name, fields) = let
 	  val accessMeths = List.foldr
 		(fn (fld, meths) => genAccessMethods fld @ meths)
-		  [] attribs
+		  [] fields
+	  val constr = CL.D_Constr(
+		[], [], name, List.map U.fieldToParam fields,
+		SOME(List.map genFieldInit fields, CL.mkBlock[]))
+(* FIXME: eventually we need something better for the destructor *)
+	  val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,
 		public = constr :: destr :: accessMeths,
 		protected = [],
-		private = List.map genField attribs
+		private = List.map genField fields
 	      }
 	  end
 

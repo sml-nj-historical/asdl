@@ -1,21 +1,22 @@
-(* print-as-cxx.sml
+(* print-cxx.sml
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * Print CLang syntax trees using C++ syntax.
+ * Print C++ code.
  *)
 
-structure PrintAsCxx : sig
+structure PrintCxx : sig
 
-    val output : TextIOPP.stream * CLang.decl -> unit
+    val output : TextIOPP.stream * Cxx.decl -> unit
 
   end = struct
 
-    structure CL = CLang
+    structure CL = Cxx
     structure PP = TextIOPP
 
     val indent0 = (PP.Abs 0)
+    val indent2 = (PP.Abs 2)
     val indent = (PP.Abs 4)     (* standard indentation amount *)
 
     fun numTyName rty = (case rty
@@ -35,9 +36,10 @@ structure PrintAsCxx : sig
       | output (strm, decl) = let
           val str = PP.string strm
           fun sp () = PP.space strm 1
+	  fun nl () = PP.newline strm
           fun inHBox f = (PP.openHBox strm; f(); PP.closeBox strm)
           fun ppCom s = inHBox (fn () => (str "// "; str s))
-          fun ppComLn s = (ppCom s; PP.newline strm)
+          fun ppComLn s = (ppCom s; nl())
           fun ppList {pp, sep, l} = let
                 fun ppList' [] = ()
                   | ppList' [x] = pp x
@@ -59,6 +61,7 @@ structure PrintAsCxx : sig
                   | getBaseTy (CL.T_Const(CL.T_Named ty)) = "const " ^ ty
                   | getBaseTy (CL.T_Const ty) = getBaseTy ty
                   | getBaseTy (CL.T_Ptr ty) = getBaseTy ty
+                  | getBaseTy (CL.T_Ref ty) = getBaseTy ty
                   | getBaseTy (CL.T_RestrictPtr ty) = getBaseTy ty
                   | getBaseTy (CL.T_Array(ty, _)) = getBaseTy ty
                   | getBaseTy (CL.T_Named ty) = ty
@@ -87,6 +90,7 @@ structure PrintAsCxx : sig
                             str "(*"; pp(false, ty, optVar); str ")")
                         | _ => (str "*"; pp(false, ty, optVar))
                       (* end case *))
+                  | pp (isFirst, CL.T_Ref ty, optVar) = (str "&"; pp(false, ty, optVar))
                   | pp (isFirst, CL.T_RestrictPtr ty, optVar) = (
                       if isFirst then sp() else ();
                       case ty
@@ -114,15 +118,15 @@ structure PrintAsCxx : sig
                 sp())
           fun ppDecl (inClass, dcl) = (case dcl
                  of CL.D_Pragma l => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       inHBox (fn () => (
                         str "#pragma";
                         List.app (fn s => (sp(); str s)) l)))
                   | CL.D_Comment l => List.app ppComLn l
                   | CL.D_Verbatim [] => ()
-                  | CL.D_Verbatim l => (if inClass then PP.newline strm else (); List.app str l)
+                  | CL.D_Verbatim l => (if inClass then nl() else (); List.app str l)
                   | CL.D_Var(attrs, ty, scopes, x, optInit) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       inHBox (fn () => (
                         ppAttrs attrs;
                         ppTy (ty, SOME(scopes, x));
@@ -132,7 +136,7 @@ structure PrintAsCxx : sig
                         (* end case *);
                         str ";")))
                   | CL.D_Proto(attrs, ty, f, params) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       inHBox (fn () => (
                         ppAttrs attrs;
                         ppTy(ty, SOME([], f));
@@ -140,7 +144,7 @@ structure PrintAsCxx : sig
                         ppCommaList {pp=ppParam, l=params};
                         str ");")))
                   | CL.D_Func(attrs, ty, scopes, f, params, body) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       PP.openVBox strm indent0;
                         inHBox (fn () => (
                           ppAttrs attrs;
@@ -149,11 +153,11 @@ structure PrintAsCxx : sig
                           sp(); str "(";
                           ppCommaList {pp=ppParam, l=params};
                           str ")"));
-                        PP.newline strm;
+                        nl();
                         ppBody body;
                       PP.closeBox strm)
                   | CL.D_Constr(attrs, scopes, cls, params, initsAndBody) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       PP.openVBox strm indent0;
                         PP.openHBox strm;
                           ppAttrs attrs;
@@ -170,11 +174,11 @@ structure PrintAsCxx : sig
                                   else (
                                     PP.closeBox strm;
                                     PP.openBox strm indent;
-                                      PP.newline strm;
+                                      nl();
                                       str ":"; sp();
                                       ppCommaList {pp = ppExp, l = inits};
                                     PP.closeBox strm;
-                                    PP.newline strm;
+                                    nl();
                                     str"{ }"))
                             | SOME(inits, body) => (
                                 PP.closeBox strm;
@@ -182,18 +186,18 @@ structure PrintAsCxx : sig
                                   then ()
                                   else (
                                     PP.openBox strm indent;
-                                      PP.newline strm;
+                                      nl();
                                       str ":"; sp();
                                       ppCommaList {pp = ppExp, l = inits};
                                     PP.closeBox strm);
-                                PP.newline strm;
+                                nl();
                                 ppBody body)
                             | NONE => (str ";"; PP.closeBox strm)
                           (* end case *);
                         (* NOTE: HBox has been closed *)
                       PP.closeBox strm)
                   | CL.D_Destr(attrs, scopes, cls, body) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       PP.openVBox strm indent0;
                         PP.openHBox strm;
                           ppAttrs attrs;
@@ -205,72 +209,125 @@ structure PrintAsCxx : sig
                            of NONE => (str "();"; PP.closeBox strm)
                             | SOME(CL.S_Block[]) => (str "() { }"; PP.closeBox strm)
                             | SOME body => (
-                                str "()"; PP.closeBox strm; PP.newline strm; ppBody body)
+                                str "()"; PP.closeBox strm; nl(); ppBody body)
                           (* end case *);
                         (* NOTE: HBox has been closed *)
                       PP.closeBox strm)
                   | CL.D_StructDef(SOME name, fields, NONE) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       PP.openVBox strm indent0;
                         inHBox (fn () => (str "struct"; sp(); str name; sp(); str "{"));
                         PP.openVBox strm indent;
                           List.app (fn (ty, x) => (
-                              PP.newline strm;
+                              nl();
                               inHBox (fn () => (ppTy(ty, SOME([], x)); str ";"))))
                             fields;
                         PP.closeBox strm;
-                        PP.newline strm;
+                        nl();
                         str "};";
                       PP.closeBox strm)
                   | CL.D_StructDef(optStruct, fields, SOME tyName) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       PP.openVBox strm indent0;
                         str "typedef struct {";
                         PP.openVBox strm indent;
                           List.app (fn (ty, x) => (
-                              PP.newline strm;
+                              nl();
                               inHBox (fn () => (ppTy(ty, SOME([], x)); str ";"))))
                             fields;
                         PP.closeBox strm;
-                        PP.newline strm;
+                        nl();
                         inHBox (fn () => (str "}"; sp(); str tyName; str ";"));
                       PP.closeBox strm)
                   | CL.D_StructDef(NONE, _, NONE) => raise Fail "unamed struct"
-                  | CL.D_ClassDef{name, args, from, public, protected=[], private=[]} => (
-                      if inClass then PP.newline strm else ();
-                      PP.openVBox strm indent0;
-                        inHBox (fn () => (
-                          str "struct"; sp(); str name;
-                          Option.map
-                            (fn tys => (str "<"; ppCommaList {pp=ppTy', l=tys}; str ">"))
-                              args;
-                          Option.map (fn base => (sp(); str ":"; sp(); str base)) from;
-                          sp(); str "{"));
-                        PP.openVBox strm indent;
-                          List.app (fn dcl => ppDecl (true, dcl)) public;
-                        PP.closeBox strm;
-                        PP.newline strm;
-                        str "};";
-                      PP.closeBox strm)
-                  | CL.D_ClassDef{name, args, from, public, protected, private} =>
-                      raise Fail "FIXME: ClassDef"
+                  | CL.D_ClassDef{name, args, from, public, protected, private} => let
+		      fun ppStart kind = inHBox (fn () => (
+			    str kind; sp(); str name;
+			    Option.map
+			      (fn tys => (str "<"; ppCommaList {pp=ppTy', l=tys}; str ">"))
+				args;
+			    Option.map (fn base => (sp(); str ":"; sp(); str base)) from;
+			    sp(); str "{"))
+		      in
+                        if inClass then nl() else ();
+			PP.openVBox strm indent0;
+			  case (protected, private)
+			   of ([], []) => (
+				ppStart "struct";
+				PP.openVBox strm indent;
+				  List.app (fn dcl => ppDecl (true, dcl)) public;
+				PP.closeBox strm)
+			    | _ => let
+				fun ppDecls (vis, []) = ()
+				  | ppDecls (vis, dcls) = (
+				      PP.openVBox strm indent2;
+					nl(); str vis; str ":";
+					PP.openVBox strm indent2;
+					  List.app (fn dcl => ppDecl (true, dcl)) dcls;
+					PP.closeBox strm;
+				      PP.closeBox strm)
+				in
+				  ppStart "class";
+				  ppDecls ("public", public);
+				  ppDecls ("protected", protected);
+				  ppDecls ("private", private)
+				end
+			  (* end case *);
+			  nl();
+			  str "};";
+			PP.closeBox strm
+		      end
+		  | CL.D_EnumDef{isClass, name, repTy, cons=[]} => (
+		      if inClass then nl() else ();
+			inHBox (fn () => (
+			  str "enum"; sp();
+			  if isClass then (str "class"; sp()) else ();
+			  str name; sp();
+			  case repTy
+			   of NONE => ()
+			    | SOME ty => (str ":"; sp(); ppTy' ty)
+			  (* end case *);
+			  str ";")))
+		  | CL.D_EnumDef{isClass, name, repTy, cons=con::conr} => let
+		      fun ppCon (name, NONE) = str name
+			| ppCon (name, SOME e) = inHBox (fn () => (
+			    str name; sp(); str "="; sp(); ppExp e))
+		      in
+                        if inClass then nl() else ();
+			PP.openVBox strm indent0;
+			  inHBox (fn () => (
+			    str "enum"; sp();
+			    if isClass then (str "class"; sp()) else ();
+			    str name; sp();
+			    case repTy
+			     of NONE => ()
+			      | SOME ty => (str ":"; sp(); ppTy' ty)
+			    (* end case *);
+			    str "{"));
+			  PP.openHVBox strm indent;
+			    ppCon con;
+			    List.app (fn c => (str ","; sp(); ppCon con)) conr;
+			  PP.closeBox strm;
+			  str "};";
+			PP.closeBox strm
+		      end
                   | CL.D_Template(params, dcl) => let
                       fun ppParam (CL.TypeParam name) = (str "typename"; sp(); str name)
                         | ppParam (CL.ConstParam(ty, name)) = (
                             str "const"; sp(); ppTy' ty; sp(); str name)
                       in
-                        if inClass then PP.newline strm else ();
+                        if inClass then nl() else ();
                         PP.openVBox strm indent0;
                           inHBox (fn () => (
                             str "template"; sp(); str "<";
                             ppCommaList {pp = ppParam, l = params};
                             str ">"));
-                          PP.newline strm;
+                          nl();
                           ppDecl (inClass, dcl);
                         PP.closeBox strm
                       end
                   | CL.D_Typedef(name, ty) => (
-                      if inClass then PP.newline strm else ();
+                      if inClass then nl() else ();
                       inHBox (fn () => (
                         str "using"; sp(); str name; sp(); str"="; sp(); ppTy' ty; str ";")))
                   | CL.D_Namespace(name, dcls) => (
@@ -280,10 +337,10 @@ structure PrintAsCxx : sig
                         PP.openVBox strm indent;
                           List.app
                             (fn CL.D_Verbatim[] => ()
-                              | dcl => (PP.newline strm; ppDecl(false, dcl))
+                              | dcl => (nl(); ppDecl(false, dcl))
                             ) dcls;
                         PP.closeBox strm;
-                        PP.newline strm;
+                        nl();
                         inHBox (fn () => (str "}"; sp(); str("// namespace " ^ name)));
                       PP.closeBox strm)
                 (* end case *))
@@ -332,9 +389,9 @@ structure PrintAsCxx : sig
           and ppBlock stms = (
                 str "{";
                 PP.openVBox strm indent;
-                  List.app (fn stm => (PP.newline strm; ppStm stm)) stms;
+                  List.app (fn stm => (nl(); ppStm stm)) stms;
                 PP.closeBox strm;
-                PP.newline strm;
+                nl();
                 str "}")
           and ppStm stm = (case stm
                  of CL.S_Block stms => ppBlock stms
@@ -342,7 +399,7 @@ structure PrintAsCxx : sig
                   | CL.S_Verbatim [] => ()
                   | CL.S_Verbatim (stm::stms) => (
                       str stm;
-                      List.app (fn stm => (PP.newline strm; str stm)) stms)
+                      List.app (fn stm => (nl(); str stm)) stms)
                   | CL.S_Decl(attrs, ty, x, NONE) => inHBox (fn () => (
                       ppAttrs attrs;
                       ppTy(ty, SOME([], x)); str ";"))
@@ -355,15 +412,35 @@ structure PrintAsCxx : sig
                   | CL.S_If(e, blk1, stm as CL.S_If _) => (
                       PP.openVBox strm indent0;
                         inHBox (fn () => (str "if"; sp(); ppExp e; ppStmAsBlock blk1));
-                        PP.newline strm;
+                        nl();
                       PP.closeBox strm;
                       inHBox (fn () => (str "else"; sp(); ppStm stm)))
                   | CL.S_If(e, blk1, blk2) => (
                       PP.openVBox strm indent0;
                         inHBox (fn () => (str "if"; sp(); ppExp e; ppStmAsBlock blk1));
-                        PP.newline strm;
+                        nl();
                         inHBox (fn () => (str "else"; ppStmAsBlock blk2));
                       PP.closeBox strm)
+		  | CL.S_Switch(e, cases) => let
+		      fun ppCase (labels, stms) = (
+			    if List.null labels
+			      then (nl(); str "default:")
+			      else List.app
+				(fn lab => inHBox(fn () => (
+				    nl(); str "case"; sp(); str lab; str ":")))
+				  labels;
+			    PP.openVBox strm indent2;
+			      List.app (fn stm => (nl(); ppStm stm)) stms;
+			    PP.closeBox strm)
+		      in
+			PP.openVBox strm indent0;
+			  inHBox (fn () => (str "switch"; sp(); ppExp e; sp(); str "{"));
+			  PP.openVBox strm indent2;
+			    List.app ppCase cases;
+			  PP.closeBox strm;
+			  nl (); str "}";
+			PP.closeBox strm
+		      end
                   | CL.S_While(e, blk) =>
                       inHBox (fn () => (str "while"; sp(); ppExp e; ppStmAsBlock blk))
                   | CL.S_DoWhile(blk, e) =>
@@ -391,7 +468,6 @@ structure PrintAsCxx : sig
                   | CL.S_Delete(isArr, e) => inHBox (fn () => (
                       if isArr then str "delete[]" else str "delete";
                       sp(); ppExp e; str ";"))
-                  | CL.S_KernCall _ => raise Fail "unexpected KernCall in C++ code"
                 (* end case *))
         (* force printing "{" "}" around a statement *)
           and ppStmAsBlock (CL.S_Block stms) = (sp(); ppBlock stms)
@@ -459,9 +535,9 @@ structure PrintAsCxx : sig
 		      val n = IntInf.toString n
 		      in
 			case ty
-			 of CL.T_Num(CL.NT_Int64)) =>
+			 of CL.T_Num(CL.NT_Int64) =>
 			      str(concat["INT64_C(", prefix, n, ")"])
-			  | CL.T_Num(CL.NT_UInt64)) =>
+			  | CL.T_Num(CL.NT_UInt64) =>
 			      str(concat["UINT64_C(", n, ")"])
 			  | _ => str(prefix ^ n)
 		      end
@@ -484,7 +560,7 @@ structure PrintAsCxx : sig
           in
             PP.openVBox strm indent0;
               ppDecl (false, decl);
-              PP.newline strm;
+              nl();
             PP.closeBox strm
           end
 

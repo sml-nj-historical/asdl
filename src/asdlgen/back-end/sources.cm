@@ -8,6 +8,7 @@
 
 Library
 
+  structure GenCxx
   structure GenSML
 
 is
@@ -15,5 +16,6 @@ is
   $/basis.cm
   $/smlnj-lib.cm
 
+  cxx/sources.cm
   sml/sources.cm
 

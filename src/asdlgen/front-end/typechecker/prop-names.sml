@@ -24,6 +24,7 @@ structure PropNames =
     val protected_code = Atom.atom "protected_code"
     val private_code = Atom.atom "private_code"
     val enum_value = Atom.atom "enum_value"
+    val boxed = Atom.atom "boxed"
 
   end
 

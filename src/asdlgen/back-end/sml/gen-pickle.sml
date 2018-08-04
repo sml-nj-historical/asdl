@@ -2,6 +2,8 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * Generate the pickling code for the SML view
  *)
 
 structure GenPickle : sig
@@ -85,10 +87,10 @@ structure GenPickle : sig
 	    | baseEncode (SOME modId, tyId) = concat[
 		  ModV.getPickleName modId, ".", TyV.getEncoder tyId
 		]
-	  fun gen (arg, E.SWITCH(_, rules)) = let
+	  fun gen (arg, E.SWITCH(ncons, rules)) = let
 	      (* determine the "type" of the tag *)
 		val tagTyId = if (ncons <= 256) then PT.tag8TyId
-		      then if (ncons <= 65536) then PT.tag16TyId
+		      else if (ncons <= 65536) then PT.tag16TyId
 		      else raise Fail "too many constructors"
 		in
 		  S.caseExp(arg, List.map (genRule tagTyId) rules)
@@ -115,7 +117,7 @@ structure GenPickle : sig
 	    | gen (arg, E.BASE ty) = funApp (baseEncode ty, [bufV, arg])
 	  and genRule tagTyId (tag, conId, optArg) = let
 		val encTag = funApp(
-		      baseEncode(SOME PT.primTypesId, PT.tagTyId),
+		      baseEncode(SOME PT.primTypesId, tagTyId),
 		      [bufV, S.NUMexp("0w" ^ Int.toString tag)])
 		val conName = ConV.getName conId
 		in
@@ -159,7 +161,7 @@ structure GenPickle : sig
 	  fun gen (E.SWITCH(ncons, rules)) = let
 	      (* determine the "type" of the tag *)
 		val tagTyId = if (ncons <= 256) then PT.tag8TyId
-		      then if (ncons <= 65536) then PT.tag16TyId
+		      else if (ncons <= 65536) then PT.tag16TyId
 		      else raise Fail "too many constructors"
 		val decodeTag = funApp(
 		      baseDecode(SOME PT.primTypesId, tagTyId),

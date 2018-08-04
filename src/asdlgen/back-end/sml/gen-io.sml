@@ -84,7 +84,14 @@ structure GenIO : sig
 	    | baseWriter (SOME modId, tyId) = concat[
 		  ModV.getIOName modId, ".", TyV.getWriter tyId
 		]
-	  fun gen (arg, E.SWITCH rules) = S.caseExp(arg, List.map genRule rules)
+	  fun gen (arg, E.SWITCH(ncons, rules)) = let
+	      (* determine the "type" of the tag *)
+		val tagTyId = if (ncons <= 256) then PT.tag8TyId
+		      else if (ncons <= 65536) then PT.tag16TyId
+		      else raise Fail "too many constructors"
+		in
+		  S.caseExp(arg, List.map (genRule tagTyId) rules)
+		end
 	    | gen (arg, E.TUPLE tys) = let
 		fun write (i, ty) = gen (S.selectExp(Int.toString i, arg), ty)
 		in
@@ -105,9 +112,9 @@ structure GenIO : sig
 		  pairExp(outSV, arg))
 	    | gen (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | gen (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
-	  and genRule (tag, conId, optArg) = let
+	  and genRule tagTyId (tag, conId, optArg) = let
 		val wrTag = funApp(
-		      baseWriter(SOME PT.primTypesId, PT.uintTyId),
+		      baseWriter(SOME PT.primTypesId, tagTyId),
 		      [outSV, S.NUMexp("0w" ^ Int.toString tag)])
 		val conName = ConV.getName conId
 		in
@@ -147,9 +154,13 @@ structure GenIO : sig
 	    | baseReader (SOME modId, tyId) = concat[
 		  ModV.getIOName modId, ".", TyV.getReader tyId
 		]
-	  fun gen (E.SWITCH rules) = let
+	  fun gen (E.SWITCH(ncons, rules)) = let
+	      (* determine the "type" of the tag *)
+		val tagTyId = if (ncons <= 256) then PT.tag8TyId
+		      else if (ncons <= 65536) then PT.tag16TyId
+		      else raise Fail "too many constructors"
 		val decodeTag = funApp(
-		      baseReader(SOME PT.primTypesId, PT.uintTyId),
+		      baseReader(SOME PT.primTypesId, tagTyId),
 		      [inSV])
 		val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
 		in

@@ -18,6 +18,7 @@ structure CxxView : sig
 	val getPublicCode : AST.TypeId.t -> string list
 	val getProtectedCode : AST.TypeId.t -> string list
 	val getPrivateCode : AST.TypeId.t -> string list
+	val getBoxed : AST.TypeId.t -> bool
 (* TODO: base_type *)
       end
 
@@ -42,6 +43,7 @@ structure CxxView : sig
 		fileProps = #fileProps CV.template,
 		moduleProps = #moduleProps CV.template,
 		typeProps =
+		  CV.prop(PN.boxed, false) ::
 		  CV.prop(PN.base_type, false) ::
 		  CV.prop(PN.public_code, true) ::
 		  CV.prop(PN.protected_code, true) ::
@@ -68,6 +70,12 @@ structure CxxView : sig
 	val getPublicCode = getCode PN.public_code
 	val getProtectedCode = getCode PN.protected_code
 	val getPrivateCode = getCode PN.private_code
+	fun getBoxed id = (case View.getBoolValue PN.boxed (view, View.Type id)
+	       of SOME b => b
+		| NONE => raise Fail(concat[
+		      "getBoxed '", AST.TypeId.nameOf id, "' is undefined"
+		    ])
+	      (* end case *))
 (* TODO: base_type *)
       end
 
@@ -107,11 +115,17 @@ structure CxxView : sig
 	    in
 	      List.app set [
 		  (PTy.boolTyId,	PN.name,	"bool"),
+		  (PTy.boolTyId,	PN.boxed,	"false"),
 		  (PTy.intTyId,		PN.name,	"int"),
+		  (PTy.intTyId,		PN.boxed,	"false"),
 		  (PTy.uintTyId,	PN.name,	"unsigned int"),
+		  (PTy.uintTyId,	PN.boxed,	"false"),
 		  (PTy.integerTyId,	PN.name,	"asdl::integer"),
+		  (PTy.integerTyId,	PN.boxed,	"true"),
 		  (PTy.identifierTyId,	PN.name,	"asdl::identifier"),
+		  (PTy.identifierTyId,	PN.boxed,	"true"),
 		  (PTy.stringTyId,	PN.name,	"std::string"),
+		  (PTy.stringTyId,	PN.boxed,	"false"),
 		  (PTy.tag8TyId,	PN.encoder,	"encode_tag8"),
 		  (PTy.tag8TyId,	PN.decoder,	"decode_tag8"),
 		  (PTy.tag16TyId,	PN.encoder,	"encode_tag16"),

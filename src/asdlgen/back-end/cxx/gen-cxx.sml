@@ -12,7 +12,8 @@ structure GenCxx : sig
 
   end = struct
 
-    structure CL = CLang
+    structure V = CxxView
+    structure CL = Cxx
 
     type code = {
 	hxx : CL.decl list,
@@ -21,11 +22,21 @@ structure GenCxx : sig
 
   (* include directives to include in the .hxx and .cxx files *)
     val hxxIncls = CL.D_Verbatim[
-	    "#include \"asdl/asdl.hxx\"\n",
+	    "#include \"asdl/asdl.hxx\"\n"
 	  ]
     val cxxIncls = CL.D_Verbatim[
-	    "#include \"@HXX_FILENAME@\"\n",
+	    "#include \"@HXX_FILENAME@\"\n"
 	  ]
+
+  (* generate the file header as a verbatim top_decl *)
+    fun genHeader (src, file) = let
+	  val expand = StringSubst.expand [
+		  ("FILENAME", file),
+		  ("SRCFILE", src)
+		]
+	  in
+	    CL.D_Verbatim(List.map expand (V.File.getHeader()))
+	  end
 
   (* output C++ declarations to a file *)
     fun output (src, outFile, dcls) = let
@@ -34,8 +45,8 @@ structure GenCxx : sig
 	  val ppStrm = TextIOPP.openOut {dst = outS, wid = Options.lineWidth()}
 	  in
 	    List.app
-	      (fn dcl => (PrintAsCxx.output (ppStrm, dcl)))
-		(genHeader (src, outFile) :: dcls);
+	      (fn dcl => (PrintCxx.output (ppStrm, dcl)))
+		(genHeader (src, outFile) :: hxxIncls :: dcls);
 	    TextIOPP.closeStream ppStrm;
 	    TextIO.closeOut outS
 	  end
@@ -52,8 +63,10 @@ structure GenCxx : sig
 	  in
 	  (* generate the header file *)
 	    genFile GenTypes.gen (src, hxxFilename basePath, modules);
+(*
 	  (* generate the pickler implementation *)
 	    genFile GenPickler.gen (src, cxxFilename(basePath ^ "-pickle"), modules)
+*)()
 	  end
 
   end

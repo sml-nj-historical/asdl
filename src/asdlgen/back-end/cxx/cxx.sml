@@ -1,12 +1,12 @@
-(* clang.sml
+(* cxx.sml
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * An tree representation of programs in a C-like language (e.g., C or C++).
+ * An tree representation of C++ programs.
  *)
 
-structure CLang =
+structure Cxx =
   struct
 
     type var = string
@@ -93,6 +93,13 @@ structure CLang =
             protected : decl list,
             private : decl list
           }
+    (* enum / enum-class definition *)
+      | D_EnumDef of {
+	    isClass : bool,		(* true for "enum class" definition *)
+	    name : string,		(* name of enumeration type *)
+	    repTy : ty option,		(* optional underlying representation type *)
+	    cons : (string * exp option) list	(* enumeration constants *)
+	  }
     (* typedef/type alias *)
       | D_Typedef of string * ty
     (* template declaration *)
@@ -345,13 +352,13 @@ structure CLang =
     fun mkAssign' (e1, rator, e2) = S_Exp(mkAssignOp(e1, rator, e2))
     fun mkIfThenElse (e, b1, b2) = S_If(paren e, b1, b2)
     fun mkIfThen (e, b) = mkIfThenElse (e, b, skip)
+    fun mkSwitch (e, cases) = S_Switch(paren e, cases)
     val mkFor = S_For
     fun mkWhile (e, b) = S_While(paren e, b)
     fun mkDoWhile (b, e) = S_DoWhile(b, paren e)
     fun mkCall (f, args) = S_Exp(mkApply(f, args))
     fun mkCallExp (f, args) = S_Exp(mkApplyExp(f, args))
     fun mkTemplateCall (f, tys, args) = S_Exp(mkTemplateApply(f, tys, args))
-    val mkKernCall = S_KernCall
     val mkReturn = S_Return
     val mkBreak = S_Break
     val mkContinue = S_Continue

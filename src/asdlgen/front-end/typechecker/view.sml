@@ -55,6 +55,8 @@ structure View : sig
 
     val getValues : Atom.atom -> t * entity -> string list
 
+    val getBoolValue : Atom.atom -> t * entity -> bool option
+
   (* a view template describes the properties that the various entities of a module
    * might have.
    *)
@@ -248,6 +250,12 @@ structure View : sig
 		    | NONE => []
 		  (* end case *))
 	      | NONE => []
+	  (* end case *))
+
+    fun getBoolValue name arg = (case getOptValue name arg
+	   of SOME["false"] => SOME false
+	    | SOME["true"] => SOME true
+	    | _ => NONE
 	  (* end case *))
 
   end

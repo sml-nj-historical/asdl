@@ -23,7 +23,7 @@ structure GenPickle : sig
   (* generate the implementation of the pickler functions.  The result will be
    * a namespace declaration enclosing the function definitions.
    *)
-    val gen : AST.module -> CL.decl
+    val gen : AST.module -> Cxx.decl
 
   end = struct
 
@@ -33,7 +33,7 @@ structure GenPickle : sig
     structure TyV = V.Type
     structure ConV = V.Constr
     structure E = Encoding
-    structure CL = CLang
+    structure CL = Cxx
 
     val instrm = CL.T_Named "asdl::instream"
     val instrmRef = CL.T_Ref(CL.T_Named "asdl::instream")

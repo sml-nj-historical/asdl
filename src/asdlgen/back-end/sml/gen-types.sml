@@ -2,6 +2,8 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * Generate the SML type definitions for an ASDL module.
  *)
 
 structure GenTypes : sig
@@ -49,11 +51,11 @@ structure GenTypes : sig
 
   (* generate a type expression for a list of fields *)
     and genProdTy [] = S.CONty([], "unit")
-      | genProdTy [{label=NONE, ty}] = genTyExp ty
-      | genProdTy (fields as {label=NONE, ...}::_) =
+      | genProdTy [{label=AST.Pos _, ty}] = genTyExp ty
+      | genProdTy (fields as {label=AST.Pos _, ...}::_) =
 	  S.TUPLEty(List.map (genTyExp o #ty) fields)
       | genProdTy fields = let
-	  fun field {label=SOME lab, ty} = (lab, genTyExp ty)
+	  fun field {label=AST.Lab lab, ty} = (lab, genTyExp ty)
 	    | field _ = raise Fail "missing label in record type"
 	  in
 	    S.RECORDty(List.map field fields)

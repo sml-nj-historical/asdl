@@ -49,10 +49,10 @@ structure Encoding : sig
 		    | AST.SharedTyc => SHARED ty
 		  (* end case *)
 		end
-	  fun encFields (fields as {label=NONE, ty}::_) =
+	  fun encFields (fields as {label=AST.Pos _, ty}::_) =
 		TUPLE(List.map (fn {ty, ...} => encTyExp ty) fields)
 	    | encFields fields =
-		RECORD(List.map (fn {label=SOME lab, ty} => (lab, encTyExp ty)) fields)
+		RECORD(List.map (fn {label=AST.Lab lab, ty} => (lab, encTyExp ty)) fields)
 	  fun encConstr (tag, AST.Constr{id, fields=[], ...}) = (tag, id, NONE)
 	    | encConstr (tag, AST.Constr{id, fields, ...}) = (tag, id, SOME(encFields fields))
 	  in
