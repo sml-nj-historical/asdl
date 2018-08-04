@@ -66,7 +66,8 @@
 <CODELN>[^\n\r]*	=> (YYBEGIN INITIAL; T.CODE yytext);
 <INITIAL>"%%"{ws}*	=> (YYBEGIN CODE; continue());
 <CODE>"%%"		=> (YYBEGIN INITIAL; makeCode());
-<CODE>.*		=> (addString(yytext); continue());
+<CODE>[^%]*		=> (addString(yytext); continue());
+<CODE>"%"		=> (addString(yytext); continue());
 
 <INITIAL>"<"[Tt][Oo][Pp]">"
 			=> (T.TOP);

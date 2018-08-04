@@ -80,11 +80,6 @@ Decl
 		=> (PT.D_View{name = Id, entries = MarkViewEntry})
 	;
 
-ModuleId
-	: Id			=> (Id)
-	| "<top>"		=> (markId(FULL_SPAN, PT.topId))
-	;
-
 ModuleImport
 	: (* empty *)		=> ([])
 	| "(" Import+ ")"	=> (Import)
@@ -101,7 +96,9 @@ TypeDecl
 	;
 
 TypeDef
-	: Constructors ( "attributes" "(" Fields ")" )?
+	: QualId TyCon?
+		=> (fn id => PT.TD_Alias{name = id, def = (QualId, TyCon)})
+	| Constructors ( "attributes" "(" Fields ")" )?
 		=> (fn id => PT.TD_Sum{
 			name = id,
 			attribs = case SR of NONE => [] | SOME flds => flds,
@@ -109,6 +106,13 @@ TypeDef
 		      })
 	| "(" Fields ")"
 		=> (fn id => PT.TD_Product{name = id, fields = Fields})
+	;
+
+QualId
+	: TyId
+		=> (NONE, TyId)
+	| Id "." TyId
+		=> (SOME Id, TyId)
 	;
 
 Constructors
@@ -132,16 +136,9 @@ Fields
 	;
 
 Field
-	: Id ("." Id)? TyCon? Id?
+	: QualId TyCon? Id?
 		=> (let
-		    val fld = (case SR
-			   of NONE => PT.Field{
-				  module=NONE, typ=Id1, tycon=TyCon, label=Id2
-				}
-			    | SOME id => PT.Field{
-				  module=SOME Id1, typ=id, tycon=TyCon, label=Id2
-				}
-			  (* end case *))
+		    val fld = PT.Field{typ=QualId, tycon=TyCon, label=Id}
 		    in
 		      mark PT.Field_Mark (FULL_SPAN, fld)
 		    end)
@@ -157,6 +154,11 @@ TyCon
 Id	: LID			=> (markId (FULL_SPAN, LID))
 	| UID			=> (markId (FULL_SPAN, UID))
 	| Keyword		=> (markId (FULL_SPAN, Keyword))
+	;
+
+ModuleId
+	: Id			=> (Id)
+	| "<top>"		=> (markId(FULL_SPAN, PT.topId))
 	;
 
 TyId	: LID			=> (markId (FULL_SPAN, LID))
@@ -208,12 +210,12 @@ ViewEntity
 		=> (PT.VEntity_File)
 	| "module" ModuleId
 		=> (PT.VEntity_Module ModuleId)
-	| ModuleId "." Id
-		=> (PT.VEntity_Type(ModuleId, Id))
-	| ModuleId "." Id "." "*"
-		=> (PT.VEntity_AllCons(ModuleId, Id))
-	| ModuleId "." Id "." Id
-		=> (PT.VEntity_Cons(ModuleId, Id1, Id2))
+	| ModuleId "." TyId
+		=> (PT.VEntity_Type(ModuleId, TyId))
+	| ModuleId "." TyId "." "*"
+		=> (PT.VEntity_AllCons(ModuleId, TyId))
+	| ModuleId "." TyId "." ConId
+		=> (PT.VEntity_Cons(ModuleId, TyId, ConId))
 	;
 
 ViewProps
@@ -227,4 +229,3 @@ ViewProp
 	: Id CODE
 		=> (mark PT.VProp_Mark (FULL_SPAN, (PT.VProp(Id, CODE))))
 	;
-

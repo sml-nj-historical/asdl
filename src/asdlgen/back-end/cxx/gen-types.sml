@@ -74,7 +74,7 @@ structure GenTypes : sig
 	     of AST.EnumTy cons =>
 		  genEnumClass (name, cons) @ dcls
 	      | AST.SumTy{attribs, cons} =>
-		  genBaseClass (name, attribs) ::
+		  genBaseClass (id, name, attribs) ::
 		  List.foldr (genConsClass (name, attribs)) dcls cons
 	      | AST.ProdTy{fields} =>
 		  genProdClass (name, fields) :: dcls
@@ -108,8 +108,6 @@ structure GenTypes : sig
 		[], [], name, List.map U.fieldToParam attribs,
 		SOME(List.map genFieldInit attribs, CL.mkBlock[]))
 	  val destr = CL.D_Destr(["virtual"], [], name, NONE)
-	  val publicDcls = destr :: addCode(TyV.getPublicCode tyId, accessMeths)
-	  val
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,

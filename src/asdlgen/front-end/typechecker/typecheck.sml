@@ -154,6 +154,8 @@ structure Typecheck : sig
 	  in
 	    case tyDcl
 	     of PT.TD_Mark m => bindTyDecl (markCxt(cxt, #span m), env, module, #tree m)
+	      | PT.TD_Alias{name, def=(typ, tycon)} =>
+		  bind (name, fn () => AST.AliasTy(checkTy (cxt, env, typ, tycon)))
 	      | PT.TD_Sum{name, attribs, cons} =>
 		  if List.null attribs andalso List.all isNullary cons
 		    then bind (name, fn () => AST.EnumTy[])
@@ -194,6 +196,9 @@ structure Typecheck : sig
 		      in
 			List.exists chk fields
 		      end
+(* FIXME
+		  | SOME(AST.TyDcl{def=ref(AST.AliasTy ty), ...}) => ??
+*)
 		  | _ => false
 		(* end case *))
 	(* check if a constructor has already been defined in this scope *)
@@ -206,6 +211,7 @@ structure Typecheck : sig
 	  in
 	    case tyDcl
 	     of PT.TD_Mark _ => raise Fail "impossible"
+	      | PT.TD_Alias _ => SOME dcl (* definition was set in pass 1 *)
 	      | PT.TD_Sum{name, attribs, cons} => (
 		  case !def
 		   of AST.EnumTy _ => let
@@ -271,12 +277,12 @@ structure Typecheck : sig
     and checkFields (cxt, env, attribs, fields) = let
 	  val baseIdx = List.length attribs
 	  fun chkField (cxt, i, PT.Field_Mark m) = chkField (withMark (cxt, i, m))
-	    | chkField (cxt, i, PT.Field{module, typ, tycon, label}) = let
+	    | chkField (cxt, i, PT.Field{typ, tycon, label}) = let
 		val lab = (case label
 		       of NONE => AST.Pos(baseIdx + i)
 			| SOME{tree, ...} => AST.Lab(Atom.toString tree)
 		      (* end case *))
-		val ty = checkTy (cxt, env, module, typ, tycon)
+		val ty = checkTy (cxt, env, typ, tycon)
 		in
 		  {label = lab, ty = ty}
 		end
@@ -286,7 +292,7 @@ structure Typecheck : sig
 	  end
 
   (* check a type expression, where the module name and tycon are optional *)
-    and checkTy (cxt, env, module, typ : PT.id, tycon) = let
+    and checkTy (cxt, env, (module, typ) : PT.qual_id, tycon) = let
 	  fun chkTy modId = (case Env.findType (env, modId, #tree typ)
 		 of SOME ty => (case tycon
 		       of NONE => AST.Typ(ty, AST.NoTyc)

@@ -13,6 +13,9 @@ structure ParseTree =
 
     type id = Atom.atom mark
 
+  (* possibly qualified identifier *)
+    type qual_id = id option * id
+
     val topId = Atom.atom "<top>"
 
     datatype file = File of {
@@ -45,6 +48,10 @@ structure ParseTree =
 
     and type_decl
       = TD_Mark of type_decl mark
+      | TD_Alias of {
+	    name : id,
+	    def : qual_id * tycon option
+	  }
       | TD_Sum of {
 	    name : id,
 	    attribs : field list,
@@ -58,8 +65,7 @@ structure ParseTree =
     and field
       = Field_Mark of field mark
       | Field of {
-	    module : id option,		(* optional module qualifier *)
-	    typ : id,			(* type of field *)
+	    typ : qual_id,		(* type of field *)
 	    tycon : tycon option,	(* type operator *)
 	    label : id option		(* optional field label *)
 	  }

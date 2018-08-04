@@ -64,6 +64,7 @@ structure AST =
       | ProdTy of {
 	    fields : field list
 	  }
+      | AliasTy of ty_exp
       | PrimTy
 
     and constructor = Constr of {
