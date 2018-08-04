@@ -41,6 +41,10 @@ structure GenTypes : sig
     fun genFieldInit {label, ty} =
 	  CL.mkApply(U.fieldName label, [U.fieldParam label])
 
+  (* add view-property code to the list of class-body declarations *)
+    fun addCode ([], dcls) = dcls
+      | addCode (code, dcls) = dcls @ [CL.D_Verbatim code]
+
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val namespace = ModV.getName id
 	  val fwdDefs = List.map genForwardDcl (!decls)
@@ -96,7 +100,7 @@ structure GenTypes : sig
 	  end
 
   (* generate the base-class definition for a sum type *)
-    and genBaseClass (name, attribs) = let
+    and genBaseClass (tyId, name, attribs) = let
 	  val accessMeths = List.foldr
 		(fn (fld, meths) => genAccessMethods fld @ meths)
 		  [] attribs
@@ -104,12 +108,14 @@ structure GenTypes : sig
 		[], [], name, List.map U.fieldToParam attribs,
 		SOME(List.map genFieldInit attribs, CL.mkBlock[]))
 	  val destr = CL.D_Destr(["virtual"], [], name, NONE)
+	  val publicDcls = destr :: addCode(TyV.getPublicCode tyId, accessMeths)
+	  val
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,
-		public = destr :: accessMeths,
-		protected = constr :: List.map genField attribs,
-		private = []
+		public = destr :: addCode(TyV.getPublicCode tyId, accessMeths),
+		protected = constr :: addCode(TyV.getProtectedCode tyId, List.map genField attribs),
+		private = addCode(TyV.getPrivateCode tyId, [])
 	      }
 	  end
 
@@ -132,9 +138,9 @@ structure GenTypes : sig
 		in
 		  CL.D_ClassDef{
 		      name = name, args = NONE, from = SOME baseName,
-		      public = constr :: destr :: accessMeths,
-		      protected = List.map genField attribs,
-		      private = []
+		      public = constr :: destr :: addCode (ConV.getPublicCode id, accessMeths),
+		      protected = addCode (ConV.getProtectedCode id, List.map genField attribs),
+		      private = addCode (ConV.getPrivateCode id, [])
 		    } :: dcls
 		end
 	  in
