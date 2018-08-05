@@ -341,7 +341,7 @@ structure Typecheck : sig
 		    (* set the type Id's binding *)
 		      TyId.bind (tyId, dcl);
 		    (* add the type to the module's type environment *)
-		      Env.insertType (env, name, dcl);
+		      Env.insertType (env, tree, dcl);
 		      dcl :: dcls
 		    end
 	      val decls = List.foldr checkExport [] exports

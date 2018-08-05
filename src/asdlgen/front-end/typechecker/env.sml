@@ -132,6 +132,11 @@ structure Env : sig
 	   of SOME modEnv => findTy (modEnv, name)
 	    | NONE => NONE
 	  (* end case *))
+      | findType (GEnv{modEnv, ...}, SOME module, name) = (
+	  case ATbl.find modEnv (MId.atomOf module)
+	   of SOME modEnv => findTy (modEnv, name)
+	    | NONE => NONE
+	  (* end case *))
       | findType _ = raise Fail "findType applied to global environment"
 
     fun insertType (LEnv{curMod=ModEnv{tyEnv, ...}, ...}, name, dcl) =

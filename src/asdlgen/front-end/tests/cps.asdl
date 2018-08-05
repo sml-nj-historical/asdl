@@ -78,19 +78,19 @@ module CPS_Type {
 
 -- for pickling `intty IntConst.t`
 --
-module CPS_IntConst {
+module CPS_IntConst (import CPS_Type) {
   t = (integer ival, CPS_Type.intty ty)
 }
 
 -- for pickling `int RealConst.t`
 --
-module CPS_RealConst {
+module CPS_RealConst (import RealLit) {
   t = (RealLit.t rval, int ty)
 }
 
 -- CPS primitive operations
 --
-module CPS_Prim {
+module CPS_Prim (import CPS_Type) {
 
     numkind = INT | UINT | FLT attributes (int)
 
@@ -103,21 +103,21 @@ module CPS_Prim {
     cmpop = GT | GTE | LT | LTE | EQL | NEQ
 
     fcmpop
-      = FEQ	-- =
-      | FULG	-- ?<>
-      | FUN	-- ?
-      | FLEG	-- <=>
-      | FGT	-- >
-      | FGE	-- >=
-      | FUGT	-- ?>
-      | FUGE	-- ?>=
-      | FLT	-- <
-      | FLE	-- <=
-      | FULT	-- ?<
-      | FULE	-- ?<=
-      | FLG	-- <>
-      | FUE	-- ?=
-      | FSGN
+      = F_EQ	-- =
+      | F_ULG	-- ?<>
+      | F_UN	-- ?
+      | F_LEG	-- <=>
+      | F_GT	-- >
+      | F_GE	-- >=
+      | F_UGT	-- ?>
+      | F_UGE	-- ?>=
+      | F_LT	-- <
+      | F_LE	-- <=
+      | F_ULT	-- ?<
+      | F_ULE	-- ?<=
+      | F_LG	-- <>
+      | F_UE	-- ?=
+      | F_SGN
 
     branch
       = CMP (cmpop oper, bool signed)
@@ -134,7 +134,7 @@ module CPS_Prim {
       | SETHDLR | SETVAR | SETSPECIAL
       | FREE | ACCLINK | SETPSEUDO | SETMARK
       | RAWSTORE (numkind kind)
-      | RAWUPDATE (cty)
+      | RAWUPDATE (CPS_Type.cty)
 
   -- These fetch from the store, never have functions as arguments.
     looker
@@ -166,21 +166,27 @@ module CPS_Prim {
       | GETTAG | MKSPECIAL | WRAP | UNWRAP | CAST | GETCON | GETEXN
       | FWRAP | FUNWRAP | IWRAP | IUNWRAP | I32WRAP | I32UNWRAP
       | GETSEQDATA | RECSUBSCRIPT | RAW64SUBSCRIPT | NEWARRAY0
-      | RAWRECORD (record_kind?)	-- allocate uninitialized words from the heap
-      | CONDMOVE(branch)
+      | RAWRECORD (CPS_Type.record_kind?)	-- allocate uninitialized words from the heap
+      | CONDMOVE (branch)
 
 }
 
 -- CPS IR
 --
-module CPS_Rep {
+module CPS_Rep (
+    import LambdaVar
+    import CPS_RealConst
+    import CTypes
+    import CPS_Prim
+    import CPS_Type
+  ) {
 
     value
-      = VAR(LambdaVar.lvar)
-      | LABEL(LambdaVar.lvar)
-      | NUM(integer)
-      | REAL(RealConst.t)
-      | STRING(string)
+      = VAR (LambdaVar.lvar)
+      | LABEL (LambdaVar.lvar)
+      | NUM (integer)
+      | REAL (CPS_RealConst.t)
+      | STRING (string)
       | VOID
 
     accesspath
@@ -202,27 +208,27 @@ module CPS_Rep {
 			-- does not occur after the closure phase
 
     cexp
-      = RECORD (record_kind, field*, LambdaVar.lvar, cexp)
-      | SELECT (int, value, LambdaVar.lvar, cty, cexp)
+      = RECORD (CPS_Type.record_kind, field*, LambdaVar.lvar, cexp)
+      | SELECT (int, value, LambdaVar.lvar, CPS_Type.cty, cexp)
       | OFFSET (int, value, LambdaVar.lvar, cexp)
       | APP (value, value*)
       | FIX (function*, cexp)
       | SWITCH (value, LambdaVar.lvar, cexp*)
       | BRANCH (CPS_Prim.branch, value*, LambdaVar.lvar, cexp, cexp)
       | SETTER (CPS_Prim.setter, value*, cexp)
-      | LOOKER (CPS_Prim.looker, value*, LambdaVar.lvar, cty, cexp)
-      | ARITH (CPS_Prim.arith, value*, LambdaVar.lvar, cty, cexp)
-      | PURE (CPS_Prim.pure, value*, LambdaVar.lvar, cty, cexp)
+      | LOOKER (CPS_Prim.looker, value*, LambdaVar.lvar, CPS_Type.cty, cexp)
+      | ARITH (CPS_Prim.arith, value*, LambdaVar.lvar, CPS_Type.cty, cexp)
+      | PURE (CPS_Prim.pure, value*, LambdaVar.lvar, CPS_Type.cty, cexp)
     -- experimental "raw C call" (Blume, 1/2001)
       | RCC (rcc_kind, string, CTypes.c_proto, value*, rcc_param*, cexp)
 
     field = (value, accesspath)
 
-    rcc_param = (LambdaVar.lvar, cty)
+    rcc_param = (LambdaVar.lvar, CPS_Type.cty)
 
     rcc_kind = FAST_RCC | REENTRANT_RCC
 
-    function = (fun_kind, LambdaVar.lvar, LambdaVar.lvar*, CTypes.cty*, cexp)
+    function = (fun_kind, LambdaVar.lvar, LambdaVar.lvar*, CPS_Type.cty*, cexp)
 
 }
 
@@ -237,11 +243,7 @@ view Cxx {
 %%
     CPS_Rep.accesspath <= {
         natural_type : std::vector<int>
-        encode       : encode_accesspath
-	decode       : decode_accesspath
+        encoder      : encode_accesspath
+	decoder      : decode_accesspath
     }
-}
-
-module Foo {
-    bar = Foo | Bar | Baz
 }

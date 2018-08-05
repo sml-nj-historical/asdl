@@ -65,6 +65,7 @@
 <INITIAL>":"[ \t]*      => (YYBEGIN CODELN; continue());
 <CODELN>[^\n\r]*	=> (YYBEGIN INITIAL; T.CODE yytext);
 <INITIAL>"%%"{ws}*	=> (YYBEGIN CODE; continue());
+
 <CODE>"%%"		=> (YYBEGIN INITIAL; makeCode());
 <CODE>[^%]*		=> (addString(yytext); continue());
 <CODE>"%"		=> (addString(yytext); continue());

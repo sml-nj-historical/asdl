@@ -61,6 +61,7 @@ structure GenTypes : sig
 		 of AST.EnumTy _ => "enum class "
 		  | AST.SumTy _ => "class "
 		  | AST.ProdTy _ => "class "
+	          | AST.AliasTy _ => raise Fail "FIXME"
 		  | AST.PrimTy => raise Fail "unexpected primitive type"
 		(* end case *))
 	  in
@@ -78,6 +79,7 @@ structure GenTypes : sig
 		  List.foldr (genConsClass (name, attribs)) dcls cons
 	      | AST.ProdTy{fields} =>
 		  genProdClass (name, fields) :: dcls
+	      | AST.AliasTy _ => dcls
 	      | AST.PrimTy => raise Fail "unexpected primitive type"
 	    (* end case *)
 	  end
