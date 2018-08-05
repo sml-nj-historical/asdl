@@ -57,7 +57,7 @@ structure Cxx =
   (* make a "const ty *" type for some ty *)
     fun constPtrTy ty = T_Ptr(T_Const ty)
 
-  (* make a "const ty &" type for some ty *)
+  (* make a "ty const &" type for some ty *)
     fun constRefTy ty = T_Ref(T_Const ty)
 
     datatype decl
@@ -353,6 +353,8 @@ structure Cxx =
     fun mkIfThenElse (e, b1, b2) = S_If(paren e, b1, b2)
     fun mkIfThen (e, b) = mkIfThenElse (e, b, skip)
     fun mkSwitch (e, cases) = S_Switch(paren e, cases)
+    fun mkCase (label, stms) = ([label], stms)
+    fun mkDefault stms = ([], stms)
     val mkFor = S_For
     fun mkWhile (e, b) = S_While(paren e, b)
     fun mkDoWhile (b, e) = S_DoWhile(b, paren e)
