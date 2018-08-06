@@ -24,11 +24,11 @@ structure GenTypes : sig
     fun genAccessMethods {label, ty} = let
 	  val fieldTy = U.tyexpToCxx ty
 	  val field = CL.mkIndirect(CL.mkVar "this", U.fieldName label)
-	  val get = CL.D_Func(
-		[], fieldTy, [], U.fieldGetName label, [],
+	  val get = CL.mkInlineMethDcl(
+		fieldTy, U.fieldGetName label, [],
 		CL.mkReturn(SOME field))
-	  val set = CL.D_Func(
-		[], CL.voidTy, [], U.fieldSetName label, [CL.PARAM([], fieldTy, "v")],
+	  val set = CL.mkInlineMethDcl(
+		CL.voidTy, U.fieldSetName label, [CL.param(fieldTy, "v")],
 		CL.mkAssign(field, CL.mkVar "v"))
 	  in
 	    [get, set]
@@ -108,6 +108,14 @@ structure GenTypes : sig
 	  val accessMeths = List.foldr
 		(fn (fld, meths) => genAccessMethods fld @ meths)
 		  [] attribs
+	(* pickling/unpickling methods *)
+	  val pickleMeth = CL.mkVirtualProto(
+		CL.voidTy, "encode",
+		[CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")],
+		true (* abstract method *))
+	  val unpickleMeth = CL.mkStaticMethProto(
+		CL.T_Ptr(CL.T_Named name), "decode",
+		[CL.param(CL.T_Ref(CL.T_Named "asdl::instream"), "is")])
 	(* type definition for tag values *)
 	  val tagTypeDcl = CL.D_EnumDef{
 		  isClass = false,
@@ -123,16 +131,19 @@ structure GenTypes : sig
 	(* create the constructor function *)
 	  val initTag = CL.mkApply(U.tagFieldName, [CL.mkVar "tag"])
 	  val initAttribs = List.map genFieldInit attribs
-	  val constr = CL.D_Constr(
-		[], [], name,
-		CL.PARAM([], tagTy, "tag") :: List.map U.fieldToParam attribs,
-		SOME(initTag :: initAttribs, CL.mkBlock[]))
+	  val constr = CL.mkConstrDcl(
+		name,
+		CL.param(tagTy, "tag") :: List.map U.fieldToParam attribs,
+		initTag :: initAttribs, CL.mkBlock[])
 	(* destructor *)
 	  val destr = CL.D_Destr(["virtual"], [], name, NONE)
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,
-		public = destr :: addCode(TyV.getPublicCode tyId, accessMeths),
+		public = destr ::
+		  pickleMeth ::
+		  unpickleMeth ::
+		  addCode(TyV.getPublicCode tyId, accessMeths),
 		protected = tagTypeDcl ::
 		  constr ::
 		  tagDcl ::
@@ -155,15 +166,22 @@ structure GenTypes : sig
 		val accessMeths = List.foldr
 		      (fn (fld, meths) => genAccessMethods fld @ meths)
 			[] extra
-		val constr = CL.D_Constr(
-		      [], [], name, List.map U.fieldToParam fields,
-		      SOME(baseInit id :: List.map genFieldInit extra, CL.mkBlock[]))
+	      (* pickling method *)
+		val pickleMeth = CL.mkMethProto(
+		      CL.voidTy, "encode",
+		      [CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")])
+		val constr = CL.mkConstrDcl(
+		      name, List.map U.fieldToParam fields,
+		      baseInit id :: List.map genFieldInit extra, CL.mkBlock[])
 (* FIXME: eventually we need something better for the destructor *)
 		val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
 		in
 		  CL.D_ClassDef{
 		      name = name, args = NONE, from = SOME baseName,
-		      public = constr :: destr :: addCode (ConV.getPublicCode id, accessMeths),
+		      public = constr ::
+			destr ::
+			pickleMeth ::
+			addCode (ConV.getPublicCode id, accessMeths),
 		      protected = addCode (ConV.getProtectedCode id, List.map genField attribs),
 		      private = addCode (ConV.getPrivateCode id, [])
 		    } :: dcls
@@ -177,15 +195,27 @@ structure GenTypes : sig
 	  val accessMeths = List.foldr
 		(fn (fld, meths) => genAccessMethods fld @ meths)
 		  [] fields
-	  val constr = CL.D_Constr(
-		[], [], name, List.map U.fieldToParam fields,
-		SOME(List.map genFieldInit fields, CL.mkBlock[]))
+	(* pickling/unpickling methods *)
+	  val pickleMeth = CL.mkMethProto(
+		CL.voidTy, "encode",
+		[CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")])
+	  val unpickleMeth = CL.mkStaticMethProto(
+		CL.T_Ptr(CL.T_Named name), "decode",
+		[CL.param(CL.T_Ref(CL.T_Named "asdl::instream"), "is")])
+	(* create the constructor function *)
+	  val constr = CL.mkConstrDcl(
+		name, List.map U.fieldToParam fields,
+		List.map genFieldInit fields, CL.mkBlock[])
 (* FIXME: eventually we need something better for the destructor *)
 	  val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,
-		public = constr :: destr :: accessMeths,
+		public = constr ::
+		  destr ::
+		  pickleMeth ::
+		  unpickleMeth ::
+		  accessMeths,
 		protected = [],
 		private = List.map genField fields
 	      }

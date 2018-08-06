@@ -67,17 +67,16 @@ structure Cxx =
       | D_Verbatim of string list
     (* global variable declaration *)
       | D_Var of attr list * ty * scope list * var * initializer option
-(* TODO: merge D_Proto and D_Func into one by making the body an option *)
+    (* function prototype/definition *)
+      | D_Func of attr list * ty * scope list * string * param list * stm option
 (* TODO: add support for "const" methods *)
-    (* function prototype *)
-      | D_Proto of attr list * ty * string * param list
-    (* function definition *)
-      | D_Func of attr list * ty * scope list * string * param list * stm
+    (* method prototype/definition *)
+      | D_Meth of attr list * ty * scope list * string * param list * meth_body option
     (* class constructor definition or prototype:
      *     D_Constr(attrs, namespace, class, params, initsAndBody)
      * the inits should be of the form "id(exp)"
      *)
-      | D_Constr of attr list * scope list * string * param list * (exp list * stm) option
+      | D_Constr of attr list * scope list * string * param list * (exp list * meth_body) option
     (* class destructor definition or prototype *)
       | D_Destr of attr list * scope list * string * stm option
     (* struct type declaration; if the third argument is SOME name, then a
@@ -108,6 +107,12 @@ structure Cxx =
       | D_Namespace of string * decl list
 
     and scope = SC_Namespace of string | SC_Type of ty
+
+  (* C++ function bodies *)
+    and meth_body
+      = MP_Delete		(* '=' 'delete' ';' for constructors *)
+      | MP_0			(* '=' '0' ';' for abstract virtual methods *)
+      | MP_Body of stm		(* '{' stms '}' *)
 
     and initializer
       = I_Exp of exp
@@ -371,20 +376,34 @@ structure Cxx =
   (* smart constructors for declaration forms *)
     fun mkVarDcl (ty, x) = D_Var([], ty, [], x, NONE)
     fun mkVarInitDcl (ty, x, init) = D_Var([], ty, [], x, SOME init)
-    fun mkProto (ty, f, params) = D_Proto([], ty, f, params)
-    fun mkFuncDcl (ty, f, params, body) = D_Func([], ty, [], f, params, body)
+    fun mkProto (ty, f, params) = D_Func([], ty, [], f, params, NONE)
+    fun mkFuncDcl (ty, f, params, body) = D_Func([], ty, [], f, params, SOME body)
   (* constructor prototype member declaration *)
     fun mkConstrProto (cls, params) = D_Constr([], [], cls, params, NONE)
   (* constructor function definition outside class body *)
     fun mkConstrDcl (cls, params, inits, body) =
-          D_Constr([], [SC_Type(T_Named cls)], cls, params, SOME(inits, body))
+          D_Constr([], [SC_Type(T_Named cls)], cls, params, SOME(inits, MP_Body body))
   (* destructor prototype member declaration *)
     fun mkDestrProto cls = D_Destr([], [], cls, NONE)
   (* destructor function definition outside class body *)
     fun mkDestrDcl (cls, body) = D_Destr([], [SC_Type(T_Named cls)], cls, SOME body)
+  (* method prototype *)
+    fun mkMethProto (ty, f, params) =
+	  D_Meth([], ty, [], f, params, NONE)
+  (* virtual method prototype *)
+    fun mkVirtualProto (ty, f, params, isAbstract) =
+	  D_Meth(["virtual"], ty, [], f, params, if isAbstract then SOME MP_0 else NONE)
+  (* static method prototype *)
+    fun mkStaticMethProto (ty, f, params) =
+	  D_Meth(["static"], ty, [], f, params, NONE)
+  (* inline method definition inside class body *)
+    fun mkInlineMethDcl (ty, f, params, body) =
+	  D_Meth([], ty, [], f, params, SOME(MP_Body body))
   (* method definition outside class body *)
     fun mkMethDcl (cls, ty, f, params, body) =
-	  D_Func([], ty, [SC_Type(T_Named cls)], f, params, body)
+	  D_Meth([], ty, [SC_Type(T_Named cls)], f, params, SOME(MP_Body body))
+  (* simple function parameter *)
+    fun param (ty, name) = PARAM([], ty, name)
 
   (* utility functions *)
 

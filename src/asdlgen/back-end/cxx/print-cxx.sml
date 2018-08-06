@@ -135,26 +135,34 @@ structure PrintCxx : sig
                           | NONE => ()
                         (* end case *);
                         str ";")))
-                  | CL.D_Proto(attrs, ty, f, params) => (
-                      if inClass then nl() else ();
-                      inHBox (fn () => (
-                        ppAttrs attrs;
-                        ppTyAndVar(ty, ([], f));
-                        sp(); str "(";
-                        ppCommaList {pp=ppParam, l=params};
-                        str ");")))
-                  | CL.D_Func(attrs, ty, scopes, f, params, body) => (
+                  | CL.D_Func(attrs, ty, scopes, f, params, optBody) => (
                       if inClass then nl() else ();
                       PP.openVBox strm indent0;
                         inHBox (fn () => (
                           ppAttrs attrs;
-                          ppTy ty;
-                          sp (); ppQName (scopes, f);
-                          sp(); str "(";
+			  ppTyAndVar(ty, (scopes, f)); sp(); str "(";
                           ppCommaList {pp=ppParam, l=params};
                           str ")"));
-                        nl();
-                        ppBody body;
+			case optBody
+			 of NONE => str ";"
+			  | SOME body => (nl(); ppBody body)
+			(* end case *);
+                      PP.closeBox strm)
+		  | CL.D_Meth(attrs, ty, scopes, f, params, optBody) => (
+                      if inClass then nl() else ();
+                      PP.openVBox strm indent0;
+                        inHBox (fn () => (
+                          ppAttrs attrs;
+			  ppTyAndVar(ty, (scopes, f)); sp(); str "(";
+                          ppCommaList {pp=ppParam, l=params};
+                          str ")"));
+			case optBody
+			 of NONE => str ";"
+			  | SOME CL.MP_Delete => raise Fail "unexpected 'delete'"
+			  | SOME CL.MP_0 =>
+			      inHBox (fn () => (sp(); str "="; sp(); str "0;"))
+			  | SOME(CL.MP_Body body) => (nl(); ppBody body)
+			(* end case *);
                       PP.closeBox strm)
                   | CL.D_Constr(attrs, scopes, cls, params, initsAndBody) => (
                       if inClass then nl() else ();
@@ -168,7 +176,10 @@ structure PrintCxx : sig
                           ppCommaList {pp=ppParam, l=params};
                           str ")";
                           case initsAndBody
-                           of SOME(inits, CL.S_Block[]) => (
+                           of SOME([], CL.MP_Delete) => (
+				sp(); str "="; sp(); str "delete;";
+				PP.closeBox strm)
+                            | SOME(inits, CL.MP_Body(CL.S_Block[])) => (
                                 if List.null inits
                                   then (sp(); str "{ }"; PP.closeBox strm)
                                   else (
@@ -180,7 +191,7 @@ structure PrintCxx : sig
                                     PP.closeBox strm;
                                     nl();
                                     str"{ }"))
-                            | SOME(inits, body) => (
+                            | SOME(inits, CL.MP_Body body) => (
                                 PP.closeBox strm;
                                 if List.null inits
                                   then ()
@@ -192,6 +203,7 @@ structure PrintCxx : sig
                                     PP.closeBox strm);
                                 nl();
                                 ppBody body)
+			    | SOME _ => raise Fail "ill-formed constructor"
                             | NONE => (str ";"; PP.closeBox strm)
                           (* end case *);
                         (* NOTE: HBox has been closed *)
