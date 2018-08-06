@@ -33,7 +33,7 @@ structure GenPickle : sig
 	  in
 	    S.SIGtop(sigName, S.BASEsig specs)
 	  end
-      | genSig _ = raise Fail "genSig: unexpected primitive module"
+      | genSig _ = raise Fail "GenPickle.genSig: unexpected primitive module"
 
   (* generate the encoder/decoder specifications for a type *)
     and genSpec modName (AST.TyDcl{id, ...}, specs) = let
@@ -70,7 +70,7 @@ structure GenPickle : sig
 	  in
 	    S.STRtop(pickleModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
 	  end
-      | genStr _ = raise Fail "genStr: unexpected primitive module"
+      | genStr _ = raise Fail "GenPickle.genStr: unexpected primitive module"
 
     and genType (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl

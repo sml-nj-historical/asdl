@@ -60,6 +60,8 @@ structure GenSML : sig
 	  val basePath = OS.Path.joinDirFile{dir=dir, file=stem}
 	  fun smlFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sml"}
 	  fun sigFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sig"}
+	(* we only generate code for the non-primitive modules *)
+	  val modules = List.filter (fn (AST.Module{isPrim, ...}) => not isPrim) modules
 	  in
 	    genTypes (src, smlFilename basePath, modules);
 	    genPicklerSig (src, sigFilename(basePath ^ "-pickle"), modules);

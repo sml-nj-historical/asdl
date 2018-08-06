@@ -60,6 +60,8 @@ structure GenCxx : sig
 	  val basePath = OS.Path.joinDirFile{dir=dir, file=stem}
 	  fun cxxFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "cxx"}
 	  fun hxxFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "hxx"}
+	(* we only generate code for the non-primitive modules *)
+	  val modules = List.filter (fn (AST.Module{isPrim, ...}) => not isPrim) modules
 	  in
 	  (* generate the header file *)
 	    genFile GenTypes.gen (src, hxxFilename basePath, modules);

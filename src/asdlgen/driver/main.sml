@@ -41,11 +41,19 @@ structure Main : sig
 	    (* end case *)
 	  end
 
+    fun err msg = TextIO.output(TextIO.stdErr, concat msg)
+
     fun fail (cmdName, msg) = (
-	  TextIO.output(TextIO.stdErr, concat[
-	      cmdName, ": ", msg, "\n", Options.usage()
-	    ]);
+	  err [cmdName, ": ", msg, "\n", Options.usage()];
 	  OS.Process.failure)
+
+    fun handleExn exn = (
+          err [
+              "uncaught exception ", General.exnName exn,
+              " [", General.exnMessage exn, "]\n"
+            ];
+          List.app (fn s => err ["  raised at ", s, "\n"]) (SMLofNJ.exnHistory exn);
+          OS.Process.failure)
 
     fun main (cmdName, args) = let
 	  val {command, files} = Options.parseCmdLine args
@@ -64,7 +72,6 @@ structure Main : sig
 	    (* end case *)
 	  end
 	    handle Options.Usage msg => fail (cmdName, msg)
-		| Fail msg => fail (cmdName, "uncaught exception Fail: " ^ msg)
-		| ex => fail (cmdName, "uncaught exception " ^ exnName ex)
+		| ex => handleExn ex
 
   end

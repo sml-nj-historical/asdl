@@ -52,7 +52,7 @@ structure GenTypes : sig
 	  in
 	    CL.D_Namespace(namespace, fwdDefs @ repDefs)
 	  end
-      | gen _ = raise Fail "genDcls: unexpected primitive module"
+      | gen _ = raise Fail "GenTypes.gen: unexpected primitive module"
 
   (* generate a forward declaration for a type *)
     and genForwardDcl (AST.TyDcl{id, def, ...}) = let

@@ -60,6 +60,7 @@ structure Encoding : sig
 	     of AST.EnumTy cons => (id, SWITCH(length cons, List.mapi encConstr cons))
 	      | AST.SumTy{cons, ...} => (id, SWITCH(length cons, List.mapi encConstr cons))
 	      | AST.ProdTy{fields} => (id, encFields fields)
+	      | AST.AliasTy ty => (id, encTyExp ty)
 	      | AST.PrimTy => raise Fail "encoding: unexpected primitive type decl"
 	    (* end case *)
 	  end

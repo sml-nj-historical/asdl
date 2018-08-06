@@ -30,7 +30,7 @@ structure GenTypes : sig
 	  in
 	    S.STRtop(name, NONE, S.BASEstr(List.foldr genGrp [] (SortDecls.sort (!decls))))
 	  end
-      | gen _ = raise Fail "unexpected primitive module"
+      | gen _ = raise Fail "GenTypes.gen: unexpected primitive module"
 
     and genType (AST.TyDcl{id, def, ...}, (dbs, tbs)) = let
 	  val name = TyV.getName id
@@ -45,6 +45,7 @@ structure GenTypes : sig
 	     of AST.EnumTy cons => db cons
 	      | AST.SumTy{attribs, cons} => db cons
 	      | AST.ProdTy{fields} => (dbs, ([], name, genProdTy fields)::tbs)
+	      | AST.AliasTy ty => (dbs, ([], name, genTyExp ty)::tbs)
 	      | AST.PrimTy => raise Fail "unexpected primitive type"
 	    (* end case *)
 	  end

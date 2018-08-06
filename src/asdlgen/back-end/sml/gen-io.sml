@@ -31,7 +31,7 @@ structure GenIO : sig
 	  in
 	    S.SIGtop(sigName, S.BASEsig specs)
 	  end
-      | genSig _ = raise Fail "genSig: unexpected primitive module"
+      | genSig _ = raise Fail "GenIO.genSig: unexpected primitive module"
 
   (* generate the encoder/decoder specifications for a type *)
     and genSpec modName (AST.TyDcl{id, ...}, specs) = let
@@ -67,7 +67,7 @@ structure GenIO : sig
 	  in
 	    S.STRtop(ioModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
 	  end
-      | genStr _ = raise Fail "genStr: unexpected primitive module"
+      | genStr _ = raise Fail "GenIO.genStr: unexpected primitive module"
 
     and genType (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl

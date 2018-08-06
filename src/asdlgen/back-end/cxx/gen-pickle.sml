@@ -45,7 +45,7 @@ structure GenPickle : sig
 	  in
 	    CL.D_Namespace(namespace, List.foldr genType [] decls)
 	  end
-      | gen _ = raise Fail "genDcls: unexpected primitive module"
+      | gen _ = raise Fail "GenTypes.gen: unexpected primitive module"
 
     and genType (dcl, dcls) = let
 	  val (id, encoding) = E.encoding dcl
