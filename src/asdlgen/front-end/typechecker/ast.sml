@@ -96,6 +96,26 @@ structure AST =
 	type def = constructor
 	structure Id = ConstrId)
 
+  (* debugging support *)
+    fun tyToString (Typ(nty, tyc)) = let
+	  val tyc = (case tyc
+		 of NoTyc => ""
+		  | OptTyc => "?"
+		  | SeqTyc => "*"
+		  | SharedTyc => "!"
+		(* end case *))
+	  in
+	    case nty
+	     of BaseTy id => TypeId.nameOf id ^ tyc
+	      | ImportTy(modId, id) => concat[
+		    ModuleId.nameOf modId, ".", TypeId.nameOf id, tyc
+		  ]
+	      | LocalTy(TyDcl{owner=Module{id=modId, ...}, id, ...}) => concat[
+		    "(", ModuleId.nameOf modId, ")", TypeId.nameOf id, tyc
+		  ]
+	    (* end case *)
+	  end
+
   end (* structure AST *)
 
 end (* local *)

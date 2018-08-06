@@ -31,14 +31,23 @@ structure Util : sig
     structure TyV = V.Type
     structure CL = Cxx
 
+  (* get the type ID for a named_ty *)
+    fun idOfNamedTy (AST.BaseTy id) = id
+      | idOfNamedTy (AST.ImportTy(_, id)) = id
+      | idOfNamedTy (AST.LocalTy(AST.TyDcl{id, ...})) = id
+
     fun isEnum tyId = (case AST.TypeId.bindingOf tyId
 	   of SOME(AST.TyDcl{def = ref(AST.EnumTy _), ...}) => true
+	    | SOME(AST.TyDcl{def = ref(AST.AliasTy(AST.Typ(nty, AST.NoTyc))), ...}) =>
+		isEnum (idOfNamedTy nty)
 	    | _ => false
 	  (* end case *))
 
     fun isBoxed tyId = (case AST.TypeId.bindingOf tyId
 	   of SOME(AST.TyDcl{def, ...}) => (case !def
 		 of AST.EnumTy _ => false
+		  | AST.AliasTy(AST.Typ(nty, AST.NoTyc)) => isBoxed (idOfNamedTy nty)
+		  | AST.AliasTy _ => false (* options and sequences are not boxed *)
 		  | AST.PrimTy => TyV.getBoxed tyId
 		  | _ => true
 		(* end case *))
@@ -61,6 +70,9 @@ structure Util : sig
 		      (isBoxed tyId, concat[ModV.getName modId, "::", TyV.getName tyId])
 		  | AST.LocalTy(AST.TyDcl{id, def, ...}) => (case !def
 		       of AST.EnumTy _ => (false, TyV.getName id)
+			| AST.AliasTy(AST.Typ(nty, AST.NoTyc)) =>
+			    (isBoxed (idOfNamedTy nty), TyV.getName id)
+			| AST.AliasTy _ => (false, TyV.getName id)
 			| AST.PrimTy => raise Fail "unexpected primitive type"
 			| _ => (true, TyV.getName id)
 		      (* end case *))

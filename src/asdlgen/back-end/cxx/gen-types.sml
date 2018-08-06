@@ -57,15 +57,15 @@ structure GenTypes : sig
   (* generate a forward declaration for a type *)
     and genForwardDcl (AST.TyDcl{id, def, ...}) = let
 	  val name = TyV.getName id
-	  val prefix = (case !def
-		 of AST.EnumTy _ => "enum class "
-		  | AST.SumTy _ => "class "
-		  | AST.ProdTy _ => "class "
-	          | AST.AliasTy _ => raise Fail "FIXME"
-		  | AST.PrimTy => raise Fail "unexpected primitive type"
-		(* end case *))
+	  fun verb prefix = CL.D_Verbatim[concat[prefix, name, ";"]]
 	  in
-	    CL.D_Verbatim[concat[prefix, name, ";"]]
+	    case !def
+	     of AST.EnumTy _ => verb "enum class "
+	      | AST.SumTy _ => verb "class "
+	      | AST.ProdTy _ => verb "class "
+	      | AST.AliasTy _ => CL.D_Verbatim[]
+	      | AST.PrimTy => raise Fail "unexpected primitive type"
+	    (* end case *)
 	  end
 
     and genType (AST.TyDcl{id, def, ...}, dcls) = let
@@ -79,7 +79,8 @@ structure GenTypes : sig
 		  List.foldr (genConsClass (name, attribs)) dcls cons
 	      | AST.ProdTy{fields} =>
 		  genProdClass (name, fields) :: dcls
-	      | AST.AliasTy _ => dcls
+	      | AST.AliasTy ty =>
+		  CL.D_Typedef(name, U.tyexpToCxx ty) :: dcls
 	      | AST.PrimTy => raise Fail "unexpected primitive type"
 	    (* end case *)
 	  end
