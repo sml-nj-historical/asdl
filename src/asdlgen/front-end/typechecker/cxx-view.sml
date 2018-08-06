@@ -72,9 +72,11 @@ structure CxxView : sig
 	val getPrivateCode = getCode PN.private_code
 	fun getBoxed id = (case View.getBoolValue PN.boxed (view, View.Type id)
 	       of SOME b => b
-		| NONE => raise Fail(concat[
-		      "getBoxed '", AST.TypeId.nameOf id, "' is undefined"
-		    ])
+		| NONE => if AST.TypeId.isPrim id
+		    then false (* the default assumes primitive types are unboxed *)
+		    else raise Fail(concat[
+			"getBoxed '", AST.TypeId.nameOf id, "' is undefined"
+		      ])
 	      (* end case *))
 (* TODO: base_type *)
       end

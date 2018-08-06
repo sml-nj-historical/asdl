@@ -75,7 +75,7 @@ structure GenTypes : sig
 	     of AST.EnumTy cons =>
 		  genEnumClass (name, cons) @ dcls
 	      | AST.SumTy{attribs, cons} =>
-		  genBaseClass (id, name, attribs) ::
+		  genBaseClass (id, name, attribs, cons) ::
 		  List.foldr (genConsClass (name, attribs)) dcls cons
 	      | AST.ProdTy{fields} =>
 		  genProdClass (name, fields) :: dcls
@@ -103,19 +103,40 @@ structure GenTypes : sig
 	  end
 
   (* generate the base-class definition for a sum type *)
-    and genBaseClass (tyId, name, attribs) = let
+    and genBaseClass (tyId, name, attribs, cons) = let
+	(* access methods for attribute fields *)
 	  val accessMeths = List.foldr
 		(fn (fld, meths) => genAccessMethods fld @ meths)
 		  [] attribs
+	(* type definition for tag values *)
+	  val tagTypeDcl = CL.D_EnumDef{
+		  isClass = false,
+		  name = "_tag_t",
+		  repTy = NONE,
+		  cons = List.map
+		    (fn (AST.Constr{id, ...}) => (U.constrTagName id, NONE))
+		      cons
+		}
+	  val tagTy = CL.T_Named "_tag_t"
+	(* tag field *)
+	  val tagDcl = CL.mkVarDcl(tagTy, U.tagFieldName)
+	(* create the constructor function *)
+	  val initTag = CL.mkApply(U.tagFieldName, [CL.mkVar "tag"])
+	  val initAttribs = List.map genFieldInit attribs
 	  val constr = CL.D_Constr(
-		[], [], name, List.map U.fieldToParam attribs,
-		SOME(List.map genFieldInit attribs, CL.mkBlock[]))
+		[], [], name,
+		CL.PARAM([], tagTy, "tag") :: List.map U.fieldToParam attribs,
+		SOME(initTag :: initAttribs, CL.mkBlock[]))
+	(* destructor *)
 	  val destr = CL.D_Destr(["virtual"], [], name, NONE)
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,
 		public = destr :: addCode(TyV.getPublicCode tyId, accessMeths),
-		protected = constr :: addCode(TyV.getProtectedCode tyId, List.map genField attribs),
+		protected = tagTypeDcl ::
+		  constr ::
+		  tagDcl ::
+		  addCode(TyV.getProtectedCode tyId, List.map genField attribs),
 		private = addCode(TyV.getPrivateCode tyId, [])
 	      }
 	  end
@@ -124,7 +145,10 @@ structure GenTypes : sig
     and genConsClass (baseName, attribs) = let
 	  val nAttribs = List.length attribs
 	  val attribParams = List.map U.fieldToParam attribs
-	  val baseInit = CL.mkApply(baseName, List.map (U.fieldParam o #label) attribs)
+	  val attribInit = List.map (U.fieldParam o #label) attribs
+	  fun baseInit con = CL.mkApply(
+		baseName,
+		CL.mkVar(concat[baseName, "::", U.constrTagName con]) :: attribInit)
 	  fun gen (AST.Constr{id, fields, ...}, dcls) = let
 		val name = ConV.getName id
 		val extra = List.drop(fields, nAttribs)
@@ -133,7 +157,7 @@ structure GenTypes : sig
 			[] extra
 		val constr = CL.D_Constr(
 		      [], [], name, List.map U.fieldToParam fields,
-		      SOME(baseInit :: List.map genFieldInit extra, CL.mkBlock[]))
+		      SOME(baseInit id :: List.map genFieldInit extra, CL.mkBlock[]))
 (* FIXME: eventually we need something better for the destructor *)
 		val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
 		in

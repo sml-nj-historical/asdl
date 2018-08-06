@@ -20,6 +20,10 @@ structure Util : sig
   (* return the representation type for a type expression *)
     val tyexpToCxx : AST.ty_exp -> Cxx.ty
 
+  (* constructor tags for sum tyes *)
+    val constrTagName : AST.ConstrId.t -> string
+    val tagFieldName : string
+
   (* map a field to a C++ function parameter *)
     val fieldParam : AST.label -> Cxx.exp
     val fieldToParam : AST.field -> Cxx.param
@@ -54,8 +58,12 @@ structure Util : sig
 	    | NONE => raise Fail(concat["Util.isBoxed(", AST.TypeId.nameOf tyId, ")"])
 	  (* end case *))
 
+    fun constrTagName id = "_con_" ^ V.Constr.getName id
+
+    val tagFieldName = "_tag"
+
     fun fieldName (AST.Pos i) = "_v" ^ Int.toString i
-      | fieldName (AST.Lab lab) = "_" ^ lab
+      | fieldName (AST.Lab lab) = "_v_" ^ lab
 
     fun fieldGetName (AST.Pos i) = "get_" ^ Int.toString i
       | fieldGetName (AST.Lab lab) = "get_" ^ lab
@@ -90,8 +98,8 @@ structure Util : sig
 	    (* end case *)
 	  end
 
-    fun fieldParamName (AST.Pos i) = "param" ^ Int.toString i
-      | fieldParamName (AST.Lab lab) = lab
+    fun fieldParamName (AST.Pos i) = "p" ^ Int.toString i
+      | fieldParamName (AST.Lab lab) = "p_" ^ lab
 
     fun fieldParam label = CL.mkVar(fieldParamName label)
 

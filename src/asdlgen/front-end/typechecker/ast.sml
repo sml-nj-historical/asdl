@@ -78,7 +78,7 @@ structure AST =
 
     and tyc = NoTyc | OptTyc | SeqTyc | SharedTyc
 
-  (* field labels are either positional or labelled *)
+  (* field labels are either positional or labeled *)
     and label = Pos of int | Lab of string
 
     withtype field = {
@@ -89,9 +89,38 @@ structure AST =
     structure ModuleId = AddDefPropFn(
 	type def = module
 	structure Id = ModuleId)
-    structure TypeId = AddDefPropFn(
-	type def = type_decl
-	structure Id = TypeId)
+
+    structure TypeId = struct
+	local
+	  structure Id = AddDefPropFn(
+	      type def = type_decl
+	      structure Id = TypeId)
+	in
+	open Id
+
+      (* is a type ID type bound to a primitive type? *)
+	fun isPrim id = let
+	      fun isPrimDcl (TyDcl{def, ...}) = (case !def
+		     of AliasTy(Typ(nty, NoTyc)) => (case nty
+			   of BaseTy id => isPrimId id
+			    | ImportTy(_, id) => isPrimId id
+			    | LocalTy tyDcl => isPrimDcl tyDcl
+			  (* end case *))
+		      | PrimTy => true
+		      | _ => false
+		    (* end case *))
+	      and isPrimId id = (case bindingOf id
+	             of SOME tyDcl => isPrimDcl tyDcl
+		      | NONE => raise Fail(concat[
+			    "AST.TypeId.isPrim: no binding for '", nameOf id, "'"
+			  ])
+		    (* end case *))
+	      in
+		isPrimId id
+	      end
+	end (* local *)
+      end
+
     structure ConstrId = AddDefPropFn(
 	type def = constructor
 	structure Id = ConstrId)

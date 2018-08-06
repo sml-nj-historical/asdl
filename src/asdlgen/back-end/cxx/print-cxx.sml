@@ -279,22 +279,22 @@ structure PrintCxx : sig
                       end
                   | CL.D_EnumDef{isClass, name, repTy, cons=[]} => (
                       if inClass then nl() else ();
-                        inHBox (fn () => (
-                          str "enum"; sp();
-                          if isClass then (str "class"; sp()) else ();
-                          str name; sp();
-                          case repTy
-                           of NONE => ()
-                            | SOME ty => (str ":"; sp(); ppTy ty)
-                          (* end case *);
-                          str ";")))
+                      inHBox (fn () => (
+                        str "enum"; sp();
+                        if isClass then (str "class"; sp()) else ();
+                        str name; sp();
+                        case repTy
+                         of NONE => ()
+                          | SOME ty => (str ":"; sp(); ppTy ty)
+                        (* end case *);
+                        str ";")))
                   | CL.D_EnumDef{isClass, name, repTy, cons=con::conr} => let
                       fun ppCon (name, NONE) = str name
                         | ppCon (name, SOME e) = inHBox (fn () => (
                             str name; sp(); str "="; sp(); ppExp e))
                       in
                         if inClass then nl() else ();
-                        PP.openVBox strm indent0;
+                        PP.openHVBox strm indent0;
                           inHBox (fn () => (
                             str "enum"; sp();
                             if isClass then (str "class"; sp()) else ();
@@ -305,9 +305,11 @@ structure PrintCxx : sig
                             (* end case *);
                             str "{"));
                           PP.openHVBox strm indent;
+                            PP.cut strm;
                             ppCon con;
-                            List.app (fn c => (str ","; sp(); ppCon con)) conr;
+                            List.app (fn c => (str ","; sp(); ppCon c)) conr;
                           PP.closeBox strm;
+                          PP.cut strm;
                           str "};";
                         PP.closeBox strm
                       end
