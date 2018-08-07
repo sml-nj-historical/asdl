@@ -20,6 +20,7 @@ is
 
   cxx.sml
   gen-cxx.sml
+  gen-pickle.sml
   gen-types.sml
   print-cxx.sml
   util.sml

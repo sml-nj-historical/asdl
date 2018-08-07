@@ -3,25 +3,32 @@
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * Generate the encoder/decoder methods for the typed of an ASDL module.  For an ASDL
- * type "TYPE", the encoder is a method with the following signature:
+ * Generate the implementation for an ASDL module.  The implementation includes
+ * the destructor functions for boxed types and the encoder/decoder functions.
+ *
+ * For a  boxed ASDL type "TYPE", the encoder is a method with the following
+ * signature:
  *
  *	void encode (asdl::outstream &os);
  *
- * and the decoder is a constructor with the following signature:
+ * and the decoder is a static class method with the following signature:
  *
- *	TYPE (asdl::instream &os);
+ *	TYPE *decode (asdl::instream &is);
  *
- * For enumeration types, we generate functions:
+ * For enumeration and alias types, we generate the functions:
  *
- *	void encode_TYPE (asdl::outstream &os, TYPE const &v);
- *	TYPE decode_TYPE (asdl::instream &os);
+ *	void encode_TYPE (asdl::outstream &os, TYPE v);
+ *	TYPE decode_TYPE (asdl::instream &is);
+ *
+ * TODO:
+ * 	encode/decoder names should be taken from view
+ *	proper implementation of destructor functions
  *)
 
 structure GenPickle : sig
 
-  (* generate the implementation of the pickler functions.  The result will be
-   * a namespace declaration enclosing the function definitions.
+  (* generate the implementation of the ASDL module.  The result will be
+   * a namespace declaration enclosing the function/method definitions.
    *)
     val gen : AST.module -> Cxx.decl
 
@@ -34,28 +41,96 @@ structure GenPickle : sig
     structure ConV = V.Constr
     structure E = Encoding
     structure CL = Cxx
+    structure U = Util
 
-    val instrm = CL.T_Named "asdl::instream"
-    val instrmRef = CL.T_Ref(CL.T_Named "asdl::instream")
-    val outstrm = CL.T_Named "asdl::outstream"
-    val outstrmRef = CL.T_Ref(CL.T_Named "asdl::outstream")
+    val osParam = CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")
+    val osArg = CL.mkVar "os"
+    val isParam = CL.param(CL.T_Ref(CL.T_Named "asdl::instream"), "is")
+    val isArg = CL.mkVar "is"
+
+  (* pickler function name for primitive types *)
+    fun baseEncode (NONE, tyId) = TyV.getEncoder tyId
+      | baseEncode (SOME modId, tyId) = concat[
+	    ModV.getName modId, "::", TyV.getEncoder tyId
+	  ]
+
+  (* unpickler function name for primitive types *)
+    fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
+      | baseDecode (SOME modId, tyId) = concat[
+	    ModV.getName modId, "::", TyV.getDecoder tyId
+	  ]
+
+  (* invoke the pickler operation on the argument *)
+    fun encode (optModId, tyId, arg) = if U.isBoxed tyId
+	  then CL.mkExpStm(CL.mkDispatch (arg, "encode", [osArg]))
+	  else CL.mkCall (baseEncode(optModId, tyId), [osArg, arg])
+
+  (* apply the unpickler operation to the input stream *)
+    fun decode (optModId, tyId) = if U.isBoxed tyId
+	  then CL.mkApply (TyV.getName tyId ^ "::decode", [isArg])
+	  else CL.mkApply (baseEncode(optModId, tyId), [isArg])
 
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val namespace = ModV.getName id
 	  in
-	    CL.D_Namespace(namespace, List.foldr genType [] decls)
+	    CL.D_Namespace(namespace, List.foldr genType [] (!decls))
 	  end
       | gen _ = raise Fail "GenTypes.gen: unexpected primitive module"
 
-    and genType (dcl, dcls) = let
-	  val (id, encoding) = E.encoding dcl
+    and genType (tyDcl as AST.TyDcl{def, ...}, dcls) = let
+	  val (id, encoding) = Encoding.encoding tyDcl
 	  val name = TyV.getName id
 	  in
-	    genEncoder (id, encoding) ::
-	    genDecoder (id, encoding) ::
-	      dcls
+	    case !def
+	     of AST.EnumTy cons =>
+		  genEnumFuncs (name, encoding) @ dcls
+	      | AST.SumTy{attribs, cons} =>
+		  genSumMeths (name, attribs, encoding) @
+		  List.foldr (genConsMeths (name, attribs)) dcls cons
+	      | AST.ProdTy{fields} =>
+		  genProdMeths (name, fields) @ dcls
+	      | AST.AliasTy ty =>
+		  genAliasFuncs (name, encoding) @ dcls
+	      | AST.PrimTy => raise Fail "unexpected primitive type"
+	    (* end case *)
 	  end
 
+  (* generate the pickling functions for an enumeration type *)
+    and genEnumFuncs (name, E.SWITCH(ncons, rules)) = let
+	(* determine the "type" of the tag *)
+	  val tagTyId = if (ncons <= 256) then PT.tag8TyId
+		else if (ncons <= 65536) then PT.tag16TyId
+		else raise Fail "too many constructors"
+	  val ty = CL.T_Named name
+	  val pickler = CL.mkFuncDcl (
+		CL.voidTy, U.enumPickler name,
+		[osParam, CL.param(ty, "v")],
+		encode (
+		  SOME PT.primTypesId,
+		  tagTyId,
+		  CL.mkStaticCast(CL.T_Named(TyV.getName tagTyId), CL.mkVar "v")))
+	  val unpickler = CL.mkFuncDcl (
+		ty, U.enumUnpickler name,
+		[osParam],
+		CL.mkReturn(SOME(
+		  CL.mkStaticCast(ty, decode (SOME PT.primTypesId, tagTyId)))))
+	  in
+	    [pickler, unpickler]
+	  end
+
+  (* generate the unpickling function for a sum type *)
+    and genSumMeths _ = [] (* FIXME *)
+
+  (* generate the destuctor and pickler methods for a sum-type constructor *)
+    and genConsMeths _ _ = [] (* FIXME *)
+
+  (* generate the methods for a product type *)
+    and genProdMeths _ = [] (* FIXME *)
+
+  (* generate the pickling functions for a type alias *)
+    and genAliasFuncs _ = [] (* FIXME *)
+
+(*
     and genEncoder (tyId, encoding) = let
 	  val encName = TyV.getEncoder tyId
 	  val objTy = CL.T_Named(TyV.getName id)
@@ -206,6 +281,7 @@ structure GenPickle : sig
 	  in
 	    S.simpleFB(decName, ["slice"], gen encoding)
 	  end
+*)
 
   end
 

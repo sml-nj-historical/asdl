@@ -82,7 +82,10 @@ structure PrimTypes : sig
 		mkDcl uintTyId,
 		mkDcl integerTyId,
 		mkDcl identifierTyId,
-		mkDcl stringTyId
+		mkDcl stringTyId,
+	      (* declarations for the sum-type tag representations *)
+		mkDcl tag8TyId,
+		mkDcl tag16TyId
 	      ];
 	    module
 	  end

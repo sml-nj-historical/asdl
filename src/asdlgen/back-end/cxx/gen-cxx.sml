@@ -44,6 +44,7 @@ structure GenCxx : sig
 (* FIXME: output width is a command-line option! *)
 	  val ppStrm = TextIOPP.openOut {dst = outS, wid = Options.lineWidth()}
 	  in
+(* FIXME: need to insert the appropriate include files here! *)
 	    List.app
 	      (fn dcl => (PrintCxx.output (ppStrm, dcl)))
 		(genHeader (src, outFile) :: hxxIncls :: dcls);
@@ -65,10 +66,8 @@ structure GenCxx : sig
 	  in
 	  (* generate the header file *)
 	    genFile GenTypes.gen (src, hxxFilename basePath, modules);
-(*
 	  (* generate the pickler implementation *)
-	    genFile GenPickler.gen (src, cxxFilename(basePath ^ "-pickle"), modules)
-*)()
+	    genFile GenPickle.gen (src, cxxFilename basePath, modules)
 	  end
 
   end

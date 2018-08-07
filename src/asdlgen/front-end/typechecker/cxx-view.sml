@@ -130,8 +130,10 @@ structure CxxView : sig
 		  (PTy.stringTyId,	PN.boxed,	"false"),
 		  (PTy.tag8TyId,	PN.encoder,	"encode_tag8"),
 		  (PTy.tag8TyId,	PN.decoder,	"decode_tag8"),
+		  (PTy.tag8TyId,	PN.boxed,	"false"),
 		  (PTy.tag16TyId,	PN.encoder,	"encode_tag16"),
-		  (PTy.tag16TyId,	PN.decoder,	"decode_tag16")
+		  (PTy.tag16TyId,	PN.decoder,	"decode_tag16"),
+		  (PTy.tag16TyId,	PN.boxed,	"false")
 		]
 	    end
 
