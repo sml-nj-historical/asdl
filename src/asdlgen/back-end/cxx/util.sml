@@ -12,6 +12,14 @@ structure Util : sig
   (* is a type represented by a pointer (i.e., boxed) or by an immediate value (unboxed)? *)
     val isBoxed : AST.TypeId.t -> bool
 
+  (* default pickler/unpickler names for an enumeration type *)
+    val enumPickler : string -> string
+    val enumUnpickler : string -> string
+
+  (* constructor tags for sum tyes *)
+    val constrTagName : AST.ConstrId.t -> string
+    val tagFieldName : string
+
   (* names of components for tuples and records *)
     val fieldName : AST.label -> string
     val fieldGetName : AST.label -> string
@@ -19,10 +27,6 @@ structure Util : sig
 
   (* return the representation type for a type expression *)
     val tyexpToCxx : AST.ty_exp -> Cxx.ty
-
-  (* constructor tags for sum tyes *)
-    val constrTagName : AST.ConstrId.t -> string
-    val tagFieldName : string
 
   (* map a field to a C++ function parameter *)
     val fieldParam : AST.label -> Cxx.exp
@@ -57,6 +61,10 @@ structure Util : sig
 		(* end case *))
 	    | NONE => raise Fail(concat["Util.isBoxed(", AST.TypeId.nameOf tyId, ")"])
 	  (* end case *))
+
+  (* default pickler/unpickler names for an enumeration type *)
+    fun enumPickler name = "encode_" ^ name
+    fun enumUnpickler name = "decode_" ^ name
 
     fun constrTagName id = "_con_" ^ V.Constr.getName id
 

@@ -2,6 +2,10 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * TODO:
+ * 	encode/decoder names should be taken from view
+ *	proper implementation of destructor functions
  *)
 
 structure GenTypes : sig
@@ -19,6 +23,9 @@ structure GenTypes : sig
     structure ConV = V.Constr
     structure CL = Cxx
     structure U = Util
+
+    val osParam = CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")
+    val isParam = CL.param(CL.T_Ref(CL.T_Named "asdl::instream"), "is")
 
   (* generate the inline access-methods for a field *)
     fun genAccessMethods {label, ty} = let
@@ -89,6 +96,7 @@ structure GenTypes : sig
    * type.
    *)
     and genEnumClass (name, cons) = let
+	  val ty = CL.T_Named name
 	  val con::conr = List.map (fn (AST.Constr{id, ...}) => ConV.getName id) cons
 	  val enumDcl = CL.D_EnumDef{
 		  isClass = true,
@@ -97,7 +105,10 @@ structure GenTypes : sig
 		  cons = (con, SOME(CL.mkInt 1)) :: List.map (fn c => (c, NONE)) conr
 		}
 	(* prototypes for pickler functions *)
-	  val protos = [] (* FIXME *)
+	  val protos = [
+		  CL.mkProto(CL.voidTy, U.enumPickler name, [osParam, CL.param(ty, "v")]),
+		  CL.mkProto(ty, U.enumUnpickler name, [isParam])
+		] (* FIXME *)
 	  in
 	    enumDcl :: protos
 	  end
@@ -110,12 +121,10 @@ structure GenTypes : sig
 		  [] attribs
 	(* pickling/unpickling methods *)
 	  val pickleMeth = CL.mkVirtualProto(
-		CL.voidTy, "encode",
-		[CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")],
+		CL.voidTy, "encode", [osParam],
 		true (* abstract method *))
 	  val unpickleMeth = CL.mkStaticMethProto(
-		CL.T_Ptr(CL.T_Named name), "decode",
-		[CL.param(CL.T_Ref(CL.T_Named "asdl::instream"), "is")])
+		CL.T_Ptr(CL.T_Named name), "decode", [isParam])
 	(* type definition for tag values *)
 	  val tagTypeDcl = CL.D_EnumDef{
 		  isClass = false,
@@ -169,7 +178,7 @@ structure GenTypes : sig
 	      (* pickling method *)
 		val pickleMeth = CL.mkMethProto(
 		      CL.voidTy, "encode",
-		      [CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")])
+		      [osParam])
 		val constr = CL.mkConstrDcl(
 		      name, List.map U.fieldToParam fields,
 		      baseInit id :: List.map genFieldInit extra, CL.mkBlock[])
@@ -197,11 +206,9 @@ structure GenTypes : sig
 		  [] fields
 	(* pickling/unpickling methods *)
 	  val pickleMeth = CL.mkMethProto(
-		CL.voidTy, "encode",
-		[CL.param(CL.T_Ref(CL.T_Named "asdl::outstream"), "os")])
+		CL.voidTy, "encode", [osParam])
 	  val unpickleMeth = CL.mkStaticMethProto(
-		CL.T_Ptr(CL.T_Named name), "decode",
-		[CL.param(CL.T_Ref(CL.T_Named "asdl::instream"), "is")])
+		CL.T_Ptr(CL.T_Named name), "decode", [isParam])
 	(* create the constructor function *)
 	  val constr = CL.mkConstrDcl(
 		name, List.map U.fieldToParam fields,
