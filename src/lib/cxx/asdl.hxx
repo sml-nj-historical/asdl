@@ -26,23 +26,8 @@ namespace asdl {
     class outstream {
       public:
 
-      // encode basic values
-	void encode_bool (bool b)
-	{
-	    if (b) { this->_os.put(0) } else { this->_os.put(1); }
-	}
-	void encode_int (int i);
-	void encode_uint (unsigned int ui);
-	void encode_tag8 (unsigned int ui)
-	{
-	    this->_os.put(static_cast<char>(ui));
-	}
-	void encode_tag16 (unsigned int ui);
-	{
-	    this->_os.put(static_cast<char>(ui >> 8));
-	    this->_os.put(static_cast<char>(ui));
-	}
-	void encode_string (std::string const &s);
+	void putc (char c) { this->_os.put(c); }
+	void putb (unsigned char c) { this->_os.put(c); }
 
       private:
 	std::ostream _os;
@@ -52,25 +37,8 @@ namespace asdl {
     class instream {
       public:
 
-      // decode basic values
-	bool decode_bool ()
-	{
-	    char c = this->_is.get();
-	    return (c != 0);
-	}
-	int decode_int ();
-	unsigned int decode_uint ();
-	unsigned int decode_tag8 ()
-	{
-	    return static_cast<unsigned int>(this->_is.get());
-	}
-	unsigned int decode_tag16 ()
-	{
-	    unsigned int b0 = static_cast<unsigned int>(this->_is.get());
-	    unsigned int b1 = static_cast<unsigned int>(this->_is.get());
-	    return (b0 << 8) + b1;
-	}
-	std::string decode_string ();
+	char getc () { return this->_is.get(); }
+	unsigned char getb () { return static_cast<unsigned char>(this->_is.get()); }
 
       private:
 	std::istream _is;
@@ -85,10 +53,48 @@ namespace asdl {
 	~box () { }
 	T value () const { return this->_v; }
 
-
       private:
 	T _v;
     };
+
+  /***** inline functions *****/
+
+  // encode basic values
+    void encode_bool (ostream & os, bool b)
+    {
+	if (b) { os.putb(0) } else { os.putb(1); }
+    }
+    void encode_int (ostream & os, int i);
+    void encode_uint (ostream & os, unsigned int ui);
+    void encode_tag8 (ostream & os, unsigned int ui)
+    {
+	os.putb(static_cast<unsigned char>(ui));
+    }
+    void encode_tag16 (ostream & os, unsigned int ui);
+    {
+	os.putb(static_cast<unsigned char>(ui >> 8));
+	os.putb(static_cast<unsigned char>(ui));
+    }
+    void encode_string (ostream & os, std::string const &s);
+
+  // decode basic values
+    bool decode_bool (instream &is)
+    {
+	return (is.getc != 0);
+    }
+    int decode_int (instream &is);
+    unsigned int decode_uint (instream &is);
+    unsigned int decode_tag8 (instream &is)
+    {
+	return is.getb();
+    }
+    unsigned int decode_tag16 (instream &is)
+    {
+	unsigned int b0 = is.getb();
+	unsigned int b1 = is.getb();
+	return (b0 << 8) + b1;
+    }
+    std::string decode_string (instream &is);
 
 } // namespace asdl
 

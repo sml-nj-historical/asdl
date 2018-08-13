@@ -84,66 +84,82 @@ structure GenIO : sig
 	    | baseWriter (SOME modId, tyId) = concat[
 		  ModV.getIOName modId, ".", TyV.getWriter tyId
 		]
-	  fun gen (arg, E.SWITCH(ncons, rules)) = let
-	      (* determine the "type" of the tag *)
-		val tagTyId = if (ncons <= 256) then PT.tag8TyId
-		      else if (ncons <= 65536) then PT.tag16TyId
-		      else raise Fail "too many constructors"
+	  fun genTag (tagTyId, tag) = funApp(
+		baseWriter(SOME PT.primTypesId, tagTyId),
+		[outSV, S.NUMexp("0w" ^ Int.toString tag)])
+	  fun gen (arg, E.UNIT conId) = S.unitExp (* no storage required *)
+	    | gen (arg, E.ENUM(nCons, cons)) = let
+		val tagTyId = E.tagTyId nCons
+		fun genRule (tag, conId) = (S.IDpat(ConV.getName conId), genTag (tagTyId, tag))
 		in
-		  S.caseExp(arg, List.map (genRule tagTyId) rules)
+		  S.caseExp(arg, List.map genRule cons)
 		end
-	    | gen (arg, E.TUPLE tys) = let
-		fun write (i, ty) = gen (S.selectExp(Int.toString i, arg), ty)
+	    | gen (arg, E.WRAP(conId, fields)) = let
+		val (lhsPat, xs) = objPat fields
 		in
-		  S.SEQexp(List.mapi write tys)
+		  S.LETexp(
+		    [S.VALdec(S.CONpat(ConV.getName conId, lhsPat), arg)],
+		    S.SEQexp(List.map genTy' xs))
 		end
-	    | gen (arg, E.RECORD fields) = let
-		fun write (lab, ty) = gen (S.selectExp(lab, arg), ty)
+	    | gen (arg, E.SWITCH(optAttribs, nCons, cons)) = let
+		val tagTyId = E.tagTyId nCons
+		fun genRule (tag, conId, optArg) = let
+		      val wrTag = genTag(tagTyId, tag)
+		      val conName = ConV.getName conId
+		      in
+			case E.prefixWithAttribs(optAttribs, optArg)
+			 of NONE => (S.IDpat conName, wrTag)
+			  | SOME obj => let
+			      val (pat, flds) = objPat obj
+			      val pat = S.CONpat(conName, pat)
+			      val exp = S.SEQexp(wrTag :: List.map genTy' flds)
+			      in
+				(pat, exp)
+			      end
+			(* end case *)
+		      end
+		in
+		  S.caseExp(arg, List.map genRule cons)
+		end
+	    | gen (arg, E.OBJ obj) = genProd (arg, obj)
+	    | gen (arg, E.ALIAS ty) = genTy (arg, ty)
+	  and genProd (arg, E.TUPLE tys) = let
+		fun write (i, ty) = genTy (S.selectExp(Int.toString i, arg), ty)
+		in
+		  S.SEQexp(List.map write tys)
+		end
+	    | genProd (arg, E.RECORD fields) = let
+		fun write (lab, ty) = genTy (S.selectExp(lab, arg), ty)
 		in
 		  S.SEQexp(List.map write fields)
 		end
-	    | gen (arg, E.OPTION ty) =
+	(* create a pattern for matching against a product type; returns the pattern and the
+	 * bound variables with their types.
+	 *)
+	  and objPat (E.TUPLE tys) = let
+		val args = List.map (fn (i, ty) => ("x"^Int.toString i, ty)) tys
+		in
+		  (S.tuplePat(List.map (S.IDpat o #1) args), args)
+		end
+	    | objPat (E.RECORD flds) = let
+		val pat = S.RECORDpat{
+			fields = List.map (fn fld => (#1 fld, S.IDpat(#1 fld))) flds,
+			flex = false
+		      }
+		in
+		  (pat, flds)
+		end
+	  and genTy (arg, E.OPTION ty) =
 		S.appExp(
 		  funApp ("write_option", [S.IDexp(baseWriter ty)]),
 		  pairExp(outSV, arg))
-	    | gen (arg, E.SEQUENCE ty) =
+	    | genTy (arg, E.SEQUENCE ty) =
 		S.appExp(
 		  funApp ("write_list", [S.IDexp(baseWriter ty)]),
 		  pairExp(outSV, arg))
-	    | gen (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | gen (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
-	  and genRule tagTyId (tag, conId, optArg) = let
-		val wrTag = funApp(
-		      baseWriter(SOME PT.primTypesId, tagTyId),
-		      [outSV, S.NUMexp("0w" ^ Int.toString tag)])
-		val conName = ConV.getName conId
-		in
-		  case optArg
-		   of NONE => (S.IDpat conName, wrTag)
-		    | SOME(E.TUPLE tys) => let
-			val args = List.mapi (fn (i, _) => "x"^Int.toString i) tys
-			val pat = S.CONpat(
-			      conName,
-			      S.tuplePat(List.map S.IDpat args))
-			val exp = S.SEQexp(wrTag :: ListPair.map gen' (args, tys))
-			in
-			  (pat, exp)
-			end
-		    | SOME(E.RECORD flds) => let
-			val pat = S.CONpat(
-			      conName,
-			      S.RECORDpat{
-				  fields = List.map (fn fld => (#1 fld, S.IDpat(#1 fld))) flds,
-				  flex = false
-				})
-			val exp = S.SEQexp(wrTag :: List.map gen' flds)
-			in
-			  (pat, exp)
-			end
-		    | SOME ty => (S.CONpat(conName, S.IDpat "x"), S.SEQexp[wrTag, gen'("x", ty)])
-		  (* end case *)
-		end
-	  and gen' (x, ty) = gen (S.IDexp x, ty)
+	    | genTy (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
+	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
+	  and genTy' (x, ty) = genTy (S.IDexp x, ty)
 	  in
 	    S.simpleFB(wrName, ["buf", "obj"], gen(S.IDexp "obj", encoding))
 	  end
@@ -154,61 +170,65 @@ structure GenIO : sig
 	    | baseReader (SOME modId, tyId) = concat[
 		  ModV.getIOName modId, ".", TyV.getReader tyId
 		]
-	  fun gen (E.SWITCH(ncons, rules)) = let
-	      (* determine the "type" of the tag *)
-		val tagTyId = if (ncons <= 256) then PT.tag8TyId
-		      else if (ncons <= 65536) then PT.tag16TyId
-		      else raise Fail "too many constructors"
-		val decodeTag = funApp(
-		      baseReader(SOME PT.primTypesId, tagTyId),
-		      [inSV])
-		val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
+	  fun genTag tagTyId = funApp(
+		baseReader(SOME PT.primTypesId, tagTyId),
+		[inSV])
+	  val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
+	  fun gen (E.UNIT conId) = S.IDexp(ConV.getName conId)
+	    | gen (E.ENUM(nCons, cons)) = let
+		fun genRule (tag, conId) = let
+		      val pat = S.NUMpat("0w"^Int.toString tag)
+		      in
+			(pat, S.IDexp(ConV.getName conId))
+		      end
 		in
-		  S.caseExp(decodeTag, List.map genRule rules @ [dfltRule])
+		  S.caseExp(genTag(E.tagTyId nCons), List.map genRule cons @ [dfltRule])
 		end
-	    | gen (E.TUPLE tys) = genTuple (tys, fn x => x)
-	    | gen (E.RECORD fields) = genRecord (fields, fn x => x)
-	    | gen (E.OPTION ty) =
-		S.appExp(
-		  funApp ("readoption", [S.IDexp(baseReader ty)]),
-		  inSV)
-	    | gen (E.SEQUENCE ty) =
-		S.appExp(
-		  funApp ("read_list", [S.IDexp(baseReader ty)]),
-		  inSV)
-	    | gen (E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | gen (E.BASE ty) = funApp (baseReader ty, [inSV])
-	  and genRule (tag, conId, optArg) = let
-		val conName = ConV.getName conId
-		val pat = S.NUMpat("0w"^Int.toString tag)
+	    | gen (E.WRAP(conId, fields)) =
+		genObj(fields, fn  x => S.appExp(S.IDexp(ConV.getName conId), x))
+	    | gen (E.SWITCH(optAttribs, nCons, cons)) = let
+		fun genRule (tag, conId, optArg) = let
+		      val conName = ConV.getName conId
+		      val pat = S.NUMpat("0w"^Int.toString tag)
+		      in
+			case E.prefixWithAttribs(optAttribs, optArg)
+			 of NONE => (pat, S.IDexp conName)
+			  | SOME obj => (pat, genObj(obj, fn x => S.appExp(S.IDexp conName, x)))
+			(* end case *)
+		      end
 		in
-		  case optArg
-		   of NONE => (pat, S.IDexp conName)
-		    | SOME(E.TUPLE tys) =>
-			(pat, genTuple(tys, fn x => S.appExp(S.IDexp conName, x)))
-		    | SOME(E.RECORD fields) =>
-			(pat, genRecord(fields, fn x => S.appExp(S.IDexp conName, x)))
-		    | SOME ty => (pat, gen ty)
-		  (* end case *)
+		  S.caseExp(genTag(E.tagTyId nCons), List.map genRule cons @ [dfltRule])
 		end
-	  and genTuple (tys, k) = let
+	    | gen (E.OBJ obj) = genObj(obj, fn x => x)
+	    | gen (E.ALIAS ty) = genTy ty
+	  and genObj (E.TUPLE tys, k) = let
 		val xs = List.mapi (fn (i, _) => "x"^Int.toString i) tys
 		val decs = ListPair.map
-		      (fn (x, ty) => S.VALdec(S.IDpat x, gen ty))
+		      (fn (x, (_, ty)) => S.VALdec(S.IDpat x, genTy ty))
 			(xs, tys)
 		in
 		  S.LETexp(decs, k(S.TUPLEexp(List.map S.IDexp xs)))
 		end
-	  and genRecord (fields, k) = let
+	    | genObj (E.RECORD fields, k) = let
 		val decs = List.map
-		      (fn (lab, ty) => S.VALdec(S.IDpat lab, gen ty))
+		      (fn (lab, ty) => S.VALdec(S.IDpat lab, genTy ty))
 			fields
 		val fields = List.map (fn (lab, _) => (lab, S.IDexp lab)) fields
 		in
 		  S.LETexp(decs, k(S.RECORDexp fields))
 		end
+	  and genTy (E.OPTION ty) =
+		S.appExp(
+		  funApp ("read_option", [S.IDexp(baseReader ty)]),
+		  inSV)
+	    | genTy (E.SEQUENCE ty) =
+		S.appExp(
+		  funApp ("read_list", [S.IDexp(baseReader ty)]),
+		  inSV)
+	    | genTy (E.SHARED ty) = raise Fail "shared types not supported yet"
+	    | genTy (E.BASE ty) = funApp (baseReader ty, [inSV])
 	  in
-	    S.simpleFB(rdName, ["slice"], gen encoding)
+	    S.simpleFB(rdName, ["inS"], gen encoding)
 	  end
 
   end

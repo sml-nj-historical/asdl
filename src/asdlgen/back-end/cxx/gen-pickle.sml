@@ -68,7 +68,7 @@ structure GenPickle : sig
   (* apply the unpickler operation to the input stream *)
     fun decode (optModId, tyId) = if U.isBoxed tyId
 	  then CL.mkApply (TyV.getName tyId ^ "::decode", [isArg])
-	  else CL.mkApply (baseEncode(optModId, tyId), [isArg])
+	  else CL.mkApply (baseDecode(optModId, tyId), [isArg])
 
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val namespace = ModV.getName id
@@ -78,51 +78,104 @@ structure GenPickle : sig
       | gen _ = raise Fail "GenTypes.gen: unexpected primitive module"
 
     and genType (tyDcl as AST.TyDcl{def, ...}, dcls) = let
-	  val (id, encoding) = Encoding.encoding tyDcl
+	  val (id, encoding) = E.encoding tyDcl
 	  val name = TyV.getName id
 	  in
-	    case !def
-	     of AST.EnumTy cons =>
-		  genEnumFuncs (name, encoding) @ dcls
-	      | AST.SumTy{attribs, cons} =>
-		  genSumMeths (name, attribs, encoding) @
-		  List.foldr (genConsMeths (name, attribs)) dcls cons
-	      | AST.ProdTy{fields} =>
-		  genProdMeths (name, fields) @ dcls
-	      | AST.AliasTy ty =>
-		  genAliasFuncs (name, encoding) @ dcls
-	      | AST.PrimTy => raise Fail "unexpected primitive type"
+	    case encoding
+	     of E.UNIT conId => let
+		(* a single-constructor enum requires no storage in the pickle *)
+		  val ty = CL.T_Named name
+		  val pickler = CL.mkFuncDcl (
+			CL.voidTy, U.enumPickler name,
+			[osParam, CL.param(ty, "v")],
+			CL.mkBlock[])
+		  val unpickler = CL.mkFuncDcl (
+			ty, U.enumUnpickler name,
+			[osParam],
+			CL.mkReturn(SOME(CL.mkVar(ConV.getName conId))))
+		  in
+		    pickler :: unpickler :: dcls
+		  end
+	      | E.ENUM(nCons, cons) => let
+		  val tagTyId = E.tagTyId nCons
+		  val ty = CL.T_Named name
+		  val pickler = CL.mkFuncDcl (
+			CL.voidTy, U.enumPickler name,
+			[osParam, CL.param(ty, "v")],
+			encode (
+			  SOME PT.primTypesId,
+			  tagTyId,
+			  CL.mkStaticCast(CL.T_Named(TyV.getName tagTyId), CL.mkVar "v")))
+		  val unpickler = CL.mkFuncDcl (
+			ty, U.enumUnpickler name,
+			[osParam],
+			CL.mkReturn(SOME(
+			  CL.mkStaticCast(ty, decode (SOME PT.primTypesId, tagTyId)))))
+		  in
+		    pickler :: unpickler :: dcls
+		  end
+	      | E.WRAP(_, obj) => genProdMeths (id, name, obj) @ dcls
+	      | E.SWITCH(attribs, nCons, cons) =>
+		  genSumMeths (id, name, attribs, nCons, cons) @
+		  genConsMeths (attribs, nCons, cons) @ dcls
+	      | E.OBJ obj => genProdMeths (id, name, obj) @ dcls
+	      | E.ALIAS ty => let
+		  val cTy = CL.T_Named name
+		  val vv = CL.mkVar "v"
+		  val pickler = CL.mkFuncDcl (
+			CL.voidTy, TyV.getEncoder id,
+			[osParam, CL.param(cTy, "v")],
+			CL.mkBlock(encodeTy(vv, ty)))
+		  val unpickler = let
+			val stms = decodeTy ("v", ty)
+			in
+			  CL.mkFuncDcl (
+			    cTy, TyV.getDecoder id,
+			    [osParam],
+			    CL.mkBlock(stms @ [CL.mkReturn(SOME vv)]))
+			end
+		  in
+		    pickler :: unpickler :: dcls
+		  end
 	    (* end case *)
 	  end
 
-  (* generate the pickling functions for an enumeration type *)
-    and genEnumFuncs (name, E.SWITCH(ncons, rules)) = let
-	(* determine the "type" of the tag *)
-	  val tagTyId = if (ncons <= 256) then PT.tag8TyId
-		else if (ncons <= 65536) then PT.tag16TyId
-		else raise Fail "too many constructors"
+  (* generate the unpickling function for a sum type *)
+    and genSumMeths (tyId, name, optAttribs, nCons, cons) = let
 	  val ty = CL.T_Named name
-	  val pickler = CL.mkFuncDcl (
-		CL.voidTy, U.enumPickler name,
-		[osParam, CL.param(ty, "v")],
-		encode (
-		  SOME PT.primTypesId,
-		  tagTyId,
-		  CL.mkStaticCast(CL.T_Named(TyV.getName tagTyId), CL.mkVar "v")))
-	  val unpickler = CL.mkFuncDcl (
-		ty, U.enumUnpickler name,
-		[osParam],
-		CL.mkReturn(SOME(
-		  CL.mkStaticCast(ty, decode (SOME PT.primTypesId, tagTyId)))))
+	  val ptrTy = CL.T_Ptr ty
+	  val tagTy = CL.T_Named "_tag_t"
+	(* decode common attribute fields *)
+	  val (getAttribs, attribArgs) = (case optAttribs
+		 of NONE => ([], [])
+		  | SOME obj => decodeFields obj
+		(* end case *))
+	(* unpickle a constructor *)
+	  fun doCase (_, conId, fields) = let
+		val label = [U.constrTagName conId]
+		val (getFields, args) = (case fields
+		       of NONE => ([], [])
+			| SOME obj => decodeFields obj
+		      (* end case *))
+		val newExp = CL.mkNew(CL.T_Named(ConV.getName conId), attribArgs @ args)
+		in
+		  (label, [CL.mkBlock(getFields @ [CL.mkReturn(SOME newExp)])])
+		end
+	(* unpickler body *)
+	  val body = [CL.mkSwitch(CL.mkVar "tag", List.map doCase cons)]
+	  val body = getAttribs @ body
+	  val body = (* get tag *)
+		CL.mkDeclInit(tagTy, "tag",
+		  CL.mkStaticCast(tagTy, decode (SOME PT.primTypesId, E.tagTyId nCons))) :: body
+	  val unpickler = CL.D_Func (
+		["static"], ptrTy, [CL.SC_Type ty], "decode", [isParam],
+		SOME(CL.mkBlock body))
 	  in
-	    [pickler, unpickler]
+	    [unpickler]
 	  end
 
-  (* generate the unpickling function for a sum type *)
-    and genSumMeths _ = [] (* FIXME *)
-
-  (* generate the destuctor and pickler methods for a sum-type constructor *)
-    and genConsMeths _ _ = [] (* FIXME *)
+  (* generate the destructor and pickler methods for a sum-type constructor *)
+    and genConsMeths _ = [] (* FIXME *)
 
   (* generate the methods for a product type *)
     and genProdMeths _ = [] (* FIXME *)
@@ -130,158 +183,41 @@ structure GenPickle : sig
   (* generate the pickling functions for a type alias *)
     and genAliasFuncs _ = [] (* FIXME *)
 
-(*
-    and genEncoder (tyId, encoding) = let
-	  val encName = TyV.getEncoder tyId
-	  val objTy = CL.T_Named(TyV.getName id)
-	  val osV = CL.mkVar "os"
-	  fun baseEncode (NONE, tyId) = TyV.getEncoder tyId
-	    | baseEncode (SOME modId, tyId) = concat[
-		  ModV.getName modId, "::", TyV.getEncoder tyId
-		]
-	  fun genStm arg = CL.mkBlock(gen arg)
-	  and gen (arg, E.SWITCH rules) = let
-	      (* determine the "type" of the tag *)
-		val tagTyId = if (ncons <= 256) then PT.tag8TyId
-		      then if (ncons <= 65536) then PT.tag16TyId
-		      else raise Fail "too many constructors"
+  (* generate code for decoding fields *)
+    and decodeFields (E.TUPLE fields) = let
+	  fun dec ([], stms, args) = (List.rev stms, List.rev args)
+	    | dec ((ix, ty)::flds, stms, args) = let
+		val name = "f" ^ Int.toString ix
+		val stms = List.revAppend (decodeTy(name, ty), stms)
 		in
-		  if Util.isEnum tyId
-		    then [S.mkCall(baseEncode (SOME PT.primTypesId, tagTyId), [arg])]
-		    else [
-			S.mkCall(baseEncode (SOME PT.primTypesId, tagTyId), [arg]),
-			CL.mkSwitch(CL.mkIndirect(arg, "_tag"), List.map genCase rules)
-		      ]
+		  dec (flds, stms, CL.mkVar name :: args)
 		end
-	    | gen (arg, E.TUPLE tys) = let
-		fun encode (i, ty) = gen (CL.mkIndirect(arg, Util.posName lab), ty)
-		in
-		  List.mapi encode tys
-		end
-	    | gen (arg, E.RECORD fields) = let
-		fun encode (lab, ty) = gen (CL.mkIndirect(arg, Util.fieldName lab), ty)
-		in
-		  List.map encode fields
-		end
-	    | gen (arg, E.OPTION ty) =
-		CL.mkIf(
-		  CL.mkBinOp(CL.mkVar "nullptr", CL.#==, arg),
-		  CL.mkCall("asdl::encode_tag8", [osV, CL.mkInt 0]),
-		  if Util.isBoxed(#2 ty)
-		    then genStm (arg, ty)
-		    else genStm (CL.mkIndirectDispatch(arg, "value", [])))
-	    | gen (arg, E.SEQUENCE ty) = [
-		  CL.mkCall("asdl::encode_uint", [osV, CL.mkIndirectDispatch(arg, "size", [])]),
-		  CL.mkFor(
-		    CL.autoTy, ["it", CL.mkIndirectDispatch(arg, "cbegin", [])],
-		    CL.mkBinOp(CL.mkVar "it", CL.#!=, CL.mkIndirectDispatch(arg, "cend", [])),
-		    CL.mkUnOp(CL.%++, CL.mkVar "it"),
-		    genStm (CL.mkUnOp(CL.%*, CL.mkVar "it"), ty))
-		]
-	    | gen (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | gen (arg, E.BASE ty) = funApp (baseEncode ty, [bufV, arg])
-	  and genRule (tag, conId, optArg) = let
-		val encTag = funApp(
-		      baseEncode(SOME PT.primTypesId, PT.uintTyId),
-		      [bufV, S.NUMexp("0w" ^ Int.toString tag)])
-		val conName = ConV.getName conId
-		in
-		  case optArg
-		   of NONE => (S.IDpat conName, encTag)
-		    | SOME(E.TUPLE tys) => let
-			val args = List.mapi (fn (i, _) => "x"^Int.toString i) tys
-			val pat = S.CONpat(
-			      conName,
-			      S.tuplePat(List.map S.IDpat args))
-			val exp = S.SEQexp(encTag :: ListPair.map gen' (args, tys))
-			in
-			  (pat, exp)
-			end
-		    | SOME(E.RECORD flds) => let
-			val pat = S.CONpat(
-			      conName,
-			      S.RECORDpat{
-				  fields = List.map (fn fld => (#1 fld, S.IDpat(#1 fld))) flds,
-				  flex = false
-				})
-			val exp = S.SEQexp(encTag :: List.map gen' flds)
-			in
-			  (pat, exp)
-			end
-		    | SOME ty => (S.CONpat(conName, S.IDpat "x"), S.SEQexp[encTag, gen'("x", ty)])
-		  (* end case *)
-		end
-	  and gen' (x, ty) = gen (S.IDexp x, ty)
 	  in
-	    if Util.isEnum tyId
-	      then CL.mkFuncDcl(
-		CL.voidTy, encName,
-		[osParam, CL.PARAM([], constRefTyf(CL.T_Named(TyV.getName id)), "v")],
-		gen' (mkVar "v"))
-	      else CL.mkMethDcl(TyV.getName id, CL.voidTy, encName, [osParam], body)
+	    dec (fields, [], [])
+	  end
+      | decodeFields (E.RECORD fields) = let
+	  fun dec ([], stms, args) = (List.rev stms, List.rev args)
+	    | dec ((label, ty)::flds, stms, args) = let
+		val name = "f" ^ label
+		val stms = List.revAppend (decodeTy(name, ty), stms)
+		in
+		  dec (flds, stms, CL.mkVar name :: args)
+		end
+	  in
+	    dec (fields, [], [])
 	  end
 
-    and genDecoder (tyId, encoding) = let
-	  val decName = TyV.getDecoder tyId
-	  val sliceP = S.IDpat "slice"
-	  val sliceV = S.IDexp "slice"
-	  fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
-	    | baseDecode (SOME modId, tyId) = concat[
-		  ModV.getPickleName modId, ".", TyV.getDecoder tyId
-		]
-	  fun gen (E.SWITCH rules) = let
-		val decodeTag = funApp(
-		      baseDecode(SOME PT.primTypesId, PT.uintTyId),
-		      [sliceV])
-		val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
-		in
-		  S.caseExp(decodeTag, List.map genRule rules @ [dfltRule])
-		end
-	    | gen (E.TUPLE tys) = genTuple (tys, fn x => x)
-	    | gen (E.RECORD fields) = genRecord (fields, fn x => x)
-	    | gen (E.OPTION ty) =
-		S.appExp(
-		  funApp ("decode_option", [S.IDexp(baseDecode ty)]),
-		  sliceV)
-	    | gen (E.SEQUENCE ty) =
-		S.appExp(
-		  funApp ("decode_list", [S.IDexp(baseDecode ty)]),
-		  sliceV)
-	    | gen (E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | gen (E.BASE ty) = funApp (baseDecode ty, [sliceV])
-	  and genRule (tag, conId, optArg) = let
-		val conName = ConV.getName conId
-		val pat = pairPat(S.NUMpat("0w"^Int.toString tag), sliceP)
-		in
-		  case optArg
-		   of NONE => (pat, pairExp(S.IDexp conName, sliceV))
-		    | SOME(E.TUPLE tys) =>
-			(pat, genTuple(tys, fn x => S.appExp(S.IDexp conName, x)))
-		    | SOME(E.RECORD fields) =>
-			(pat, genRecord(fields, fn x => S.appExp(S.IDexp conName, x)))
-		    | SOME ty => (pat, gen ty)
-		  (* end case *)
-		end
-	  and genTuple (tys, k) = let
-		val xs = List.mapi (fn (i, _) => "x"^Int.toString i) tys
-		val decs = ListPair.map
-		      (fn (x, ty) => S.VALdec(pairPat(S.IDpat x, sliceP), gen ty))
-			(xs, tys)
-		in
-		  S.LETexp(decs, pairExp (k(S.TUPLEexp(List.map S.IDexp xs)), sliceV))
-		end
-	  and genRecord (fields, k) = let
-		val decs = List.map
-		      (fn (lab, ty) => S.VALdec(pairPat(S.IDpat lab, sliceP), gen ty))
-			fields
-		val fields = List.map (fn (lab, _) => (lab, S.IDexp lab)) fields
-		in
-		  S.LETexp(decs, pairExp (k(S.RECORDexp fields), sliceV))
-		end
-	  in
-	    S.simpleFB(decName, ["slice"], gen encoding)
-	  end
-*)
+  (* generate code for decoding a type expression *)
+    and decodeTy (x, E.OPTION ty) = [] (* FIXME *)
+      | decodeTy (x, E.SEQUENCE ty) = [] (* FIXME *)
+      | decodeTy (x, E.SHARED ty) = raise Fail "shared types not supported yet"
+      | decodeTy (x, E.BASE ty) = [CL.mkDeclInit(CL.autoTy, x, decode ty)]
+
+  (* generate code for pickling a type expression *)
+    and encodeTy (arg, E.OPTION(optModId, tyId)) = [] (* FIXME *)
+      | encodeTy (arg, E.SEQUENCE(optModId, tyId)) = [] (* FIXME *)
+      | encodeTy (arg, E.SHARED _) = raise Fail "shared types not supported yet"
+      | encodeTy (arg, E.BASE(optModId, tyId)) = [encode (optModId, tyId, arg)]
 
   end
 

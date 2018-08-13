@@ -183,6 +183,9 @@ structure SML =
     fun tuplePat [p] = p
       | tuplePat ps = TUPLEpat ps
 
+    val unitPat = TUPLEpat[]
+    val unitExp = TUPLEexp[]
+
   end
 
 

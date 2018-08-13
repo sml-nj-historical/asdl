@@ -81,6 +81,8 @@ structure GenTypes : sig
 	    case !def
 	     of AST.EnumTy cons =>
 		  genEnumClass (name, cons) @ dcls
+	      | AST.SumTy{attribs, cons=[AST.Constr{id, fields, ...}]} =>
+		  genProdClass (name, attribs@fields) :: dcls
 	      | AST.SumTy{attribs, cons} =>
 		  genBaseClass (id, name, attribs, cons) ::
 		  List.foldr (genConsClass (name, attribs)) dcls cons

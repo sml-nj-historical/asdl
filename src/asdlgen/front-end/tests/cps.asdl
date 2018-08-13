@@ -31,8 +31,8 @@ module CTypes {
       | C_signed (c_int)
       | C_PTR
       | C_ARRAY (c_type, int)
-      | C_STRUCT (c_type list)
-      | C_UNION (c_type list)
+      | C_STRUCT (c_type*)
+      | C_UNION (c_type*)
 
     c_int
       = I_char
