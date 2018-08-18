@@ -11,6 +11,10 @@
 #ifndef _ASDL_INTEGER_HXX_
 #define _ASDL_INTEGER_HXX_
 
+#ifndef _ASDL_HXX_
+#  error do not include "asdl-integer.hxx" directly; instead include "asdl.hxx"
+#endif
+
 #if defined(ASDL_USE_GNU_MP)
 #  include <gmp.h>
 #endif
@@ -36,8 +40,8 @@ namespace asdl {
 	uint64_t toUInt64 ();
 
       private:
-#if define(ASDL_USE_GNU_MP)
-	mpz_class _rep;
+#if defined(ASDL_USE_GNU_MP)
+	mpz_ptr _rep;
 #endif
     };
 
@@ -76,8 +80,8 @@ namespace asdl {
     {
     }
 
-    __GMP_DEFINE_BINARY_FUNCTION_UI(operator<<, __gmp_binary_lshift)
-    __GMP_DEFINE_BINARY_FUNCTION_UI(operator>>, __gmp_binary_rshift)
+//    __GMP_DEFINE_BINARY_FUNCTION_UI(operator<<, __gmp_binary_lshift)
+//    __GMP_DEFINE_BINARY_FUNCTION_UI(operator>>, __gmp_binary_rshift)
 
     bool operator== (integer const &a, integer const &b)
     {
@@ -124,11 +128,11 @@ namespace asdl {
     {
     }
 
-    __GMPZ_DEFINE_COMPOUND_OPERATOR_UI(operator<<=, __gmp_binary_lshift)
-    __GMPZ_DEFINE_COMPOUND_OPERATOR_UI(operator>>=, __gmp_binary_rshift)
+//    __GMPZ_DEFINE_COMPOUND_OPERATOR_UI(operator<<=, __gmp_binary_lshift)
+//    __GMPZ_DEFINE_COMPOUND_OPERATOR_UI(operator>>=, __gmp_binary_rshift)
 
-    __GMPZ_DEFINE_INCREMENT_OPERATOR(operator++, __gmp_unary_increment)
-    __GMPZ_DEFINE_INCREMENT_OPERATOR(operator--, __gmp_unary_decrement)
+//    __GMPZ_DEFINE_INCREMENT_OPERATOR(operator++, __gmp_unary_increment)
+//    __GMPZ_DEFINE_INCREMENT_OPERATOR(operator--, __gmp_unary_decrement)
 
 } // namespace asdl
 

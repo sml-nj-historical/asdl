@@ -11,12 +11,18 @@
 #ifndef _ASDL_HXX_
 #define _ASDL_HXX_
 
+#include "config.h"
+
 #include <string>
 #include <vector>
 #include <istream>
 #include <ostream>
 
 namespace asdl {
+
+  //! forward declarations of integer and identifier classes
+    class integer;
+    class identifier;
 
   //! exception for decoding error
     class decode_exception {
@@ -97,5 +103,8 @@ namespace asdl {
     std::string decode_string (instream &is);
 
 } // namespace asdl
+
+//#include "asdl-integer.hxx"
+//#include "asdl-identifier.hxx"
 
 #endif /* !_ASDL_HXX_ */

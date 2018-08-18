@@ -13,7 +13,7 @@ SHELL =			@SHELL@
 # paths to local installation directories
 #
 ASDL_LIBDIR =		@ASDL_LIBDIR@
-ASDL_INCDIR =		@ASDL_INCDIR@
+ASDL_INCDIR =		@ASDL_INCDIR@/asdl
 
 #
 # paths to installation directories
@@ -26,7 +26,7 @@ INSTALL =		@INSTALL@
 
 CXX =			@CXX@
 CXXFLAGS =		@CXXFLAGS@ @CXXFLAG_fPIC@
-CPPFLAGS =		-Iinclude
+CPPFLAGS =		@CPPFLAGS@ -Iinclude
 
 LD_STATIC =		@LD_STATIC@
 LD_DYNAMIC =		@LD_DYNAMIC@
@@ -51,12 +51,14 @@ local-install:	$(TARGETS)
 	$(INSTALL) -C -m 755 $(TARGETS) $(ASDL_LIBDIR)
 	$(INSTALL) -d $(ASDL_INCDIR)
 	$(INSTALL) -C -m 644 include/asdl/*hxx $(ASDL_INCDIR)
+	$(INSTALL) -C -m 644 include/asdl/config.h $(ASDL_INCDIR)
 
 install:	$(TARGETS)
 	$(INSTALL) -d $(INSTALL_LIBDIR)
 	$(INSTALL) -C -m 755 $(TARGETS) $(INSTALL_LIBDIR)
 	$(INSTALL) -d $(INSTALL_INCDIR)
 	$(INSTALL) -C -m 644 include/asdl/*hxx $(INSTALL_INCDIR)
+	$(INSTALL) -C -m 644 include/asdl/config.h $(INSTALL_INCDIR)
 
 #################### Cleanup ####################
 

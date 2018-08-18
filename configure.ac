@@ -33,7 +33,7 @@ ASDL_ROOT=`pwd`
 ASDL_MKDIR=$ASDL_ROOT/mk
 ASDL_BINDIR=$ASDL_ROOT/bin
 ASDL_LIBDIR=$ASDL_ROOT/lib
-ASDL_INCDIR=$ASDL_ROOT/include/asdl
+ASDL_INCDIR=$ASDL_ROOT/include
 ASDL_SRCDIR=$ASDL_ROOT/src
 ASDLGEN_SRCDIR=$ASDL_SRCDIR/asdlgen
 
@@ -140,6 +140,17 @@ AC_SUBST(SML)
 
 #################### end SML configuration ####################
 
+#################### Multiprecision integer configuration ####################
+
+# hack for now
+#
+AC_DEFINE(
+  [ASDL_USE_GNU_MP], 1,
+  [Define to 1 to use the GNU Multiprecision Library.])
+CPPFLAGS="$CPPFLAGS -I/opt/local/include"
+
+#################### end Multiprecision integer configuration ####################
+
 #################### Library configuration ####################
 
 dnl FIXME: this works for now, but we should probably switch to libtool
@@ -177,6 +188,26 @@ AC_SUBST(DSLEXT)
 
 #################### end Library configuration ####################
 
+#################### config.h ####################
+
+AH_TOP([
+/*
+ * This code is part of the SML/NJ System (http://smlnj.org)
+ *
+ * COPYRIGHT (c) 2018 The Fellowship of SML/NJ.
+ */
+
+#ifndef _ASDL_CONFIG_H_
+#define _ASDL_CONFIG_H_
+
+])
+AH_BOTTOM([
+
+#endif /* !_ASDL_CONFIG_H_ */
+])
+
+#################### end config.h ####################
+
 #################### write output ####################
 
 dnl The compiler Makefile depends on which SML system we are
@@ -208,6 +239,8 @@ dnl
 dnl
   src/asdlgen/common/config.sml:src/asdlgen/common/config_sml.in
 )
+
+AC_CONFIG_HEADERS(src/lib/cxx/include/asdl/config.h:config/config_h.in)
 
 dnl
 dnl shell scripts

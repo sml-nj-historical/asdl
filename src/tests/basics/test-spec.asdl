@@ -29,3 +29,4 @@ module TestSpec {
   tree = EMPTY
        | NODE(string value, tree left, tree right)
 }
+

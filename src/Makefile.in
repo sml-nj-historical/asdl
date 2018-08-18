@@ -9,13 +9,13 @@
 SHELL =			@SHELL@
 @SET_MAKE@
 
-BUILD_DIRS =		asdlgen lib tests
+BUILD_DIRS =		asdlgen lib
 
 include @ASDL_MKDIR@/subdir-build-rules.gmk
 
 #################### Cleanup ####################
 
-CLEAN_SUBDIRS =		$(BUILD_DIRS)
+CLEAN_SUBDIRS =		$(BUILD_DIRS) tests
 
 DISTCLEAN_FILES +=      Makefile
 
