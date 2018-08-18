@@ -1,8 +1,8 @@
-# Makefile for asdl-gen manual
+# Makefile for the asdl-gen manual (Version 3.0)
 #
 # This code is part of the SML/NJ system (http://smlnj.org)
 #
-# COPYRIGHT (c) 2016 The Fellowship of SML/NJ
+# COPYRIGHT (c) 2018 The Fellowship of SML/NJ
 # All rights reserved.
 #
 # @configure_input@

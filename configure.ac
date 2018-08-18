@@ -33,7 +33,7 @@ ASDL_ROOT=`pwd`
 ASDL_MKDIR=$ASDL_ROOT/mk
 ASDL_BINDIR=$ASDL_ROOT/bin
 ASDL_LIBDIR=$ASDL_ROOT/lib
-ASDL_INCDIR=$ASDL_ROOT/include
+ASDL_INCDIR=$ASDL_ROOT/include/asdl
 ASDL_SRCDIR=$ASDL_ROOT/src
 ASDLGEN_SRCDIR=$ASDL_SRCDIR/asdlgen
 
@@ -140,14 +140,53 @@ AC_SUBST(SML)
 
 #################### end SML configuration ####################
 
+#################### Library configuration ####################
+
+dnl FIXME: this works for now, but we should probably switch to libtool
+dnl
+AC_PATH_PROG(LD, [ld], [none])
+if test x$LD = xnone ; then
+  AC_MSG_ERROR([cannot find ld command])
+fi
+AC_SUBST(LD)
+
+dnl
+dnl OS-specific linking issues
+dnl
+CXXFLAG_fPIC=""
+case "$host_os" in
+  darwin*)
+    DSLEXT="dylib"
+    LD_STATIC=$LD
+    LD_DYNAMIC="$CXX -dynamiclib"
+  ;;
+  linux*)
+  # On Linux we include the -rpath option to pick up dynamically-loaded libraries
+  # and the -fPIC compiler flag to generate position-indenpendent code
+    CXXFLAG_fPIC="-fPIC"
+    DSLEXT="so"
+    LD_STATIC=$LD
+    LD_DYNAMIC="$CXX -shared"
+  ;;
+esac
+
+AC_SUBST(LD_STATIC)
+AC_SUBST(LD_DYNAMIC)
+AC_SUBST(CXXFLAG_fPIC)
+AC_SUBST(DSLEXT)
+
+#################### end Library configuration ####################
+
 #################### write output ####################
 
 dnl The compiler Makefile depends on which SML system we are
 dnl using.
 if test x"$SML" = xmlton ; then
   SRC_MAKEFILE_IN=":src/asdlgen/Makefile_mlton.in"
+  FRAGMENTS_MAKEFILE="src/gen/fragments/Makefile"
 else
   SRC_MAKEFILE_IN=""
+  FRAGMENTS_MAKEFILE=""
 fi
 
 AC_CONFIG_FILES(
@@ -158,7 +197,13 @@ dnl ***** Makefiles *****
   doc/manual-2.0/Makefile
   doc/manual-3.0/Makefile
   examples/Makefile
+  src/Makefile
   src/asdlgen/Makefile$SRC_MAKEFILE_IN
+  $FRAGMENTS_MAKEFILE
+  src/lib/Makefile
+  src/lib/cxx/Makefile
+  src/tests/Makefile
+  src/tests/basics/Makefile
 dnl
 dnl
   src/asdlgen/common/config.sml:src/asdlgen/common/config_sml.in

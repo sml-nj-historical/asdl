@@ -2,7 +2,7 @@
 #
 # This code is part of the SML/NJ system (http://smlnj.org)
 #
-# COPYRIGHT (c) 2016 The Fellowship of SML/NJ
+# COPYRIGHT (c) 2018 The Fellowship of SML/NJ
 # All rights reserved.
 #
 # @configure_input@
@@ -13,12 +13,12 @@ SHELL =			@SHELL@
 
 INSTALL =		@INSTALL@
 
-BUILD_DIRS =		src doc examples
+BUILD_DIRS =		src doc
 
 INSTALL_DIR =		@prefix@
 INSTALL_BINDIR =	$(PREFIX)/bin
 INSTALL_HEAPDIR =	$(INSTALL_BINDIR)/.heap
-INSTALL_WRAPPER =	@top_srcdir@/bin/install-sml-wrapper.sh
+INSTALL_WRAPPER =	@ASDL_BINDIR@/install-sml-wrapper.sh
 SML =			@SMLNJ_CMD@
 ML_BUILD =		@ML_BUILD@
 
@@ -43,29 +43,29 @@ help:
 	@echo "  devclean      -- remove everything that is not part of the SVN"
 	@echo "                   repository."
 
-local-install:	build doc examples
+local-install:	$(BUILD_DIRS)
 	for dir in $(BUILD_DIRS); do \
 	  (cd $$dir && $(MAKE) local-install) || exit $$?; \
 	done
 
-install:	build doc examples
+install:	$(BUILD_DIRS)
 	mkdir -p $(INSTALL_DIR)
 	for dir in $(BUILD_DIRS); do \
 	  (cd $$dir && $(MAKE) install) || exit $$?; \
 	done
 
-build:
+build:		$(BUILD_DIRS) examples doc
 	(cd src && $(MAKE) build) || exit $$?
 
 doc:
-	(cd doc; $(MAKE))
+	(cd doc; $(MAKE) pdf)
 
 examples:
-	(cd examples; $(MAKE))
+	(cd examples; $(MAKE) build)
 
 #################### Cleanup ####################
 
-CLEAN_SUBDIRS =		$(BUILD_DIRS)
+CLEAN_SUBDIRS =		$(BUILD_DIRS) examples
 
 CLEAN_FILES =
 

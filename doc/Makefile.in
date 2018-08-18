@@ -8,17 +8,28 @@
 # @configure_input@
 #
 
-SHELL =			/bin/sh
-PREFIX =		@prefix@
+SHELL =		/bin/sh
+PREFIX =	@prefix@
 
-DOC_DIRS =		manual
+DIRS =		manual-3.0
+
+.PHONY:		pdf local-install install
 
 pdf:
 	for dir in $(DIRS) ; do \
 	    (cd $$dir; make pdf) \
 	done
 
-clean:
-	for dir in $(DIRS) ; do \
-	    (cd $$dir; make clean) \
-	done
+local-install:
+
+install:
+
+#################### Cleanup ####################
+
+CLEAN_SUBDIRS =		$(DIRS)
+
+DISTCLEAN_FILES +=      Makefile
+
+DEVCLEAN_FILES =
+
+include @ASDL_MKDIR@/clean-rules.gmk

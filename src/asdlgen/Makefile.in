@@ -9,14 +9,28 @@
 #
 
 SHELL =			/bin/sh
+@SET_MAKE@
+INSTALL =		@INSTALL@
+
+#
+# paths to local installation directories
+#
+ASDL_BINDIR =		@ASDL_BINDIR@
+
+#
+# paths to installation directories
+#
 PREFIX =		@prefix@
 INSTALL_BINDIR =	$(PREFIX)/bin
-INSTALL_HEAPDIR =	$(INSTALL_BINDIR)/.heap
-INSTALL_WRAPPER =	@ASDL_ROOT@/bin/install-sml-wrapper.sh
+
+#
+# paths to commands
+#
 SML =			@SMLNJ_CMD@
 ML_BUILD =		@ML_BUILD@
 ML_MAKEDEPEND =		@ML_MAKEDEPEND@
 ML_MAKEDEPEND_FLAGS =
+INSTALL_WRAPPER =	@ASDL_ROOT@/bin/install-sml-wrapper.sh
 
 #
 # generator tools
@@ -48,16 +62,20 @@ SRCDIR =		@ASDLGEN_SRCDIR@
 TARGET =		$(SRCDIR)/$(PROGRAM)
 HEAP =			$(TARGET).@SMLNJ_HEAP_SUFFIX@
 
-INSTALL=@INSTALL@
 
-.PHONY:		build
+.PHONY:		build local-install install \
+		clean local-distclean local-devclean
+
 build:		$(HEAP)
 
-$(HEAP):  .depend $(CODE_FRAG_MKFILES)
-	$(ML_BUILD) driver/sources.cm Main.main $(PROGRAM)
+local-install:	$(HEAP)
+	$(INSTALL_WRAPPER) $(TARGET) $(ASDL_BINDIR)
 
 install:	$(HEAP)
 	$(INSTALL_WRAPPER) $(TARGET) $(INSTALL_BINDIR)
+
+$(HEAP):  .depend $(CODE_FRAG_MKFILES)
+	$(ML_BUILD) driver/sources.cm Main.main $(PROGRAM)
 
 #
 # Rules for generating the fragment dependency and source files
@@ -102,4 +120,3 @@ DISTCLEAN_FILES +=      Makefile \
 DEVCLEAN_FILES =
 
 include @ASDL_MKDIR@/clean-rules.gmk
-
