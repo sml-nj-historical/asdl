@@ -173,7 +173,6 @@ structure Typecheck : sig
 	  checkTyDecl (markCxt(cxt, span), env, optTyId, tree)
       | checkTyDecl (cxt, env, SOME tyId, tyDcl) = let
 	  val SOME(dcl as AST.TyDcl{def, ...}) = TyId.bindingOf tyId
-	  val owner = AST.LocalTy dcl
 	(* check for recursive product types; reports an error and returns true
          * if there is a recursive chain of product types.
          *)
@@ -222,7 +221,7 @@ structure Typecheck : sig
 				then NONE
 				else let
 				  val id = ConId.new tree
-				  val constr = AST.Constr{id = id, owner = owner, fields = []}
+				  val constr = AST.Constr{id = id, owner = tyId, fields = []}
 				  in
 				    Env.insertConstr (env, id);
 				    ConId.bind (id, constr);
@@ -243,7 +242,7 @@ structure Typecheck : sig
 				else let
 				  val id = ConId.new tree
 				  val fields' = checkFields (cxt, env, attribs', fields)
-				  val constr = AST.Constr{id = id, owner = owner, fields = fields'}
+				  val constr = AST.Constr{id = id, owner = tyId, fields = fields'}
 				  in
 				    Env.insertConstr (env, id);
 				    ConId.bind (id, constr);

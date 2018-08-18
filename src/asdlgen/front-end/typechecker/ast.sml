@@ -69,7 +69,7 @@ structure AST =
 
     and constructor = Constr of {
 	    id : ConstrId.t,
-	    owner : named_ty,
+	    owner : TypeId.t,
 	    fields : field list		(* fields of the constructor (includes attribs) *)
 	  }
 

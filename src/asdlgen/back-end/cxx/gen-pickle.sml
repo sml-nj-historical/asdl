@@ -91,8 +91,8 @@ structure GenPickle : sig
 			CL.mkBlock[])
 		  val unpickler = CL.mkFuncDcl (
 			ty, U.enumUnpickler name,
-			[osParam],
-			CL.mkReturn(SOME(CL.mkVar(ConV.getName conId))))
+			[isParam],
+			CL.mkReturn(SOME(CL.mkVar(U.enumConstrName conId))))
 		  in
 		    pickler :: unpickler :: dcls
 		  end
@@ -108,7 +108,7 @@ structure GenPickle : sig
 			  CL.mkStaticCast(CL.T_Named(TyV.getName tagTyId), CL.mkVar "v")))
 		  val unpickler = CL.mkFuncDcl (
 			ty, U.enumUnpickler name,
-			[osParam],
+			[isParam],
 			CL.mkReturn(SOME(
 			  CL.mkStaticCast(ty, decode (SOME PT.primTypesId, tagTyId)))))
 		  in
@@ -131,7 +131,7 @@ structure GenPickle : sig
 			in
 			  CL.mkFuncDcl (
 			    cTy, TyV.getDecoder id,
-			    [osParam],
+			    [isParam],
 			    CL.mkBlock(stms @ [CL.mkReturn(SOME vv)]))
 			end
 		  in
@@ -168,7 +168,7 @@ structure GenPickle : sig
 		CL.mkDeclInit(tagTy, "tag",
 		  CL.mkStaticCast(tagTy, decode (SOME PT.primTypesId, E.tagTyId nCons))) :: body
 	  val unpickler = CL.D_Func (
-		["static"], ptrTy, [CL.SC_Type ty], "decode", [isParam],
+		[], ptrTy, [CL.SC_Type ty], "decode", [isParam],
 		SOME(CL.mkBlock body))
 	  in
 	    [unpickler]

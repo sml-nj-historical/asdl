@@ -188,13 +188,13 @@ structure GenTypes : sig
 		val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
 		in
 		  CL.D_ClassDef{
-		      name = name, args = NONE, from = SOME baseName,
+		      name = name, args = NONE, from = SOME("public " ^ baseName),
 		      public = constr ::
 			destr ::
 			pickleMeth ::
 			addCode (ConV.getPublicCode id, accessMeths),
-		      protected = addCode (ConV.getProtectedCode id, List.map genField attribs),
-		      private = addCode (ConV.getPrivateCode id, [])
+		      protected = addCode (ConV.getProtectedCode id, []),
+		      private = addCode (ConV.getPrivateCode id, List.map genField fields)
 		    } :: dcls
 		end
 	  in

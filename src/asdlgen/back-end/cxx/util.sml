@@ -16,6 +16,9 @@ structure Util : sig
     val enumPickler : string -> string
     val enumUnpickler : string -> string
 
+  (* name of a enum constant *)
+    val enumConstrName : AST.ConstrId.t -> string
+
   (* constructor tags for sum tyes *)
     val constrTagName : AST.ConstrId.t -> string
     val tagFieldName : string
@@ -65,6 +68,12 @@ structure Util : sig
   (* default pickler/unpickler names for an enumeration type *)
     fun enumPickler name = "encode_" ^ name
     fun enumUnpickler name = "decode_" ^ name
+
+    fun enumConstrName id = let
+	  val SOME(AST.Constr{owner, ...}) = AST.ConstrId.bindingOf id
+	  in
+	    concat[TyV.getName owner, "::", V.Constr.getName id]
+	  end
 
     fun constrTagName id = "_con_" ^ V.Constr.getName id
 

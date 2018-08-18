@@ -116,21 +116,43 @@ structure CxxView : sig
 		  end
 	    in
 	      List.app set [
+		(* primitive type bool *)
 		  (PTy.boolTyId,	PN.name,	"bool"),
 		  (PTy.boolTyId,	PN.boxed,	"false"),
+		  (PTy.boolTyId,	PN.encoder,	"encode_bool"),
+		  (PTy.boolTyId,	PN.decoder,	"decode_bool"),
+		(* primitive type int *)
 		  (PTy.intTyId,		PN.name,	"int"),
 		  (PTy.intTyId,		PN.boxed,	"false"),
+		  (PTy.intTyId,		PN.encoder,	"encode_int"),
+		  (PTy.intTyId,		PN.decoder,	"decode_int"),
+		(* primitive type uint *)
 		  (PTy.uintTyId,	PN.name,	"unsigned int"),
 		  (PTy.uintTyId,	PN.boxed,	"false"),
+		  (PTy.uintTyId,	PN.encoder,	"encode_uint"),
+		  (PTy.uintTyId,	PN.decoder,	"decode_uint"),
+		(* primitive type integer *)
 		  (PTy.integerTyId,	PN.name,	"asdl::integer"),
-		  (PTy.integerTyId,	PN.boxed,	"true"),
+		  (PTy.integerTyId,	PN.boxed,	"false"),
+		  (PTy.integerTyId,	PN.encoder,	"encode_integer"),
+		  (PTy.integerTyId,	PN.decoder,	"decode_integer"),
+		(* primitive type identifier *)
 		  (PTy.identifierTyId,	PN.name,	"asdl::identifier"),
-		  (PTy.identifierTyId,	PN.boxed,	"true"),
+		  (PTy.identifierTyId,	PN.boxed,	"false"),
+		  (PTy.identifierTyId,	PN.encoder,	"encode_identifier"),
+		  (PTy.identifierTyId,	PN.decoder,	"decode_identifier"),
+		(* primitive type string *)
 		  (PTy.stringTyId,	PN.name,	"std::string"),
 		  (PTy.stringTyId,	PN.boxed,	"false"),
+		  (PTy.stringTyId,	PN.encoder,	"encode_string"),
+		  (PTy.stringTyId,	PN.decoder,	"decode_string"),
+		(* internal type tag8 *)
+		  (PTy.tag8TyId,	PN.name,	"unsigned int"),
 		  (PTy.tag8TyId,	PN.encoder,	"encode_tag8"),
 		  (PTy.tag8TyId,	PN.decoder,	"decode_tag8"),
 		  (PTy.tag8TyId,	PN.boxed,	"false"),
+		(* internal type tag16 *)
+		  (PTy.tag16TyId,	PN.name,	"unsigned int"),
 		  (PTy.tag16TyId,	PN.encoder,	"encode_tag16"),
 		  (PTy.tag16TyId,	PN.decoder,	"decode_tag16"),
 		  (PTy.tag16TyId,	PN.boxed,	"false")
