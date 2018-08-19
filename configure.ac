@@ -142,12 +142,14 @@ AC_SUBST(SML)
 
 #################### Multiprecision integer configuration ####################
 
-# hack for now
+# HACK: for now we just hardwire gmp from MacPorts
 #
 AC_DEFINE(
   [ASDL_USE_GNU_MP], 1,
   [Define to 1 to use the GNU Multiprecision Library.])
 CPPFLAGS="$CPPFLAGS -I/opt/local/include"
+LDFLAGS="$LDFLAGS -L/opt/local/lib"
+LIBS="-lgmp"
 
 #################### end Multiprecision integer configuration ####################
 

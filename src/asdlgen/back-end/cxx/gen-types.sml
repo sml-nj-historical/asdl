@@ -184,8 +184,7 @@ structure GenTypes : sig
 		val constr = CL.mkConstrDcl(
 		      name, List.map U.fieldToParam fields,
 		      baseInit id :: List.map genFieldInit extra, CL.mkBlock[])
-(* FIXME: eventually we need something better for the destructor *)
-		val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
+		val destr = CL.mkDestrProto name
 		in
 		  CL.D_ClassDef{
 		      name = name, args = NONE, from = SOME("public " ^ baseName),
@@ -215,8 +214,8 @@ structure GenTypes : sig
 	  val constr = CL.mkConstrDcl(
 		name, List.map U.fieldToParam fields,
 		List.map genFieldInit fields, CL.mkBlock[])
-(* FIXME: eventually we need something better for the destructor *)
-	  val destr = CL.D_Destr([], [], name, SOME(CL.mkBlock[]))
+	(* destructor prototype *)
+	  val destr = CL.mkDestrProto name
 	  in
 	    CL.D_ClassDef{
 		name = name, args = NONE, from = NONE,
@@ -231,5 +230,3 @@ structure GenTypes : sig
 	  end
 
   end
-
-

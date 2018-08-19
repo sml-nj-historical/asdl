@@ -81,30 +81,32 @@ namespace asdl {
 	os.putb(static_cast<unsigned char>(ui >> 8));
 	os.putb(static_cast<unsigned char>(ui));
     }
-    void encode_string (outstream & os, std::string const &s);
+    void encode_string (outstream & os, std::string const & s);
+    void encode_integer (outstream & os, integer const & i);
 
   // decode basic values
-    bool decode_bool (instream &is)
+    bool decode_bool (instream & is)
     {
 	return (is.getc() != 0);
     }
-    int decode_int (instream &is);
-    unsigned int decode_uint (instream &is);
-    unsigned int decode_tag8 (instream &is)
+    int decode_int (instream & is);
+    unsigned int decode_uint (instream & is);
+    unsigned int decode_tag8 (instream & is)
     {
 	return is.getb();
     }
-    unsigned int decode_tag16 (instream &is)
+    unsigned int decode_tag16 (instream & is)
     {
 	unsigned int b0 = is.getb();
 	unsigned int b1 = is.getb();
 	return (b0 << 8) + b1;
     }
-    std::string decode_string (instream &is);
+    std::string decode_string (instream & is);
+    integer decode_integer (instream & is);
 
 } // namespace asdl
 
-//#include "asdl-integer.hxx"
+#include "asdl-integer.hxx"
 //#include "asdl-identifier.hxx"
 
 #endif /* !_ASDL_HXX_ */

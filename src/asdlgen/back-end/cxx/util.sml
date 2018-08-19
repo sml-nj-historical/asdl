@@ -24,6 +24,8 @@ structure Util : sig
     val tagFieldName : string
 
   (* names of components for tuples and records *)
+    val tupleFieldName : int -> string
+    val recordFieldName : string -> string
     val fieldName : AST.label -> string
     val fieldGetName : AST.label -> string
     val fieldSetName : AST.label -> string
@@ -79,8 +81,12 @@ structure Util : sig
 
     val tagFieldName = "_tag"
 
-    fun fieldName (AST.Pos i) = "_v" ^ Int.toString i
-      | fieldName (AST.Lab lab) = "_v_" ^ lab
+    fun tupleFieldName i = "_v" ^ Int.toString i
+
+    fun recordFieldName lab = "_v_" ^ lab
+
+    fun fieldName (AST.Pos i) = tupleFieldName i
+      | fieldName (AST.Lab lab) = recordFieldName lab
 
     fun fieldGetName (AST.Pos i) = "get_" ^ Int.toString i
       | fieldGetName (AST.Lab lab) = "get_" ^ lab
