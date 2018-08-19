@@ -14,11 +14,69 @@
 
 namespace asdl {
 
-    void encode_int (outstream & os, int i);
+    void encode_int (outstream & os, int i)
+    {
+	assert ((-536870912 <= i) && (i < 536870912));
+	unsigned int sign, ui;
+	if (i < 0) {
+	    sign = 0x20;
+	    ui = -i;
+	} else {
+	    sign = 0;
+	    ui = i;
+	}
+	if (ui <= 0x1f) { // one byte
+	    os.putb (static_cast<unsigned char>(sign | ui));
+	}
+	else if (ui <= 0x1fff) { // two bytes
+	    os.putb (static_cast<unsigned char>(0x40 | sign | (ui >> 8)));
+	    os.putb (static_cast<unsigned char>(ui));
+	}
+	else if (ui <= 0x1fffff) { // three bytes
+	    os.putb (static_cast<unsigned char>(0x80 | sign | (ui >> 16)));
+	    os.putb (static_cast<unsigned char>(ui >> 8));
+	    os.putb (static_cast<unsigned char>(ui));
+	}
+	else { // four bytes
+	    assert (ui <= 0x1fffffff);
+	    os.putb (static_cast<unsigned char>(0xc0 | sign | (ui >> 24)));
+	    os.putb (static_cast<unsigned char>(ui >> 16));
+	    os.putb (static_cast<unsigned char>(ui >> 8));
+	    os.putb (static_cast<unsigned char>(ui));
+	}
 
-    void encode_uint (outstream & os, unsigned int ui);
+    }
 
-    void encode_string (outstream & os, std::string const &s);
+    void encode_uint (outstream & os, unsigned int ui)
+    {
+	if (ui <= 0x3f) { // one byte
+	    os.putb (static_cast<unsigned char>(ui));
+	}
+	else if (ui <= 0x3fff) { // two bytes
+	    os.putb (static_cast<unsigned char>(0x40 | (ui >> 8)));
+	    os.putb (static_cast<unsigned char>(ui));
+	}
+	else if (ui <= 0x3fffff) { // three bytes
+	    os.putb (static_cast<unsigned char>(0x80 | (ui >> 16)));
+	    os.putb (static_cast<unsigned char>(ui >> 8));
+	    os.putb (static_cast<unsigned char>(ui));
+	}
+	else { // four bytes
+	    assert (ui <= 0x3fffffff);
+	    os.putb (static_cast<unsigned char>(0xc0 | (ui >> 24)));
+	    os.putb (static_cast<unsigned char>(ui >> 16));
+	    os.putb (static_cast<unsigned char>(ui >> 8));
+	    os.putb (static_cast<unsigned char>(ui));
+	}
+    }
+
+    void encode_string (outstream & os, std::string const &s)
+    {
+	encode_uint (os, s.length());
+	for (auto it = s.cbegin(); it != s.cend(); ++it) {
+	    os.putb(static_cast<unsigned char>(*it));
+	}
+    }
 
     int decode_int (instream &is)
     {
@@ -53,6 +111,15 @@ namespace asdl {
 	return v;
     }
 
-    std::string decode_string (instream &is);
+    std::string decode_string (instream &is)
+    {
+	std::string result;
+	unsigned int len = decode_uint(is);
+	result.reserve(len);
+	for (unsigned int i = 0;  i < len;  i++) {
+	    result.push_back(is.getc());
+	}
+	return result;
+    }
 
 } // namespace asdl

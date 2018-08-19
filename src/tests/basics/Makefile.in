@@ -15,8 +15,8 @@ ASDLGEN =		@ASDL_BINDIR@/asdl-gen
 CXX =			@CXX@
 CXXFLAGS =		@CXXFLAGS@
 CPPFLAGS =		@CPPFLAGS@ -I@ASDL_INCDIR@
-LDFLAGS =		@LDFLAGS@
-LIBS =			@LIBS@
+LDFLAGS =		@LDFLAGS@ -L$(ASDL_LIBDIR)
+LIBS =			@LIBS@ -lasdl
 
 CXX_SRCS =          	cxx-test.cxx test-spec.cxx
 CXX_OBJS =          	$(patsubst %.cxx,%.o,$(CXX_SRCS))
