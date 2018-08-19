@@ -1,10 +1,10 @@
-(* asdl-pickle.sig
+(* asdl-pickle-io.sig
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *)
 
-signature ASDL_PICKLE =
+signature ASDL_PICKLE_IO =
   sig
 
     val writeBool : BinIO.outstream * ASDL.bool -> unit

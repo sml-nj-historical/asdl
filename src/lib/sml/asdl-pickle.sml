@@ -37,6 +37,9 @@ structure ASDLPickle : ASDL_PICKLE =
 	    | _ => raise ASDL.DecodeError
 	  (* end case *))
 
+  (* encode an unsigned signed integer.  We assume that the value is in the
+   * range 0..2^30 - 1
+   *)
     fun encodeUInt (buf, w) = if (w <= 0wx3f)
 	    then W8B.add1(buf, toByte w)
 	  else if (w <= 0wx3fff)
@@ -81,10 +84,12 @@ structure ASDLPickle : ASDL_PICKLE =
 
   (* encode a signed integer.  We assume that the value is in the range -2^29..2^29 - 1 *)
     fun encodeInt (buf, n) = let
-	  val (sign, w)) = if (n < 0) then (0wx20, W.fromInt(~n)) else (0w0, Word.fromInt n)
+	  val (sign, w) = if (n < 0)
+		then (0wx20, W.fromInt(~n))
+		else (0w0, Word.fromInt n)
 	  in
 	    if (w <= 0wx1f)
-	      then W8B.add1(buf, toByte(sign ++ w)))
+	      then W8B.add1(buf, toByte(sign ++ w))
 	    else if (w <= 0wx1fff)
 	      then ( (* two bytes *)
 		W8B.add1(buf, toByte(0wx40 ++ sign ++ (w >> 0w8)));
@@ -107,8 +112,8 @@ structure ASDLPickle : ASDL_PICKLE =
 	  val isNeg = (b0 & 0wx20 <> 0w0)
 	  val res = b0 & 0wx1f
 	  fun return (w, slice) = if (b0 & 0wx20 <> 0w0)
-		then (~(Int.fromWordX w), slice)
-		else (Int.fromWordX w, slice)
+		then (~(Word.toIntX w), slice)
+		else (Word.toIntX w, slice)
 	  in
 	    if (nb = 0w0) then return(res, slice)
 	    else let
@@ -130,24 +135,30 @@ structure ASDLPickle : ASDL_PICKLE =
 	      end
 	  end
 
-(* TODO
-    val encodeInteger : Word8Buffer.buffer * ASDL.integer -> unit
-    val decodeInteger : Word8VectorSlice.slice -> ASDL.integer * Word8VectorSlice.slice
+    fun encodeInteger (buf, i) = raise Fail "FIXME"
+    fun decodeInteger slice = raise Fail "FIXME"
 
-    val encodeString : Word8Buffer.buffer * ASDL.string -> unit
-    val decodeString : Word8VectorSlice.slice -> ASDL.string * Word8VectorSlice.slice
+    fun encodeString (buf, s) = (
+	  encodeUInt(buf, Word.fromInt(size s));
+	  W8B.addVec(buf, Byte.stringToBytes s))
 
-    val encodeIdentifier : Word8Buffer.buffer * ASDL.identifier -> unit
-    val decodeIdentifier : Word8VectorSlice.slice -> ASDL.identifier * Word8VectorSlice.slice
-*)
+    fun decodeString slice = raise Fail "FIXME"
+
+    fun encodeIdentifier (buf, id) = encodeString (buf, Atom.toString id)
+
+    fun decodeIdentifier slice = let
+	  val (s, rest) = decodeString slice
+	  in
+	    (Atom.atom s, rest)
+	  end
 
   (* utility functions for sum-type tags *)
     fun encodeTag8 (buf, tag) = W8B.add1(buf, toByte tag)
-    val decodeTag8 slice = getByte slice
-    val encodeTag16 (buf, tag) = (
+    fun decodeTag8 slice = getByte slice
+    fun encodeTag16 (buf, tag) = (
 	  W8B.add1(buf, toByte(tag >> 0w8));
 	  W8B.add1(buf, toByte tag));
-    val decodeTag16 slice = let
+    fun decodeTag16 slice = let
 	  val (b0, slice) = getByte slice
 	  val (b1, slice) = getByte slice
 	  in
