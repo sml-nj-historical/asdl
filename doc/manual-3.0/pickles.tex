@@ -51,18 +51,15 @@ linearly with a simple prefix encoding.
     0 to 16383 unsigned in two bytes, \etc{}
 
   \item[integer] \mbox{}\\
-    Since \asdl{} integers are intended to be of infinite precision they are
-    represented with a variable-length, signed-magnitude encoding.
-    The eight bit of each byte indicates if a given byte is the last byte of
-    the integer encoding.
+    Since the \asdl{} \lstinline!integer! type is infinite precision, they are
+    represented with a variable-length, big-endian, signed-magnitude encoding.
+    The high bit of each byte indicates if the byte is the last byte of
+    the encoding.
     The seventh bit of the most significant byte is used to determine the
     sign of the value.
-    Thus, numbers in the range of -63 to 63 can be encoded in one byte.
+    Thus, numbers in the range of -63 to 63 are encoded in one byte.
     Numbers outside of this range require an extra byte for every seven bits
     of precision required.
-    Bytes are written out in little-endian order.
-    If most integer values tend to be values near zero, this encoding of integers
-    will use less space than a fixed precision representation.
 
   \item[string] \mbox{}\\
     Strings are represented with a length-header that describe how many more
@@ -109,6 +106,8 @@ linearly with a simple prefix encoding.
     For any other base type, there is an initial byte that is either one or zero.
     A zero indicates that the value is empty and no more data follows.
     A one indicates that the next value is the value of the optional value.
+
+  \item[alias types] \mbox{} \\
 
   \item[primitive types] \mbox{}\\
     User-defined primitive types are pickled/unpickled by user-provided functions (see

@@ -58,15 +58,17 @@ The following is a list of the major changes from the 2.0 version of \asdl{}
 and \asdlgen{}:
 \begin{itemize}
   \item
-    The primitive types where extended and changed.
+    The primitive types were extended and changed.
     The \lstinline!bool! type was added, the type name of arbitrary precision integers
     was changed to \lstinline!integer!, and the types \lstinline!int! and \lstinline!uint!
     were added to represent small integers.
   \item
+    Various changed were made to the binary encoding of pickles.
+  \item
     Currently only two target languages are supported: \sml{} and \Cplusplus{}.
   \item
     The generated \Cplusplus{} code targets the 2011 standard and uses the
-    STL (\eg{}, \lstinline[language=C++]!std::vector<>! for \asdl{} sequences).
+    \Cplusplus{} STL (\eg{}, \lstinline[language=C++]!std::vector<>! for \asdl{} sequences).
   \item
     Data can be pickled/unpickled to/from memory, as well as files.
     This change affects the requirements for implementing primitive modules.
