@@ -10,6 +10,7 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
     structure W = Word
     structure W8 = Word8
     structure W8B = Word8Buffer
+    structure W8V = Word8Vector
     structure W8S = Word8VectorSlice
 
     val << = W.<< and >> = W.>>
@@ -144,7 +145,14 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
 	  writeUInt(outS, Word.fromInt(size s));
 	  BinIO.output(outS, Byte.stringToBytes s))
 
-    fun readString intS = raise Fail "FIXME"
+    fun readString inS = let
+	  val len = W.toIntX (readUInt inS)
+	  val bytes = BinIO.inputN (inS, len)
+	  in
+	    if W8V.length bytes <> len
+	      then raise ASDL.DecodeError
+	      else Byte.bytesToString bytes
+	  end
 
     fun writeIdentifier (outS, id) = writeString (outS, Atom.toString id)
 

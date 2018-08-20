@@ -29,17 +29,26 @@ Since \asdl{} data structures have a tree-like form, they can be represented
 linearly with a simple prefix encoding.
 
 \begin{description}
-  \item[int/uint] \mbox{}\\
-    The \lstinline!int! and \lstinline!uint! types provide 30-bits of signed/unsigned
-    precision encoded in one to four bytes.
-    The top two bits of the first byte specifies the number of additional bytes in
-    the encoding.
-    Thus values in the range -32 to 31 (0 to 63 unsigned) can be encoded in one byte,
-    -2048 to 2047 (0 to 2095 unsigned) in two bytes, \etc{}
-
   \item[bool] \mbox{}\\
     Boolean values are represented by \lstinline!0! (false) or \lstinline!1! (true)
-    and are encoded as \lstinline!uint! values.
+    and are encoded in one byte.
+
+ \item[int] \mbox{}\\
+    The \lstinline!int! type provides 30-bits of signed precision encoded in one to
+    four bytes.
+    The top two bits of the first byte (bit~6--7) specify the number of additional
+    bytes in the encoding and bit~5 specifies the sign of the number.
+    Thus values in the range -32 to 31 can be encoded in one byte,
+    -8192 to 8191 in two bytes, \etc{}
+    A negative number $n$ is represented as the positive number $-(n+1)$.
+
+  \item[uint] \mbox{}\\
+    The \lstinline!uint! type provides 30-bits of unsigned precision encoded in one
+    to four bytes.
+    As with the \lstinline!int! type, the top two bits of the first byte specify the
+    number of additional bytes in the encoding.
+    Thus values in the range 0 to 63 can be encoded in one byte,
+    0 to 16383 unsigned in two bytes, \etc{}
 
   \item[integer] \mbox{}\\
     Since \asdl{} integers are intended to be of infinite precision they are
@@ -68,27 +77,38 @@ linearly with a simple prefix encoding.
     Product types are represented sequentially without any tag.
     The fields of the product type are packed from left to right.
 
+  \item[enumeration types] \mbox{}\\
+
   \item[sum types] \mbox{}\\
     Sum types begin with a unique tag to identify the constructor
-    followed sequentially by the fields of the constructor.
-    Tag values are assigned based on the order of constructor definition in the
-    description.
-    The first constructor has a tag value of zero.
+    followed by the fields of the constructor.
+    The tag is encoded as either one (\lstinline!tag8!) or two (\lstinline!tag16!)
+    bytes, depending on the number of constructors in the type.
+    Tag values are assigned in order of constructor definition starting from one (the
+    value zero is used to encode empty option values).
     Fields are packed left to right based of the order in the definition.
     If there are any attribute values associated with the type, they are packed left to right
     after the tag but before other constructor fields.
-    The tag is encoded as a \lstinline!uint! value.
+    
+    There are two special cases for sum-type encodings.
+    If the sum types is an enumeration with only one constructor, then no space is used to
+    encode the value, and if the type has a single constructor with fields, then it is
+    encoded without a tag (\ie{}, like a product type).
 
   \item[sequence types] \mbox{}\\
     Sequence types are represented with an integer length-header followed by
     that many values of that type.
-    The length-header is encoded as a \lstinline!uint! value.
+    The length-header is encoded as a \lstinline!uint! value, thus sequences are limited
+    to 1,073,741,823 items.
 
   \item[option types] \mbox{}\\
-    Optional values are preceded by an integer header that is either one or zero.
+    The encoding of optional values depends on the base type.
+    For sum types with more than one constructor, the special tag value of zero is
+    used to denote an empty value and non-zero values are interpreted as
+    the constructor's tag.
+    For any other base type, there is an initial byte that is either one or zero.
     A zero indicates that the value is empty and no more data follows.
     A one indicates that the next value is the value of the optional value.
-    The header is encoded as a \lstinline!uint! value.
 
   \item[primitive types] \mbox{}\\
     User-defined primitive types are pickled/unpickled by user-provided functions (see
@@ -99,6 +119,28 @@ linearly with a simple prefix encoding.
 It is also possible to generate a text-based representation of pickles in S-Expression
 syntax.
 
+\begin{description}
+  \item[bool] \mbox{}\\
+
+  \item[numbers] \mbox{}\\
+    The ASDL numeric types (\lstinline!int!, \lstinline!uint!, and \lstinline!integer!)
+    are represented by decimal literals.
+
+  \item[string and identifier] \mbox{}\\
+    These values are represented by string literals.
+
+  \item[enumeration types] \mbox{}\\
+    
+  \item[sum types] \mbox{}\\
+
+  \item[sequence types] \mbox{}\\
+
+  \item[option types] \mbox{}\\
+
+  \item[primitive types] \mbox{}\\
+    User-defined primitive types are not yet supported in S-Expression form.
+    
+\end{description}%
 
 \section{XML Pickle Format}
 
