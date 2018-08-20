@@ -9,7 +9,7 @@
 SHELL =			@SHELL@
 @SET_MAKE@
 
-BUILD_DIRS =		basics
+BUILD_DIRS =		basics primitives
 
 .PHONY:		build local-install install
 

@@ -1,0 +1,18 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * All rights reserved.
+ *)
+
+Library
+
+  structure Main
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+
+  ../../lib/sml/asdl-lib.cm
+
+  sml-test.sml

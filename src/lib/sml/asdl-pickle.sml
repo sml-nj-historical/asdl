@@ -67,12 +67,12 @@ structure ASDLPickle : ASDL_PICKLE =
 	      val (b1, slice) = getByte slice
 	      val res = (res << 0w8) + b1
 	      in
-		if (nb = 0w1) then (res, slice)
+		if (nb = 0wx40) then (res, slice)
 		else let
 		  val (b2, slice) = getByte slice
 		  val res = (res << 0w8) + b2
 		  in
-		    if (nb = 0w2) then (res, slice)
+		    if (nb = 0wx80) then (res, slice)
 		    else let
 		      val (b3, slice) = getByte slice
 		      in
@@ -85,7 +85,7 @@ structure ASDLPickle : ASDL_PICKLE =
   (* encode a signed integer.  We assume that the value is in the range -2^29..2^29 - 1 *)
     fun encodeInt (buf, n) = let
 	  val (sign, w) = if (n < 0)
-		then (0wx20, W.fromInt(~n))
+		then (0wx20, W.fromInt(~(n+1)))
 		else (0w0, Word.fromInt n)
 	  in
 	    if (w <= 0wx1f)
@@ -112,7 +112,7 @@ structure ASDLPickle : ASDL_PICKLE =
 	  val isNeg = (b0 & 0wx20 <> 0w0)
 	  val res = b0 & 0wx1f
 	  fun return (w, slice) = if (b0 & 0wx20 <> 0w0)
-		then (~(Word.toIntX w), slice)
+		then (~(Word.toIntX w)-1, slice)
 		else (Word.toIntX w, slice)
 	  in
 	    if (nb = 0w0) then return(res, slice)
@@ -120,12 +120,12 @@ structure ASDLPickle : ASDL_PICKLE =
 	      val (b1, slice) = getByte slice
 	      val res = (res << 0w8) + b1
 	      in
-		if (nb = 0w1) then return(res, slice)
+		if (nb = 0wx40) then return(res, slice)
 		else let
 		  val (b2, slice) = getByte slice
 		  val res = (res << 0w8) + b2
 		  in
-		    if (nb = 0w2) then return(res, slice)
+		    if (nb = 0wx80) then return(res, slice)
 		    else let
 		      val (b3, slice) = getByte slice
 		      in
@@ -142,7 +142,15 @@ structure ASDLPickle : ASDL_PICKLE =
 	  encodeUInt(buf, Word.fromInt(size s));
 	  W8B.addVec(buf, Byte.stringToBytes s))
 
-    fun decodeString slice = raise Fail "FIXME"
+    fun decodeString slice = let
+	  val (len, slice) = decodeUInt slice
+	  val len = W.toIntX len
+	  val _ = if W8S.length slice < len then raise ASDL.DecodeError else ()
+	  val str = Byte.unpackStringVec(W8S.subslice(slice, 0, SOME len))
+	  val rest = W8S.subslice(slice, len, NONE)
+	  in
+	    (str, rest)
+	  end
 
     fun encodeIdentifier (buf, id) = encodeString (buf, Atom.toString id)
 

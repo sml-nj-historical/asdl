@@ -237,6 +237,7 @@ dnl ***** Makefiles *****
   src/lib/cxx/Makefile
   src/tests/Makefile
   src/tests/basics/Makefile
+  src/tests/primitives/Makefile
 dnl
 dnl
   src/asdlgen/common/config.sml:src/asdlgen/common/config_sml.in
