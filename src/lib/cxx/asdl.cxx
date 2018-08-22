@@ -11,8 +11,32 @@
  */
 
 #include "asdl/asdl.hxx"
+#include <fstream>
+#include <sstream>
 
 namespace asdl {
+
+    file_outstream::file_outstream (std::string const &file)
+	: outstream(new std::ofstream(file, std::ios_base::out | std::ios_base::binary))
+    {
+// FIXME: need to check for failure
+    }
+
+    memory_outstream::memory_outstream (std::string const &data)
+	: outstream(new std::ostringstream(data, std::ios_base::out | std::ios_base::binary))
+    {
+    }
+
+    file_instream::file_instream (std::string const &file)
+	: instream(new std::ifstream(file, std::ios_base::in | std::ios_base::binary))
+    {
+// FIXME: need to check for failure
+    }
+
+    memory_instream::memory_instream (std::string const &data)
+	: instream(new std::istringstream(data, std::ios_base::in | std::ios_base::binary))
+    {
+    }
 
     void encode_int (outstream & os, int i)
     {
