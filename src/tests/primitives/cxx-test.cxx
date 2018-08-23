@@ -107,6 +107,16 @@ void check_string (std::string const &x)
     check<std::string>("string", asdl::encode_string, asdl::decode_string, x);
 }
 
+void check_tag8 (unsigned int x)
+{
+    check<unsigned int>("tag8", asdl::encode_tag8, asdl::decode_tag8, x);
+}
+
+void check_tag16 (unsigned int x)
+{
+    check<unsigned int>("tag16", asdl::encode_tag16, asdl::decode_tag16, x);
+}
+
 int main ()
 {
 
@@ -141,9 +151,25 @@ int main ()
     check_uint (0x1000000);
     check_uint (0x3fffffff);	// upper bound
 
+/* TODO: integer */
+
     check_string ("");
     check_string (" ");
     check_string ("hello world\n");
+
+/* TODO: identifier */
+
+    check_tag8 (0);
+    check_tag8 (1);
+    check_tag8 (17);
+    check_tag8 (255);		// upper bound
+
+    check_tag16 (0);
+    check_tag16 (1);
+    check_tag16 (17);
+    check_tag16 (255);
+    check_tag16 (256);
+    check_tag16 (65535);	// upper bound
 
     return 0;
 }
