@@ -45,86 +45,87 @@ namespace asdl {
 #endif
     };
 
-    integer operator+ (integer const &a)
+#ifdef XXX
+    inline integer operator+ (integer const &a)
     {
     }
-    integer operator- (integer const &a)
+    inline integer operator- (integer const &a)
     {
     }
-    integer operator~ (integer const &a)
+    inline integer operator~ (integer const &a)
     {
     }
 
-    integer operator+ (integer const &a, integer const &b)
+    inline integer operator+ (integer const &a, integer const &b)
     {
     }
-    integer operator- (integer const &a, integer const &b)
+    inline integer operator- (integer const &a, integer const &b)
     {
     }
-    integer operator* (integer const &a, integer const &b)
+    inline integer operator* (integer const &a, integer const &b)
     {
     }
-    integer operator/ (integer const &a, integer const &b)
+    inline integer operator/ (integer const &a, integer const &b)
     {
     }
-    integer operator% (integer const &a, integer const &b)
+    inline integer operator% (integer const &a, integer const &b)
     {
     }
-    integer operator& (integer const &a, integer const &b)
+    inline integer operator& (integer const &a, integer const &b)
     {
     }
-    integer operator| (integer const &a, integer const &b)
+    inline integer operator| (integer const &a, integer const &b)
     {
     }
-    integer operator^ (integer const &a, integer const &b)
+    inline integer operator^ (integer const &a, integer const &b)
     {
     }
 
 //    __GMP_DEFINE_BINARY_FUNCTION_UI(operator<<, __gmp_binary_lshift)
 //    __GMP_DEFINE_BINARY_FUNCTION_UI(operator>>, __gmp_binary_rshift)
 
-    bool operator== (integer const &a, integer const &b)
+    inline bool operator== (integer const &a, integer const &b)
     {
     }
-    bool operator!= (integer const &a, integer const &b)
+    inline bool operator!= (integer const &a, integer const &b)
     {
     }
-    bool operator< (integer const &a, integer const &b)
+    inline bool operator< (integer const &a, integer const &b)
     {
     }
-    bool operator<= (integer const &a, integer const &b)
+    inline bool operator<= (integer const &a, integer const &b)
     {
     }
-    bool operator> (integer const &a, integer const &b)
+    inline bool operator> (integer const &a, integer const &b)
     {
     }
-    bool operator>= (integer const &a, integer const &b)
-    {
-    }
-
-    integer & operator+= (integer const &a, integer const &b)
-    {
-    }
-    integer & operator-= (integer const &a, integer const &b)
-    {
-    }
-    integer & operator*= (integer const &a, integer const &b)
-    {
-    }
-    integer & operator/= (integer const &a, integer const &b)
-    {
-    }
-    integer & operator%= (integer const &a, integer const &b)
+    inline bool operator>= (integer const &a, integer const &b)
     {
     }
 
-    integer & operator&= (integer const &a, integer const &b)
+    inline integer & operator+= (integer const &a, integer const &b)
     {
     }
-    integer & operator|= (integer const &a, integer const &b)
+    inline integer & operator-= (integer const &a, integer const &b)
     {
     }
-    integer & operator^= (integer const &a, integer const &b)
+    inline integer & operator*= (integer const &a, integer const &b)
+    {
+    }
+    inline integer & operator/= (integer const &a, integer const &b)
+    {
+    }
+    inline integer & operator%= (integer const &a, integer const &b)
+    {
+    }
+
+    inline integer & operator&= (integer const &a, integer const &b)
+    {
+    }
+    inline integer & operator|= (integer const &a, integer const &b)
+    {
+    }
+    inline integer & operator^= (integer const &a, integer const &b)
     {
     }
 
@@ -133,6 +134,8 @@ namespace asdl {
 
 //    __GMPZ_DEFINE_INCREMENT_OPERATOR(operator++, __gmp_unary_increment)
 //    __GMPZ_DEFINE_INCREMENT_OPERATOR(operator--, __gmp_unary_decrement)
+
+#endif
 
 } // namespace asdl
 

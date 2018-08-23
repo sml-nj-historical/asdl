@@ -82,7 +82,7 @@ namespace asdl {
   //! ASDL memory outstream
     class memory_outstream : public outstream {
       public:
-	explicit memory_outstream (std::string const &data);
+	explicit memory_outstream ();
 
       // no copying allowed!
 	memory_outstream (memory_outstream const &) = delete;
@@ -165,17 +165,17 @@ namespace asdl {
   /***** functions *****/
 
   // encode basic values
-    void encode_bool (outstream & os, bool b)
+    inline void encode_bool (outstream & os, bool b)
     {
-	if (b) { os.putb(0); } else { os.putb(1); }
+	if (b) { os.putb(1); } else { os.putb(0); }
     }
     void encode_int (outstream & os, int i);
     void encode_uint (outstream & os, unsigned int ui);
-    void encode_tag8 (outstream & os, unsigned int ui)
+    inline void encode_tag8 (outstream & os, unsigned int ui)
     {
 	os.putb(static_cast<unsigned char>(ui));
     }
-    void encode_tag16 (outstream & os, unsigned int ui)
+    inline void encode_tag16 (outstream & os, unsigned int ui)
     {
 	os.putb(static_cast<unsigned char>(ui >> 8));
 	os.putb(static_cast<unsigned char>(ui));
@@ -184,17 +184,17 @@ namespace asdl {
     void encode_integer (outstream & os, integer const & i);
 
   // decode basic values
-    bool decode_bool (instream & is)
+    inline bool decode_bool (instream & is)
     {
 	return (is.getc() != 0);
     }
     int decode_int (instream & is);
     unsigned int decode_uint (instream & is);
-    unsigned int decode_tag8 (instream & is)
+    inline unsigned int decode_tag8 (instream & is)
     {
 	return is.getb();
     }
-    unsigned int decode_tag16 (instream & is)
+    inline unsigned int decode_tag16 (instream & is)
     {
 	unsigned int b0 = is.getb();
 	unsigned int b1 = is.getb();

@@ -13,6 +13,7 @@
 #include "asdl/asdl.hxx"
 #include <fstream>
 #include <sstream>
+#include <iostream> // for debuggging
 
 namespace asdl {
 
@@ -22,9 +23,14 @@ namespace asdl {
 // FIXME: need to check for failure
     }
 
-    memory_outstream::memory_outstream (std::string const &data)
-	: outstream(new std::ostringstream(data, std::ios_base::out | std::ios_base::binary))
+    memory_outstream::memory_outstream ()
+	: outstream(new std::ostringstream(std::ios_base::out | std::ios_base::binary))
     {
+    }
+
+    std::string memory_outstream::get_pickle () const
+    {
+	return static_cast<std::ostringstream *>(this->_os)->str();
     }
 
     file_instream::file_instream (std::string const &file)
@@ -44,7 +50,7 @@ namespace asdl {
 	unsigned int sign, ui;
 	if (i < 0) {
 	    sign = 0x20;
-	    ui = -i;
+	    ui = -(i+1);
 	} else {
 	    sign = 0;
 	    ui = i;
@@ -62,7 +68,6 @@ namespace asdl {
 	    os.putb (static_cast<unsigned char>(ui));
 	}
 	else { // four bytes
-	    assert (ui <= 0x1fffffff);
 	    os.putb (static_cast<unsigned char>(0xc0 | sign | (ui >> 24)));
 	    os.putb (static_cast<unsigned char>(ui >> 16));
 	    os.putb (static_cast<unsigned char>(ui >> 8));
@@ -114,7 +119,7 @@ namespace asdl {
 	    break;
 	}
 	if ((b0 & 0x20) != 0) {
-	    return -static_cast<int>(v);
+	    return -static_cast<int>(v) - 1;
 	}
 	else {
 	    return static_cast<int>(v);
