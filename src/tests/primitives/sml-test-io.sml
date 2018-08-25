@@ -1,28 +1,28 @@
-(* sml-test.sml
+(* sml-test-io.sml
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * Test primitive pickling operations from the ASDL library.
+ * Test primitive pickling I/O operations from the ASDL library.
  *)
 
-structure Test =
+structure TestIO =
   struct
 
     local
-      structure Pkl = ASDLPickle
+      structure Pkl = ASDLPickleIO
     (* pickle/unpickle identity *)
       fun ident (pickle, unpickle) x = let
-	    val buf = Word8Buffer.new 100
-	    val _ = pickle (buf, x)
-	    val (y, rest) = unpickle (Word8VectorSlice.full(Word8Buffer.contents buf))
+	    val file = OS.FileSys.tmpName()
+	    val outS = BinIO.openOut file
+	    val _ = pickle (outS, x) handle exn => (BinIO.closeOut outS; raise exn)
+	    val _ = BinIO.closeOut outS
+	    val inS = BinIO.openIn file
+	    val y = unpickle inS handle exn => (BinIO.closeIn inS; raise exn)
+	    val _ = BinIO.closeIn inS
 	    in
-	      if Word8VectorSlice.length rest <> 0
-		then raise Fail(concat[
-		    Int.toString(Word8VectorSlice.length rest),
-		    " excess bytes after unpickling"
-		  ])
-		else y
+	      OS.FileSys.remove file;
+	      y
 	    end
     (* check that the pickle/unpickle cycle preserves values *)
       fun check name (toStr, same, pick, unpick) x = let
@@ -37,14 +37,14 @@ structure Test =
     in
   (* booleans *)
     fun chkBool () = let
-	  val chk = check "boolean" (Bool.toString, op =, Pkl.encodeBool, Pkl.decodeBool)
+	  val chk = check "boolean" (Bool.toString, op =, Pkl.writeBool, Pkl.readBool)
 	  in
 	    chk true;
 	    chk false
 	  end
   (* int *)
     fun chkInt () = let
-	  val chk = check "int" (Int.toString, op =, Pkl.encodeInt, Pkl.decodeInt)
+	  val chk = check "int" (Int.toString, op =, Pkl.writeInt, Pkl.readInt)
 	  in
 	    chk 0;
 	    chk ~1;
@@ -67,7 +67,7 @@ structure Test =
   (* uint *)
     fun chkUInt () = let
 	  fun toS w = "0x" ^ Word.toString w
-	  val chk = check "uint" (toS, op =, Pkl.encodeUInt, Pkl.decodeUInt)
+	  val chk = check "uint" (toS, op =, Pkl.writeUInt, Pkl.readUInt)
 	  in
 	    chk 0w0;
 	    chk 0w1;
@@ -82,7 +82,7 @@ structure Test =
   (* integer *)
     fun chkInteger () = let
 	  val chk = check "integer"
-		(IntInf.toString, op =, Pkl.encodeInteger, Pkl.decodeInteger)
+		(IntInf.toString, op =, Pkl.writeInteger, Pkl.readInteger)
 	  in
 	    chk 0;
 	    chk ~1;
@@ -106,7 +106,7 @@ structure Test =
   (* string *)
     fun chkString () = let
 	  fun toS s = String.concat["\"", String.toString s, "\""]
-	  val chk = check "string" (toS, op =, Pkl.encodeString, Pkl.decodeString)
+	  val chk = check "string" (toS, op =, Pkl.writeString, Pkl.readString)
 	  in
 	    chk "";
 	    chk " ";
@@ -116,7 +116,7 @@ structure Test =
     fun chkIdentifier () = let
 	  fun toS s = String.concat["\"", String.toString(Atom.toString s), "\""]
 	  val chk = check "identifier"
-		(toS, Atom.same, Pkl.encodeIdentifier, Pkl.decodeIdentifier)
+		(toS, Atom.same, Pkl.writeIdentifier, Pkl.readIdentifier)
 	  in
 	    chk (Atom.atom "");
 	    chk (Atom.atom "x");
@@ -126,7 +126,7 @@ structure Test =
   (* tag8 *)
     fun chkTag8 () = let
 	  fun toS w = "0x" ^ Word.toString w
-	  val chk = check "tag8" (toS, op =, Pkl.encodeTag8, Pkl.decodeTag8)
+	  val chk = check "tag8" (toS, op =, Pkl.writeTag8, Pkl.readTag8)
 	  in
 	    chk 0w0;
 	    chk 0w1;
@@ -136,7 +136,7 @@ structure Test =
   (* tag16 *)
     fun chkTag16 ()= let
 	  fun toS w = "0x" ^ Word.toString w
-	  val chk = check "tag8" (toS, op =, Pkl.encodeTag16, Pkl.decodeTag16)
+	  val chk = check "tag8" (toS, op =, Pkl.writeTag16, Pkl.readTag16)
 	  in
 	    chk 0w0;
 	    chk 0w1;
@@ -157,19 +157,5 @@ structure Test =
 	  chkIdentifier ();
 	  chkTag8 ();
 	  chkTag16 ())
-
-  (* functions to support interactive debugging *)
-    local
-      structure Pkl = ASDLPickle
-      fun toBytes pickle x = let
-	    val buf = Word8Buffer.new 100
-	    in
-	      pickle (buf, x);
-	      Word8Vector.toList(Word8Buffer.contents buf)
-	    end
-    in
-    val intToBytes = toBytes Pkl.encodeInt
-    val uintToBytes = toBytes Pkl.encodeUInt
-    end (* local *)
 
   end

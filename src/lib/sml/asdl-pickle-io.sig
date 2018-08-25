@@ -31,4 +31,8 @@ signature ASDL_PICKLE_IO =
     val writeTag16 : BinIO.outstream * word -> unit
     val readTag16 : BinIO.instream -> word
 
+  (* pickle to/from files *)
+    val toFile : (BinIO.outstream * 'a -> unit) -> (string * 'a) -> unit
+    val fromFile : (BinIO.instream -> 'a) -> string -> 'a
+
   end

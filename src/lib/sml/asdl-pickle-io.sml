@@ -9,9 +9,7 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
 
     structure W = Word
     structure W8 = Word8
-    structure W8B = Word8Buffer
     structure W8V = Word8Vector
-    structure W8S = Word8VectorSlice
 
     val << = W.<< and >> = W.>>
     val ++ = W.orb
@@ -69,12 +67,12 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
 	      val b1 = readByte inS
 	      val res = (res << 0w8) + b1
 	      in
-		if (nb = 0w1) then res
+		if (nb = 0wx40) then res
 		else let
 		  val b2 = readByte inS
 		  val res = (res << 0w8) + b2
 		  in
-		    if (nb = 0w2) then res
+		    if (nb = 0wx80) then res
 		    else let
 		      val b3 = readByte inS
 		      in
@@ -88,7 +86,7 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
   (* encode a signed integer.  We assume that the value is in the range -2^29..2^29 - 1 *)
     fun writeInt (outS, n) = let
 	  val (sign, w) = if (n < 0)
-		then (0wx20, W.fromInt(~n))
+		then (0wx20, W.fromInt(~(n+1)))
 		else (0w0, Word.fromInt n)
 	  in
 	    if (w <= 0wx1f)
@@ -115,7 +113,7 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
 	  val isNeg = (b0 & 0wx20 <> 0w0)
 	  val res = b0 & 0wx1f
 	  fun return w = if (b0 & 0wx20 <> 0w0)
-		then ~(Word.toIntX w)
+		then ~1 - Word.toIntX w
 		else Word.toIntX w
 	  in
 	    if (nb = 0w0) then return res
@@ -123,12 +121,12 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
 	      val b1 = readByte inS
 	      val res = (res << 0w8) + b1
 	      in
-		if (nb = 0w1) then return res
+		if (nb = 0wx40) then return res
 		else let
 		  val b2 = readByte inS
 		  val res = (res << 0w8) + b2
 		  in
-		    if (nb = 0w2) then return res
+		    if (nb = 0wx80) then return res
 		    else let
 		      val b3 = readByte inS
 		      in
@@ -138,8 +136,49 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
 	      end
 	  end
 
-    fun writeInteger outS = raise Fail "FIXME"
-    fun readInteger intS = raise Fail "FIXME"
+    fun writeInteger (outS, n) = let
+	  val (sign, n) = if n < 0 then (0wx40, ~n) else (0wx00, n)
+	(* convert to sequence of 7-bit chunks in big-endian order.  Note that
+	 * first chunk in result is only 6 bits to allow for the sign.
+	 *)
+	  fun lp (n, bs) = if (n < 64)
+		then output (W.fromLargeInt n ++ sign, bs)
+		else lp (IntInf.~>>(n, 0w7), (W.fromLargeInt n & 0wx7f) :: bs)
+	(* output bytes to buffer with continuation bits set as necessary *)
+	  and output (b, []) = BinIO.output1(outS, toByte b)
+	    | output (b, b'::br) = (
+		BinIO.output1(outS, toByte(0wx80 ++ b));
+		output(b', br))
+	  in
+	    lp (n, [])
+	  end
+
+    fun readInteger inS = let
+	(* get first byte, which include sign *)
+	  val b0 = readByte inS
+	(* mask out sign bit *)
+	  val b0' = (b0 & 0wxbf)
+	  val sign = (b0 <> b0')
+	  fun return n = if sign then ~n else n
+	(* get bytes in big-endian order *)
+	  fun lp n = let
+		val b = readByte inS
+	      (* mask out continuation bit *)
+		val b' = (b & 0wx7f)
+		val n = n + W.toLargeInt b'
+		in
+		  if (b = b')
+		    then return n
+		    else lp (IntInf.<<(n, 0w7))
+		end
+	(* initial byte *)
+	  val b0'' = (b0' & 0wx3f)
+	  val n = W.toLargeInt b0''
+	  in
+	    if (b0'' = b0')
+	      then return n (* only one byte *)
+	      else lp (IntInf.<<(n, 0w7))
+	  end
 
     fun writeString (outS, s) = (
 	  writeUInt(outS, Word.fromInt(size s));
@@ -165,5 +204,19 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
 	  BinIO.output1(outS, toByte(tag >> 0w8));
 	  BinIO.output1(outS, toByte tag));
     fun readTag16 inS = ((readByte inS) << 0w8) ++ (readByte inS)
+
+    fun toFile write (file, x) = let
+	  val outS = BinIO.openOut file
+	  in
+	    write (outS, x) handle exn => (BinIO.closeOut outS; raise exn);
+	    BinIO.closeOut outS
+	  end
+
+    fun fromFile read file = let
+	  val inS = BinIO.openIn file
+	  in
+	    (read inS handle exn => (BinIO.closeIn inS; raise exn))
+	    before BinIO.closeIn inS
+	  end
 
   end

@@ -6,7 +6,8 @@
 
 Library
 
-  structure Main
+  structure Test
+  structure TestIO
 
 is
 
@@ -16,3 +17,5 @@ is
   ../../lib/sml/asdl-lib.cm
 
   sml-test.sml
+  sml-test-io.sml
+

@@ -31,4 +31,10 @@ signature ASDL_PICKLE =
     val encodeTag16 : Word8Buffer.buf * word -> unit
     val decodeTag16 : Word8VectorSlice.slice -> word * Word8VectorSlice.slice
 
+  (* pickle to/from a vector *)
+    val toVector : (Word8Buffer.buf * 'a -> unit) -> 'a -> Word8Vector.vector
+    val fromVector : (Word8VectorSlice.slice -> 'a * Word8VectorSlice.slice)
+	  -> Word8Vector.vector
+	  -> 'a
+
   end

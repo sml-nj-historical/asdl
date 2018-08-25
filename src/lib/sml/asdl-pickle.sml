@@ -135,8 +135,49 @@ structure ASDLPickle : ASDL_PICKLE =
 	      end
 	  end
 
-    fun encodeInteger (buf, i) = raise Fail "FIXME"
-    fun decodeInteger slice = raise Fail "FIXME"
+    fun encodeInteger (buf, n) = let
+	  val (sign, n) = if n < 0 then (0wx40, ~n) else (0wx00, n)
+	(* convert to sequence of 7-bit chunks in big-endian order.  Note that
+	 * first chunk in result is only 6 bits to allow for the sign.
+	 *)
+	  fun lp (n, bs) = if (n < 64)
+		then output (W.fromLargeInt n ++ sign, bs)
+		else lp (IntInf.~>>(n, 0w7), (W.fromLargeInt n & 0wx7f) :: bs)
+	(* output bytes to buffer with continuation bits set as necessary *)
+	  and output (b, []) = W8B.add1(buf, toByte b)
+	    | output (b, b'::br) = (
+		W8B.add1(buf, toByte(0wx80 ++ b));
+		output(b', br))
+	  in
+	    lp (n, [])
+	  end
+
+    fun decodeInteger slice = let
+	(* get first byte, which include sign *)
+	  val (b0, slice) = getByte slice
+	(* mask out sign bit *)
+	  val b0' = (b0 & 0wxbf)
+	  val sign = (b0 <> b0')
+	  fun return (n, slice) = if sign then (~n, slice) else (n, slice)
+	(* get bytes in big-endian order *)
+	  fun lp (slice, n) = let
+		val (b, slice) = getByte slice
+	      (* mask out continuation bit *)
+		val b' = (b & 0wx7f)
+		val n = n + W.toLargeInt b'
+		in
+		  if (b = b')
+		    then return (n, slice)
+		    else lp (slice, IntInf.<<(n, 0w7))
+		end
+	(* initial byte *)
+	  val b0'' = (b0' & 0wx3f)
+	  val n = W.toLargeInt b0''
+	  in
+	    if (b0'' = b0')
+	      then return (n, slice) (* only one byte *)
+	      else lp (slice, IntInf.<<(n, 0w7))
+	  end
 
     fun encodeString (buf, s) = (
 	  encodeUInt(buf, Word.fromInt(size s));
@@ -172,5 +213,15 @@ structure ASDLPickle : ASDL_PICKLE =
 	  in
 	    ((b0 << 0w8) ++ b1, slice)
 	  end
+
+  (* encode to a vector *)
+    fun toVector encode x = let
+	  val buf = W8B.new 64
+	  in
+	    encode (buf, x);
+	    W8B.contents buf
+	  end
+
+    fun fromVector decode v = let val (x, _) = decode (W8S.full v) in x end
 
   end
