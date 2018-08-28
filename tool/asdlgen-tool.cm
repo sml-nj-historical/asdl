@@ -1,9 +1,9 @@
-(* asdl-gen.cm
+(* asdlgen-tool.cm
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * The CM plugin library for the ASDLgen tool.
+ * The CM plugin library for the asdlgen tool.
  *)
 
 Library
@@ -12,6 +12,7 @@ Library
 
 is
 
+  $/basis.cm
   $smlnj/cm/tools.cm
 
-  asdl-gen-tool.sml
+  asdlgen-tool.sml

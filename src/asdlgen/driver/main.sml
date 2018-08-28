@@ -3,7 +3,7 @@
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * The driver for asdl-gen.
+ * The driver for asdlgen.
  *)
 
 structure Main : sig

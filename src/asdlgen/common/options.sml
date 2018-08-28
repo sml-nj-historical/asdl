@@ -126,7 +126,7 @@ structure Options : sig
 
     fun usage () = let
           val hdr = concat[
-                  "usage: asdl-gen command [options] file ...\n",
+                  "usage: asdlgen command [options] file ...\n",
                   "  Version: ", Config.version, "\n",
                   "  Commands:\n",
 		  "    help\n",

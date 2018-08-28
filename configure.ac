@@ -6,7 +6,7 @@ dnl COPYRIGHT (c) 2018 The Fellowship of SML/NJ
 dnl All rights reserved.
 dnl
 
-AC_INIT(asdl-gen,3.0,)
+AC_INIT(asdl,3.0,)
 
 AC_PREREQ(2.60)
 AC_COPYRIGHT([[COPYRIGHT (c) 2018 The Fellowship of SML/NJ]])

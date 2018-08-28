@@ -1,4 +1,4 @@
-# Makefile for asdl-gen tool (using SML/NJ)
+# Makefile for asdlgen tool (using SML/NJ)
 #
 # This code is part of the SML/NJ system (http://smlnj.org)
 #
@@ -38,7 +38,7 @@ INSTALL_WRAPPER =	@ASDL_ROOT@/bin/install-sml-wrapper.sh
 MKMK =			@ASDL_SRCDIR@/gen/fragments/mkmk.sh
 MKFRAGS =		@ASDL_SRCDIR@/gen/fragments/mkfrags.sh
 
-PROGRAM =		asdl-gen
+PROGRAM =		asdlgen
 HEAP =			$(PROGRAM).@SMLNJ_HEAP_SUFFIX@
 ROOT_CM =		driver/sources.cm
 CM_FILES =		back-end/sml/sources.cm \

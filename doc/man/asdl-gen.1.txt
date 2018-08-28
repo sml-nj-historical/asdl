@@ -1,4 +1,4 @@
-ASDL-GEN(1)
+ASDLGEN(1)
 ===========
 :doctype:	manpage
 :man source:	ASDL
@@ -6,30 +6,30 @@ ASDL-GEN(1)
 
 NAME
 ----
-asdl-gen - compiler for the Abstract Syntax Description Language (ASDL).
+asdlgen - compiler for the Abstract Syntax Description Language (ASDL).
 
 
 SYNOPSIS
 --------
-*asdl-gen* *COMMAND* ['OPTIONS'] 'FILE' ...
+*asdlgen* *COMMAND* ['OPTIONS'] 'FILE' ...
 
 
 DESCRIPTION
 -----------
-The asdl-gen(1) command reads the specifies ASDL input files and performs the
+The asdlgen(1) command reads the specifies ASDL input files and performs the
 specified command on them.
 
 
 COMMANDS
 --------
 
-The first argument to the asdl-gen(1) tool must be one of the following *commands*:
+The first argument to the asdlgen(1) tool must be one of the following *commands*:
 
 *help*::
-  print information about the asdl-gen tool to the standard output.
+  print information about the asdlgen tool to the standard output.
 
 *version*::
-  print the version of of asdl-gen to the standard output.
+  print the version of of asdlgen to the standard output.
 
 *c++* or *cxx*::
   generate a C++ implementation of the ASDL modules.
@@ -58,7 +58,7 @@ Options common to all the commands include
   Set the maximum line width for pretty printing code.
   The default value is 90 characters.
 
-*--output-directory='DIR' or \texttt{-d} 'DIR'*::
+*--output-directory='DIR'* or *-d 'DIR'*::
   Specify the output directory to place the generated files.
   By default the output will be placed in the same directory as the
   input file from which it was produced.
@@ -89,5 +89,5 @@ AUTHOR
 
 The original version of ASDL was developed by Daniel Wang at Princeton University
 as part of the National Compiler Infrastructure project.  This version of ASDL
-and asdl-gen(1) is a complete redesign as part of the SML/NJ System.  See the
+and asdlgen(1) is a complete redesign as part of the SML/NJ System.  See the
 manual for details about the differences between versions.

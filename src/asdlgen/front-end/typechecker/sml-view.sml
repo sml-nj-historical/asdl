@@ -70,7 +70,7 @@ structure SMLView : sig
     val header =
 	  "(* @FILENAME@\n\
 	  \ *\n\
-	  \ * Generated from @SRCFILE@ by asdl-gen.\n\
+	  \ * Generated from @SRCFILE@ by asdlgen.\n\
 	  \ *)\n"
 
   (* set the default header property *)

@@ -1,4 +1,4 @@
-# Makefile for asdl-gen examples
+# Makefile for asdlgen examples
 #
 # This code is part of the SML/NJ system (http://smlnj.org)
 #
@@ -11,7 +11,7 @@
 SHELL =		/bin/sh
 PREFIX =	@prefix@
 
-ASDLGEN =	@ASDL_BINDIR@/asdl-gen
+ASDLGEN =	@ASDL_BINDIR@/asdlgen
 
 .PHONY:		build local-install install
 

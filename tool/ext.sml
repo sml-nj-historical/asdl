@@ -9,6 +9,7 @@
 structure ASDLExt =
   struct
 
-    val _ = Tools.registerClassifier (Tools.stdSfxClassifier { sfx = "asdl", class = "asdl" })
+    val _ = Tools.registerClassifier (
+		Tools.stdSfxClassifier { sfx = "asdl", class = "asdlgen" })
 
   end

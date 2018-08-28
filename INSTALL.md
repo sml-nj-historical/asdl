@@ -1,6 +1,6 @@
-# Installation guide for asdl-gen
+# Installation guide for asdlgen
 
-**asdl-gen** is written in *Standard ML* (SML); it can be compiled using either
+**asdlgen** is written in *Standard ML* (SML); it can be compiled using either
 the SML/NJ or MLton implementations of SML.
 
 The installation process involves first running the **configure** script

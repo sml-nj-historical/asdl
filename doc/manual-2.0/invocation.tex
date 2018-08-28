@@ -4,7 +4,7 @@
 \label{chap:invocation}
 
 \begin{quote}
-  \texttt{asdl-gen --\textit{command} [ \textit{command options} ] \textit{files} ...}
+  \texttt{asdlGen --\textit{command} [ \textit{command options} ] \textit{files} ...}
 \end{quote}%
 
 Where \texttt{\textit{command}} is one of
@@ -15,7 +15,7 @@ Where \texttt{\textit{command}} is one of
     \texttt{sml}
       & Generate Standard ML \\
     \texttt{haskell}
-      & Generate Haskell \\	
+      & Generate Haskell \\
     \texttt{java}
       & Generate Java \\
     \texttt{cxx}
@@ -27,7 +27,7 @@ Where \texttt{\textit{command}} is one of
     \texttt{check}
       & Check correctness of inputs \\
     \texttt{all}
-      & Do all of the above \\	
+      & Do all of the above \\
     \texttt{pp\char`\_pkl}
       & Pretty Print an \asdl{} pickle (see \secref{sec:pickles}).\\
   \end{tabular}
@@ -36,7 +36,7 @@ Where \texttt{\textit{command}} is one of
 The \textit{command options} are specific to each command. For a complete
 list of options examine the output files produced by a given command.
 Each file should include a comment of all the available options and
-the values used to produce the output. 
+the values used to produce the output.
 
 \asdlgen{} reads the set of \texttt{\textit{files}}, which contain ASDL module
 declarations and view declarations. The module declarations must be
@@ -63,7 +63,7 @@ Options common to all the commands include
   \item[\normalfont\texttt{--view=}\textit{name} or \texttt{-V} \textit{name}] \mbox{}\\
     Sets the default view to \textit{name}. The default view name is by convention
     the command name with the first character capitalized. See \chapref{chap:views}
-    for a more detailed description.  
+    for a more detailed description.
 \end{description}%
 
 \section{Language Specific Options}
@@ -92,11 +92,11 @@ to the default set of primitive types and functions provided with the current re
    \item[\normalfont\texttt{--base\char`\_include=}\textit{file}\texttt{.h}] \mbox{}\\
      The default value is \texttt{cii\char`\_base.h}. Name of the C header file to
      include that define the primitive types and functions for all the generated
-     code. 
+     code.
 
    \item[\normalfont\texttt{--mono\char`\_types=}\{\texttt{true} $|$ \texttt{false}\}] \mbox{}\\
      The default value is \texttt{false}. If true expand sequence and option types into
-     new distinct types for each different qualified type.  
+     new distinct types for each different qualified type.
 
    \item[\normalfont\texttt{--attribs\char`\_default=}\{\texttt{true} $|$ \texttt{false}\}] \mbox{}\\
      The default value is \texttt{true}. Controls whether attributes fields are included in
@@ -126,12 +126,12 @@ to the default set of primitive types and functions provided with the current re
   \item[\normalfont\texttt{--base\char`\_include=}\textit{file}\texttt{.hxx}] \mbox{}\\
     The default value is \texttt{asdl\char`\_base.hxx}. Name of the C++ header file to
     include that defines the primitive types and functions for all the generated
-    code. 
+    code.
   \item[\normalfont\texttt{--simple\char`\_sequences=}\{\texttt{true} $|$ \texttt{false}\}] \mbox{}\\
-    The default value is true. Use a simple linked list representation 
-    for sequences. Set to false to use a template based sequence 
-    representation. See \texttt{asdl\char`\_base.hxx} for a default sequence template 
-    example. 
+    The default value is true. Use a simple linked list representation
+    for sequences. Set to false to use a template based sequence
+    representation. See \texttt{asdl\char`\_base.hxx} for a default sequence template
+    example.
 \end{description}%
 
 \subsection{Options for Java}
@@ -139,9 +139,9 @@ to the default set of primitive types and functions provided with the current re
   \item[\normalfont\texttt{--base\char`\_import=}\textit{package\char`\_spec}] \mbox{}\\
     The default value is \texttt{asdl\char`\_base.*}. The package import specification
     to define the primitive types and functions for all the generated
-    code. 
+    code.
   \item[\normalfont\texttt{--simple\char`\_sequences=}\{\texttt{true}\textit{|}\texttt{false}\}] \mbox{}\\
-    The default value is true. Use a simple linked list representation 
+    The default value is true. Use a simple linked list representation
     for sequences. Set to false to use  \texttt{java.util.Vector} instead.
 \end{description}%
 
@@ -160,6 +160,6 @@ to the default set of primitive types and functions provided with the current re
   \item[\normalfont\texttt{--base\char`\_import=}\textit{module}] \mbox{}\\
     The default value is \texttt{HaskellBase}. The module to import unqualified
     that define the primitive types and functions for all the generated
-    code. 
+    code.
 \end{description}%
 
