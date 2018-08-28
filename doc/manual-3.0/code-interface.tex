@@ -16,19 +16,37 @@ and \asdl{} sum types map the \sml{} datatypes.
 If an \asdl{} identifier conflicts with an \sml{} keyword or pervasive identifier, then the translation
 adds a trailing prime character (\lstinline[language=SML]!'!) to the identifier.
 
-For an \asdl{} module \lstinline[mathescape=true]@$M$@, we generate three \sml{} structures:
+For an \asdl{} module \lstinline[mathescape=true]@$M$@, we generate two \sml{} signatures
+and three \sml{} structures:
 \begin{code}\begin{lstlisting}[language=SML,mathescape=true]
 structure $M$ = struct ... end
-
-structure $M$Pickle = struct ... end
-
-structure $M$PickleIO = struct ... end
-\end{lstlisting}\end{code}
+signature $M$_PICKLE = sig ... end
+structure $M$Pickle : $M$_PICKLE = struct ... end
+signature $M$_PICKLE_IO = sig ... end
+structure $M$PickleIO : $M$_PICKLE_IO = struct ... end
+\end{lstlisting}\end{code}%
 where \lstinline[language=SML,mathescape=true]@$M$@ structure contains the type definitions
 for the \asdl{} specification, \lstinline[language=SML,mathescape=true]@$M$Pickle@ structure
 implements functions to convert between the types and byte vectors, and the
 \lstinline[language=SML,mathescape=true]@$M$PickleIO@ structure implements functions to
 read and write pickles from binary files.
+
+For an ASDL source file \texttt{f.asdl}, \asdlgen{} will produce five \sml{} source files:
+\begin{center}
+  \begin{tabular}{lp{4in}}
+    \texttt{f.sml}
+      & contains type definition structures (\eg{}, \lstinline[mathescape=true]@structure $M$@) \\
+    \texttt{f-pickle.sig}
+      & contains memory-pickler signatures (\eg{}, \lstinline[mathescape=true]@signature $M$_PICKLE@) \\
+    \texttt{f-pickle.sml}
+      & contains memory-pickler structures (\eg{}, \lstinline[mathescape=true]@structure $M$Pickle@) \\
+    \texttt{f-pickle-io.sig}
+      & contains file-pickler signatures (\eg{}, \lstinline[mathescape=true]@signature $M$_PICKLE_IO@) \\
+    \texttt{f-pickle-io.sml}
+      & contains file-pickler structures (\eg{}, \lstinline[mathescape=true]@structure $M$PickleIO@)
+  \end{tabular}
+\end{center}%
+
 
 \begin{table}[tp]
   \caption{Translation of \asdl{} types to \sml{}}
@@ -70,6 +88,11 @@ read and write pickles from binary files.
     \end{tabular}%
   \end{center}%
 \end{table}%
+
+\subsection{CM support}
+The SML/NJ Compilation Manager (CM) knows about ASDL files (as of version 110.84).
+If one specifies ``\texttt{foo.asdl}'' in the file list of a \texttt{.cm} file, CM will
+infer the generation of the five \sml{} files as described above.
 
 \section{Translation to \Cplusplus{}}
 
