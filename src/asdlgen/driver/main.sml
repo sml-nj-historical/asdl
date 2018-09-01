@@ -14,10 +14,19 @@ structure Main : sig
 
   (* register the supported views *)
     val () = List.app Options.registerGen [
-	    (["c++", "cxx"],	GenCxx.gen),
-	    (["sml"],		GenSML.gen)
+	    { names = ["c++", "cxx"],
+	      opts = GenCxx.options,
+	      desc = "Generate C++ implementation",
+	      gen = GenCxx.gen
+	    },
+	    { names = ["sml"],
+	      opts = GenSML.options,
+	      desc = "Generate SML implementation",
+	      gen = GenSML.gen
+	    }
 (*
-	    (["typ"],		GENERATE ??),
+	    { names = ["typ"],		??
+	    }
 *)
 	  ]
 

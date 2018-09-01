@@ -8,6 +8,8 @@
 
 structure GenSML : sig
 
+    val options : unit GetOpt.opt_descr list
+
     val gen : {src : string, dir : string, stem : string, modules : AST.module list} -> unit
 
   end = struct
@@ -18,6 +20,15 @@ structure GenSML : sig
     structure ConV = V.Constr
     structure S = SML
     structure PP = TextIOPP
+
+    val baseStructureOpt = ref "ASDL"
+
+    val options = [
+	    { short = "", long = ["base-structure"],
+	      desc = GetOpt.ReqArg(fn s => baseStructureOpt := s, "<name>"),
+	      help = "specify structure that defines the ASDL primitive types"
+	    }
+	  ]
 
   (* generate the file header as a verbatim top_decl *)
     fun genHeader (src, file) = let

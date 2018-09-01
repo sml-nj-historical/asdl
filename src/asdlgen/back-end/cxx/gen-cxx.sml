@@ -8,12 +8,23 @@
 
 structure GenCxx : sig
 
+    val options : unit GetOpt.opt_descr list
+
     val gen : {src : string, dir : string, stem : string, modules : AST.module list} -> unit
 
   end = struct
 
     structure V = CxxView
     structure CL = Cxx
+
+    val baseIncludeOpt = ref "asdl/asdl.hxx"
+
+    val options = [
+	    { short = "", long = ["base-include"],
+	      desc = GetOpt.ReqArg(fn s => baseIncludeOpt := s, "<file>"),
+	      help = "specify include file for ASDL primitive types"
+	    }
+	  ]
 
     type code = {
 	hxx : CL.decl list,
@@ -22,7 +33,7 @@ structure GenCxx : sig
 
   (* include directives to include in the .hxx and .cxx files *)
     val hxxIncls = [
-	    "#include \"asdl/asdl.hxx\"\n"
+	    "#include \"@BASE_INCLUDE@\"\n"
 	  ]
     val cxxIncls = [
 	    "#include \"@HXX_FILENAME@\"\n"
@@ -36,6 +47,7 @@ structure GenCxx : sig
 		}
 	  val expand = StringSubst.expand [
 		  ("FILENAME", file),
+		  ("BASE_INCLUDE", !baseIncludeOpt),
 		  ("HXX_FILENAME", hxxFile),
 		  ("SRCFILE", src)
 		]

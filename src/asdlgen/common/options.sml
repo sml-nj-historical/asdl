@@ -2,6 +2,10 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * TODO:
+ *	--line-width option
+ *	include view-specific options in usage message
  *)
 
 structure Options : sig
@@ -25,7 +29,13 @@ structure Options : sig
       | GENERATE of generator
 
   (* register the generators *)
-    val registerGen : string list * generator -> unit
+    val registerGen : {
+	    names : string list,	(* name(s) of generator *)
+	    opts : unit GetOpt.opt_descr list,
+					(* generator-specific options *)
+	    desc : string,		(* description of generator *)
+	    gen : generator		(* the actual generator *)
+	  } -> unit
 
   (* parse the command-line args *)
     val parseCmdLine : string list -> {
@@ -38,11 +48,14 @@ structure Options : sig
   (* return a usage message. *)
     val usage : unit -> string
 
+  (* kinds of picklers *)
+    datatype pkl_kind = BINARY | SEXP | XML | EMPTY
+
   (* get option values *)
     val noOutput : unit -> bool			(* set by the `-n` option *)
     val lineWidth : unit -> int			(* set by `--line-width` *)
     val outputDir : unit -> string option	(* set by `-d` / `--output-directory` *)
-    val pickler : unit -> string		(* set by `--pickler` *)
+    val pickler : unit -> pkl_kind		(* set by `--pickler` *)
 
   end = struct
 
@@ -64,16 +77,25 @@ structure Options : sig
 
     exception Usage of string
 
+    datatype pkl_kind = BINARY | SEXP | XML | EMPTY
+
   (* option flags that are set by getOpt *)
     val noOutputFlg = ref false
     val viewOpt : string option ref = ref NONE
-    val picklerOpt : string option ref = ref NONE
+    val picklerOpt = ref BINARY
     val lineWidOpt : int ref = ref 90
     val outputDirOpt : string option ref = ref NONE
 
-    fun setFlag (flg, value) = G.NoArg(fn () => (flg := value))
+  (* get a pickler specification *)
+    fun picklerFromString s = (case String.map Char.toLower s
+	   of "binary" => BINARY
+	    | "sexp" => SEXP
+	    | "xml" => XML
+	    | "empty" => EMPTY
+	    | _ => raise Usage "unkonwn pickler kind"
+	  (* end case *))
 
-  (* the short list of options, which does not include the compiler controls *)
+  (* the list of options, which does not include the view-specific controls *)
     val optionList = [
 	    { short = "n", long = [],
 	      desc = G.NoArg(fn () => noOutputFlg := true),
@@ -81,24 +103,25 @@ structure Options : sig
 	    },
 (* TODO:
 --line-width
---output-directory -d
 *)
+	    { short = "d", long = ["output-directory"],
+	      desc = G.ReqArg(fn s => outputDirOpt := SOME s, "<dir>"),
+	      help = "specify output directory"
+	    },
 	    { short = "p", long = ["pickler"],
-	      desc = G.ReqArg(fn s => picklerOpt := SOME s, "{binary,sexp,xml,empty}"),
-	      help = "specify kind of pickler"
+	      desc = G.ReqArg(fn s => picklerOpt := picklerFromString s, "<pk>"),
+	      help = "specify kind of pickler {binary,sexp,xml,empty}"
 	    }
           ]
 
-(* TODO: view-specific options *)
-
-    fun parse (cmd, []) = {
+    fun parse (cmd, _, []) = {
 	    command = cmd,
             files = []
           }
-      | parse (cmd, args) = let
+      | parse (cmd, cmdOpts, args) = let
 	  val (opts, files) = G.getOpt {
 		  argOrder = G.RequireOrder,
-		  options = optionList,
+		  options = cmdOpts @ optionList,
 		  errFn = fn s => raise Usage s
 		} args
 	(* figure out filename pieces *)
@@ -113,34 +136,72 @@ structure Options : sig
 	    files = srcFiles
 	  } end
 
-    val commands = ref [
-	    (["help"],		HELP),
-	    (["version"],	VERSION),
-	    (["check"],		CHECK)
+    type cmd_info = {
+	    names : string list,	(* name(s) of generator *)
+	    opts : unit GetOpt.opt_descr list,
+					(* generator-specific options *)
+	    desc : string,		(* description of generator *)
+	    cmd : command		(* the command *)
+	  }
+
+    val commands : cmd_info list ref = ref [
+	    { names = ["help"],
+	      opts = [],
+	      desc = "Display available options",
+	      cmd = HELP
+	    },
+	    { names = ["version"],
+	      opts = [],
+	      desc = "Display asdlgen version",
+	      cmd = VERSION
+	    },
+	    { names = ["check"],
+	      opts = [],
+	      desc = "Parse and typecheck input without generating output",
+	      cmd = CHECK
+	    }
 	  ]
 
-    fun registerGen (names, genFn) = commands := (names, GENERATE genFn) :: !commands
+    fun registerGen {names, opts, desc, gen} =
+	  commands := !commands @ [{names=names, opts=opts, desc=desc, cmd=GENERATE gen}]
 
-    fun parseCmdLine (cmd::rest) = let
-	  fun isCmd (names, _) = List.exists (fn name => (name = cmd)) names
+    fun parseCmdLine (command::rest) = let
+	  fun isCmd ({names, ...} : cmd_info) =
+		List.exists (fn name => (name = command)) names
 	  in
 	    case List.find isCmd (!commands)
-	     of SOME(_, cmd) => parse (cmd, rest)
+	     of SOME{names, opts, cmd, ...} => parse (cmd, opts, rest)
 	      | NONE => raise Usage "unknown command"
 	    (* end case *)
 	  end
 
     fun usage () = let
-          val hdr = concat[
-                  "usage: asdlgen command [options] file ...\n",
-                  "  Version: ", Config.version, "\n",
-                  "  Commands:\n",
-		  "    help\n",
-		  "    version\n",
-		  "    check\n",
-(* FIXME: add commands *)
-                  "  Options:"
-                ]
+	  val cmds = let
+		fun doCmd ({names, desc, ...} : cmd_info, (n, items)) = let
+		      val names = String.concatWith " " names
+		      in
+			(Int.max(size names + 2, n), (names, desc)::items)
+		      end
+	      (* preprocess the commands *)
+		val (n, items) = List.foldl doCmd (0, []) (!commands)
+	      (* add padding *)
+		val items = let
+		      fun mkItem (names, desc) = String.concat[
+			      "  ",
+			      StringCvt.padRight #" " n names,
+			      desc, "\n"
+			    ]
+		      in
+			List.map mkItem items
+		      end
+		in
+		  items
+		end
+          val hdr = String.concat(
+                  "Usage: asdlgen command [options] file ...\n" ::
+                  "Commands:\n" ::
+		  cmds @
+		  ["Options:"])
           in
             G.usageInfo {header = hdr, options = optionList}
           end
@@ -152,6 +213,6 @@ structure Options : sig
 
     fun outputDir () = !outputDirOpt
 
-    fun pickler () = Option.getOpt(!picklerOpt, "binary")
+    fun pickler () = !picklerOpt
 
   end
