@@ -42,7 +42,9 @@ structure GenSML : sig
 
   (* generate a file using the given code generator *)
     fun genFile codeGen (src, outFile, modules) =
-	  output (src, outFile, List.map codeGen modules)
+	  if Options.noOutput()
+	    then print(outFile ^ "\n")
+	    else output (src, outFile, List.map codeGen modules)
 
   (* generate the type-declaration file *)
     val genTypes = genFile GenTypes.gen

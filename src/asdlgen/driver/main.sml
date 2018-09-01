@@ -21,6 +21,12 @@ structure Main : sig
 *)
 	  ]
 
+  (* check a file; return true if there is an error *)
+    fun checkFile file = (case FrontEnd.doFile file
+	   of SOME _ => false
+	    | NONE => true
+	  (* end case *))
+
     fun doFile gen file = let
 	  fun getStem file = (case OS.Path.splitBaseExt file
 		 of {base, ext=SOME "asdl"} => base
@@ -65,7 +71,9 @@ structure Main : sig
 	      | Options.VERSION => (
 		  TextIO.output(TextIO.stdOut, Config.version ^ "\n");
 		  OS.Process.success)
-	      | Options.CHECK => OS.Process.success (* FIXME *)
+	      | Options.CHECK => if List.exists checkFile files
+		  then OS.Process.failure
+		  else OS.Process.success
 	      | Options.GENERATE gen => if List.exists (doFile gen) files
 		  then OS.Process.failure
 		  else OS.Process.success

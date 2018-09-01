@@ -59,7 +59,9 @@ structure GenCxx : sig
 
   (* generate a file using the given code generator *)
     fun genFile codeGen (src, outFile, incls, modules) =
-	  output (src, outFile, incls, List.map codeGen modules)
+	  if Options.noOutput()
+	    then print(outFile ^ "\n")
+	    else output (src, outFile, incls, List.map codeGen modules)
 
   (* generate C++ code for the given list of modules using the "Cxx" view *)
     fun gen {src, dir, stem, modules} = let

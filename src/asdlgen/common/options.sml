@@ -29,8 +29,9 @@ structure Options : sig
 
   (* parse the command-line args *)
     val parseCmdLine : string list -> {
-	    command : command,		(* the first command-line argument, which specifies the
-					 * operation to perform *)
+	    command : command,		(* the first command-line argument, which
+					 * specifies the operation to perform
+					 *)
             files : string list         (* source file *)
           }
 
@@ -38,6 +39,7 @@ structure Options : sig
     val usage : unit -> string
 
   (* get option values *)
+    val noOutput : unit -> bool			(* set by the `-n` option *)
     val lineWidth : unit -> int			(* set by `--line-width` *)
     val outputDir : unit -> string option	(* set by `-d` / `--output-directory` *)
     val pickler : unit -> string		(* set by `--pickler` *)
@@ -63,6 +65,7 @@ structure Options : sig
     exception Usage of string
 
   (* option flags that are set by getOpt *)
+    val noOutputFlg = ref false
     val viewOpt : string option ref = ref NONE
     val picklerOpt : string option ref = ref NONE
     val lineWidOpt : int ref = ref 90
@@ -72,8 +75,11 @@ structure Options : sig
 
   (* the short list of options, which does not include the compiler controls *)
     val optionList = [
+	    { short = "n", long = [],
+	      desc = G.NoArg(fn () => noOutputFlg := true),
+	      help = "write list of generated files to stdout without generating output"
+	    },
 (* TODO:
--n
 --line-width
 --output-directory -d
 *)
@@ -140,6 +146,8 @@ structure Options : sig
           end
 
   (* get option values *)
+    fun noOutput () = !noOutputFlg
+
     fun lineWidth () = !lineWidOpt
 
     fun outputDir () = !outputDirOpt
