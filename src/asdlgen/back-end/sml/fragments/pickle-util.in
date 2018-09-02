@@ -1,25 +1,25 @@
   (* encode an option *)
-    fun encode_option encFn (buf, NONE) = ASDLPickle.encode_uint(buf, 0w0)
-      | encode_option encFn (buf, SOME obj) = (
-          ASDL.Pickle.encode_uint(buf, 0w1);
+    fun encodeOption encFn (buf, NONE) = ASDLPickle.encodeTag8(buf, 0w0)
+      | encodeOption encFn (buf, SOME obj) = (
+          ASDLPickle.encodeTag8(buf, 0w1);
           encFn(buf, obj))
   (* decode an option *)
-    fun decode_option decFn slice = (case ASDLPickle.decode_uint slice
+    fun decodeOption decFn slice = (case ASDLPickle.decodeTag8 slice
            of (0w0, slice) => (NONE, slice)
             | (0w1, slice) => let val (obj, slice) = decFn in (SOME obj, slice) end
             | _ => raise ASDL.DecodeError
           (* end case *))
   (* encode a list of values as a sequence *)
-    fun encode_list encFn (buf, xs) = let
+    fun encodeSeq encFn (buf, xs) = let
           fun encode [] = ()
             | encode (x::xr) = (encFn(buf, x); encode xr)
           in
-            ASDLPickle.encode_uint(buf, Word.fromInt(length xs));
+            ASDLPickle.encodeUInt(buf, Word.fromInt(length xs));
             encode xs
           end
   (* decode a sequence into a sequence of values *)
-    fun decode_list decFn slice = let
-          val (len, slice) = ASDLPickle.decode_uint slice
+    fun decodeSeq decFn slice = let
+          val (len, slice) = ASDLPickle.decodeUInt slice
           fun decode (0w0, slice, xs) = reverse (xs, [])
             | decode (n, slice, xs) = let
                 val (x, slice) = decFn slice

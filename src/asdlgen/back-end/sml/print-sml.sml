@@ -206,7 +206,7 @@ structure PrintSML : sig
 		List.app (fn e => (str ","; sp(); ppExp e)) es;
 		str ")"))
 	    | ppExp (S.SELECTexp(proj, e)) = inHBox (fn () => (
-		str proj;
+		str "#"; str proj;
 		if isParenExp e then () else sp();
 		ppExp e))
 	    | ppExp (S.APPexp(e1, e2)) = (

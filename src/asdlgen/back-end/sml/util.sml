@@ -4,6 +4,10 @@
  * All rights reserved.
  *
  * Utility functions for generating SML code.
+ *
+ * TODO:
+ *	more name mangling (structures, values, etc.)
+ *	identify keywords and pervasive identifiers and add a ' on those names
  *)
 
 structure Util : sig

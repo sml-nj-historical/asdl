@@ -35,7 +35,7 @@ structure GenIO : sig
 
   (* generate the encoder/decoder specifications for a type *)
     and genSpec modName (AST.TyDcl{id, ...}, specs) = let
-	  val ty = S.CONty([], TyV.getName id)
+	  val ty = S.CONty([], concat[modName, ".", TyV.getName id])
 	  val outStrmTy = S.CONty([], "BinIO.outstream")
 	  val inStrmTy = S.CONty([], "BinIO.instream")
 	  val unitTy = S.CONty([], "unit")
@@ -61,7 +61,7 @@ structure GenIO : sig
 	  val typeModName = ModV.getName id
 	  val ioModName = ModV.getIOName id
 	  val sigName = Util.sigName(ioModName, NONE)
-	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr genType [] dcls) :: dcls'
+	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
 	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
 	  val decls = S.VERBdec[Fragments.ioUtil] :: decls
 	  in
@@ -69,17 +69,18 @@ structure GenIO : sig
 	  end
       | genStr _ = raise Fail "GenIO.genStr: unexpected primitive module"
 
-    and genType (dcl, fbs) = let
+    and genType typeModName (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl
 	  val name = TyV.getName id
 	  in
-	    genWriter (TyV.getWriter id, encoding) ::
-	    genReader (TyV.getReader id, encoding) ::
+	    genWriter (typeModName, TyV.getWriter id, encoding) ::
+	    genReader (typeModName, TyV.getReader id, encoding) ::
 	      fbs
 	  end
 
-    and genWriter (wrName, encoding) = let
+    and genWriter (typeModName, wrName, encoding) = let
 	  val outSV = S.IDexp "outS"
+	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseWriter (NONE, tyId) = TyV.getWriter tyId
 	    | baseWriter (SOME modId, tyId) = concat[
 		  ModV.getIOName modId, ".", TyV.getWriter tyId
@@ -90,7 +91,7 @@ structure GenIO : sig
 	  fun gen (arg, E.UNIT conId) = S.unitExp (* no storage required *)
 	    | gen (arg, E.ENUM(nCons, cons)) = let
 		val tagTyId = E.tagTyId nCons
-		fun genRule (tag, conId) = (S.IDpat(ConV.getName conId), genTag (tagTyId, tag))
+		fun genRule (tag, conId) = (S.IDpat(getConName conId), genTag (tagTyId, tag))
 		in
 		  S.caseExp(arg, List.map genRule cons)
 		end
@@ -98,14 +99,14 @@ structure GenIO : sig
 		val (lhsPat, xs) = objPat fields
 		in
 		  S.LETexp(
-		    [S.VALdec(S.CONpat(ConV.getName conId, lhsPat), arg)],
+		    [S.VALdec(S.CONpat(getConName conId, lhsPat), arg)],
 		    S.SEQexp(List.map genTy' xs))
 		end
 	    | gen (arg, E.SWITCH(optAttribs, nCons, cons)) = let
 		val tagTyId = E.tagTyId nCons
 		fun genRule (tag, conId, optArg) = let
 		      val wrTag = genTag(tagTyId, tag)
-		      val conName = ConV.getName conId
+		      val conName = getConName conId
 		      in
 			case E.prefixWithAttribs(optAttribs, optArg)
 			 of NONE => (S.IDpat conName, wrTag)
@@ -123,15 +124,12 @@ structure GenIO : sig
 		end
 	    | gen (arg, E.OBJ obj) = genProd (arg, obj)
 	    | gen (arg, E.ALIAS ty) = genTy (arg, ty)
-	  and genProd (arg, E.TUPLE tys) = let
-		fun write (i, ty) = genTy (S.selectExp(Int.toString i, arg), ty)
+	  and genProd (arg, obj) = let
+		val (pat, args) = objPat obj
 		in
-		  S.SEQexp(List.map write tys)
-		end
-	    | genProd (arg, E.RECORD fields) = let
-		fun write (lab, ty) = genTy (S.selectExp(lab, arg), ty)
-		in
-		  S.SEQexp(List.map write fields)
+		  S.LETexp(
+		    [S.VALdec(pat, arg)],
+		    S.SEQexp(List.map genTy' args))
 		end
 	(* create a pattern for matching against a product type; returns the pattern and the
 	 * bound variables with their types.
@@ -151,21 +149,22 @@ structure GenIO : sig
 		end
 	  and genTy (arg, E.OPTION ty) =
 		S.appExp(
-		  funApp ("write_option", [S.IDexp(baseWriter ty)]),
+		  funApp ("writeOption", [S.IDexp(baseWriter ty)]),
 		  pairExp(outSV, arg))
 	    | genTy (arg, E.SEQUENCE ty) =
 		S.appExp(
-		  funApp ("write_list", [S.IDexp(baseWriter ty)]),
+		  funApp ("writeSeq", [S.IDexp(baseWriter ty)]),
 		  pairExp(outSV, arg))
 	    | genTy (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
 	  and genTy' (x, ty) = genTy (S.IDexp x, ty)
 	  in
-	    S.simpleFB(wrName, ["buf", "obj"], gen(S.IDexp "obj", encoding))
+	    S.simpleFB(wrName, ["outS", "obj"], gen(S.IDexp "obj", encoding))
 	  end
 
-    and genReader (rdName, encoding) = let
+    and genReader (typeModName, rdName, encoding) = let
 	  val inSV = S.IDexp "inS"
+	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseReader (NONE, tyId) = TyV.getReader tyId
 	    | baseReader (SOME modId, tyId) = concat[
 		  ModV.getIOName modId, ".", TyV.getReader tyId
@@ -174,21 +173,21 @@ structure GenIO : sig
 		baseReader(SOME PT.primTypesId, tagTyId),
 		[inSV])
 	  val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
-	  fun gen (E.UNIT conId) = S.IDexp(ConV.getName conId)
+	  fun gen (E.UNIT conId) = S.IDexp(getConName conId)
 	    | gen (E.ENUM(nCons, cons)) = let
 		fun genRule (tag, conId) = let
 		      val pat = S.NUMpat("0w"^Int.toString tag)
 		      in
-			(pat, S.IDexp(ConV.getName conId))
+			(pat, S.IDexp(getConName conId))
 		      end
 		in
 		  S.caseExp(genTag(E.tagTyId nCons), List.map genRule cons @ [dfltRule])
 		end
 	    | gen (E.WRAP(conId, fields)) =
-		genObj(fields, fn  x => S.appExp(S.IDexp(ConV.getName conId), x))
+		genObj(fields, fn  x => S.appExp(S.IDexp(getConName conId), x))
 	    | gen (E.SWITCH(optAttribs, nCons, cons)) = let
 		fun genRule (tag, conId, optArg) = let
-		      val conName = ConV.getName conId
+		      val conName = getConName conId
 		      val pat = S.NUMpat("0w"^Int.toString tag)
 		      in
 			case E.prefixWithAttribs(optAttribs, optArg)
@@ -219,11 +218,11 @@ structure GenIO : sig
 		end
 	  and genTy (E.OPTION ty) =
 		S.appExp(
-		  funApp ("read_option", [S.IDexp(baseReader ty)]),
+		  funApp ("readOption", [S.IDexp(baseReader ty)]),
 		  inSV)
 	    | genTy (E.SEQUENCE ty) =
 		S.appExp(
-		  funApp ("read_list", [S.IDexp(baseReader ty)]),
+		  funApp ("readSeq", [S.IDexp(baseReader ty)]),
 		  inSV)
 	    | genTy (E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (E.BASE ty) = funApp (baseReader ty, [inSV])
