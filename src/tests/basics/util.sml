@@ -21,7 +21,7 @@ structure Util =
       | tree_same _ = false
 
     fun tree_toString EMPTY = "EMPTY"
-      | tree_toString (ND{value, left, right}) = concat[
+      | tree_toString (NODE{value, left, right}) = concat[
 	    "ND(", value, ", ", tree_toString left, ", ", tree_toString right, ")"
 	  ]
 
@@ -46,11 +46,11 @@ structure Util =
   (* value *)
     fun value_same (BOOL b1, BOOL b2) = (b1 = b2)
       | value_same (INT i1, INT i2) = (i1 = i2)
-      | value_same (STRING s1, STRING s1) = (s1 = s2)
+      | value_same (STRING s1, STRING s2) = (s1 = s2)
       | value_same _ = false
 
     fun value_toString (BOOL b) = Bool.toString b
-      | value_toString (INT n) = IntInt.toString n
+      | value_toString (INT n) = IntInf.toString n
       | value_toString (STRING s) = concat["\"", String.toString s, "\""]
 
   (* color *)
