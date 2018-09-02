@@ -112,7 +112,7 @@ structure ASDLPickle : ASDL_PICKLE =
 	  val isNeg = (b0 & 0wx20 <> 0w0)
 	  val res = b0 & 0wx1f
 	  fun return (w, slice) = if (b0 & 0wx20 <> 0w0)
-		then (~(Word.toIntX w)-1, slice)
+		then (~1 - Word.toIntX w, slice)
 		else (Word.toIntX w, slice)
 	  in
 	    if (nb = 0w0) then return(res, slice)
