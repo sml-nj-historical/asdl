@@ -1,0 +1,28 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * All rights reserved.
+ *)
+
+Library
+
+  structure Test
+  structure TestIO
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+
+  ../../lib/sml/asdl-lib.cm
+
+  test-spec-pickle-io.sig
+  test-spec-pickle-io.sml
+  test-spec-pickle.sig
+  test-spec-pickle.sml
+  test-spec.sml
+
+  sml-test.sml
+  sml-test-io.sml
+  util.sml
+
