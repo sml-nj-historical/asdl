@@ -53,13 +53,14 @@
 <INITIAL>"!"		=> (T.SHARED);
 <INITIAL>"|"		=> (T.PIPE);
 <INITIAL>"="		=> (T.EQ);
+<INITIAL>"alias"	=> (T.KW_alias);
 <INITIAL>"attributes"	=> (T.KW_attributes);
-<INITIAL>"module"	=> (T.KW_module);
-<INITIAL>"primitive"	=> (T.KW_primitive);
 <INITIAL>"import"	=> (T.KW_import);
 <INITIAL>"include"	=> (T.KW_include);
-<INITIAL>"alias"	=> (T.KW_alias);
+<INITIAL>"module"	=> (T.KW_module);
+<INITIAL>"primitive"	=> (T.KW_primitive);
 <INITIAL>"view"		=> (T.KW_view);
+<INITIAL>"<file>"	=> (T.FILE);
 <INITIAL>{uc_id}	=> (T.UID(Atom.atom yytext));
 <INITIAL>{lc_id}	=> (T.LID(Atom.atom yytext));
 <INITIAL>":"[ \t]*      => (YYBEGIN CODELN; continue());

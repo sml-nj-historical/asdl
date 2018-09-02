@@ -32,7 +32,6 @@
     | SHARED			("!")
     | EQ			("=")
     | PIPE			("|")
-    | TOP			("<top>")
     | FILE			("<file>")
     | CODE of string		(* raw code *)
     | LID of Atom.atom		(* lower-case identifier *)
@@ -72,8 +71,8 @@ MarkDecl
 	;
 
 Decl
-	: "module" ModuleId ModuleImport "{" TypeDecl* "}"
-		=> (PT.D_Module{name = ModuleId, imports = ModuleImport, decls = TypeDecl})
+	: "module" Id ModuleImport "{" TypeDecl* "}"
+		=> (PT.D_Module{name = Id, imports = ModuleImport, decls = TypeDecl})
 	| "primitive" "module" Id "{" Id* "}"
 		=> (PT.D_Primitive{name = Id1, exports = Id2})
 	| "view" Id "{" MarkViewEntry* "}"
@@ -156,11 +155,6 @@ Id	: LID			=> (markId (FULL_SPAN, LID))
 	| Keyword		=> (markId (FULL_SPAN, Keyword))
 	;
 
-ModuleId
-	: Id			=> (Id)
-	| "<top>"		=> (markId(FULL_SPAN, PT.topId))
-	;
-
 TyId	: LID			=> (markId (FULL_SPAN, LID))
 	| Keyword		=> (markId (FULL_SPAN, Keyword))
 	;
@@ -208,14 +202,14 @@ MarkViewEntity
 ViewEntity
 	: "<file>"
 		=> (PT.VEntity_File)
-	| "module" ModuleId
-		=> (PT.VEntity_Module ModuleId)
-	| ModuleId "." TyId
-		=> (PT.VEntity_Type(ModuleId, TyId))
-	| ModuleId "." TyId "." "*"
-		=> (PT.VEntity_AllCons(ModuleId, TyId))
-	| ModuleId "." TyId "." ConId
-		=> (PT.VEntity_Cons(ModuleId, TyId, ConId))
+	| "module" Id
+		=> (PT.VEntity_Module Id)
+	| Id "." TyId
+		=> (PT.VEntity_Type(Id, TyId))
+	| Id "." TyId "." "*"
+		=> (PT.VEntity_AllCons(Id, TyId))
+	| Id "." TyId "." ConId
+		=> (PT.VEntity_Cons(Id, TyId, ConId))
 	;
 
 ViewProps
