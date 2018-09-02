@@ -71,8 +71,6 @@
 <CODE>[^%]*		=> (addString(yytext); continue());
 <CODE>"%"		=> (addString(yytext); continue());
 
-<INITIAL>"<"[Tt][Oo][Pp]">"
-			=> (T.TOP);
 <INITIAL>"<"[Ff][Ii][Ll][Ee]">"
 			=> (T.FILE);
 
