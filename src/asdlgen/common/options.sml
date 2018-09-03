@@ -174,6 +174,7 @@ structure Options : sig
 	      | NONE => raise Usage "unknown command"
 	    (* end case *)
 	  end
+      | parseCmdLine _ = raise Usage "no command specified"
 
     fun usage () = let
 	  val cmds = let
