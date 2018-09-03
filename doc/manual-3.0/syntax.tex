@@ -13,19 +13,10 @@ Each section describes a fragment of the syntax and its meaning.
 \section{Lexical Tokens}
 
 The lexical conventions for \asdl{} are given in \figref{fig:lexical-syntax}.
-Notice that identifiers for types, \synt{typ-id}, are in a different
-lexical class from identifiers for constructors \synt{con-id}.
-Constructor identifiers must start with an uppercase
-letter, while type identifiers must begin with a lowercase letter.
-Comments begin with ``\lstinline[language=ASDL]!--!''
-and continue to the end of the line.
-
-Verbatim text is denoted by \synt{text} and can be specified in one of two ways.
-Either by an initial ``\lstinline!:!'' followed by a sequence of \synt{text-character}s that
-continues to the end of the line or by a ``\lstinline!%%!'' terminated by a ``\lstinline!%%!''
-at the beginning of a line by itself. 
-Text include using the ``\lstinline!:!'' notation will have trailing and leading 
-whitespace removed.
+ASDL is a case-sensitive language and, furthermore, classifies identifiers
+into lower-case (\synt{lc-id}) and upper-case (\synt{uc-id}) identifiers.
+Type identifiers are lower-case, while constructor identifiers are upper-case.
+Module and field identifiers can be either upper or lower-case.
 
 \begin{figure}[t]
   \begin{quote}
@@ -38,11 +29,15 @@ whitespace removed.
 
       <alpha-num> ::= <alpha> | `0' | ... | `9'
 
-      <typ-id>    ::= <lower> \{ <alpha-num> \}
+      <lc-id>     ::= <lower> \{ <alpha-num> \}
+      
+      <uc-id>     ::= <upper> \{ <alpha-num> \}
 
-      <con-id>    ::= <upper> \{ <alpha-num> \}
+      <id>        ::= <lc-id> | <uc-id>
+                  
+      <typ-id>    ::= <lc-id>
 
-      <id>        ::= <typ-id> | <con-id>
+      <con-id>    ::= <uc-id>
 
       <comment>   ::= `--' <text-character> <end-of-line>
 
@@ -54,7 +49,22 @@ whitespace removed.
   \label{fig:lexical-syntax}
 \end{figure}%
 
-Keywords: \lit{alias}, \lit{attributes}, \lit{include}, \lit{import}, \lit{module}, \lit{primitive}, \lit{view}
+Comments begin with ``\lstinline[language=ASDL]!--!''
+and continue to the end of the line.
+
+Verbatim text is denoted by \synt{text} and can be specified in one of two ways.
+Either by an initial ``\lstinline!:!'' followed by a sequence of \synt{text-character}s that
+continues to the end of the line or by a ``\lstinline!%%!'' terminated by a ``\lstinline!%%!''
+at the beginning of a line by itself. 
+Text include using the ``\lstinline!:!'' notation will have trailing and leading 
+whitespace removed.
+
+ASDL has the following keywords:
+\begin{quote}
+  \lit{alias}  \lit{attributes} \lit{import},
+  \lit{include} \lit{module} \lit{primitive} \lit{view}
+\end{quote}%
+Note that it is allowed to use a keyword as an identifier wherever a \synt{lc-id} is permitted.
 
 \section{File Syntax}
 
@@ -135,13 +145,24 @@ module B (import A) { t = T(A.t, t) | N  ... }
 
 \section{Type Definitions}
 
+The syntax of type definitions is given in \figref{fig:type-syntax}.
+A type defintion begins with a type identifier, which is the name of the type.
+The name must be unique within the module, but the order of definitions is unimportant.
+When translating type definitions from a module they are placed in what would be considered a
+module, package, or name-space of the same name.
+If the output language does not support such features and only has one global
+name space the module name
+is used to prefix all the globally exported identifiers.
+
 \begin{figure}[t]
   \begin{quote}
     \begin{grammar}
       <type-definition>  ::=  <typ-id> `=' <type>
 
-      <type>         ::= <sum-type> | <product-type>
+      <type>         ::= <alias-type> | <sum-type> | <product-type>
 
+      <alias-type>   ::= <typ-exp>
+      
       <product-type> ::= <fields>
 
       <sum-type>     ::= <constructor> \{ `|' <constructor> \} [ `attributes' <fields> ]
@@ -150,28 +171,58 @@ module B (import A) { t = T(A.t, t) | N  ... }
 
       <fields>       ::= `(' \{ <field>  `,' \} <field> `)'
 
-      <field>        ::= [ <id> `.' ] <typ-id> [`?' | `*' ]  [ <id> ]
+      <field>        ::=  <typ-exp> [ <id> ]
+      
+      <typ-exp>      ::= [ <id> `.' ] <typ-id> [`?' | `*' | `!']
     \end{grammar}
   \end{quote}
   \caption{\asdl{} type definition syntax}
   \label{fig:type-syntax}
 \end{figure}%
 
-All type definitions occur within a module.  They begin with a type
-identifier, which is the name of the type. The name must be unique within the
-module. The order of definitions is unimportant. When translating type
-definitions from a module they are placed in what would be considered a
-module, package, or name-space of the same name. If a output language does
-not support such features and only has one global name space the module name
-is used to prefix all the globally exported identifiers.
-
-Type definitions are either product types, which are simple record definitions,
-or sum type, which represent a discriminated union of possible values. Unlike
-sum types, product types cannot form recursive type definitions, but they can
+Type definitions are either alias types, which bind a name to a type expression;
+product types, which are simple record definitions;
+or sum type, which represent a discriminated union of possible values.
+Unlike sum types, product types cannot form recursive type definitions, but they can
 contain recursively declared sum types.
 
-\subsection{Primitive Types}
-There are seven primitive types in ASDL:
+\subsection{Alias Types}
+
+Alias types are the simplest form of type definition.
+They provide a way to give a name to a type or type expression, similar
+to \sml{}'s \lstinline[language=SML]@type@ and \Cplusplus{}'s
+\lstinline[language=C++]@typedef@ constructs.
+
+\subsection{Type expressions}
+
+A type expression (\synt{typ-exp}) consists of a possibly qualified type name followed
+by an optional type operator.
+If the specified type is an ASDL primitive type or is defined in the current module,
+then its name is not qualified; all other types defined outside the current module must
+be qualified by their module name (or module alias).
+
+The type operators are:
+\begin{itemize}
+  \item
+    option (\lit{?}), which specifies either zero or one value of the specified type.
+  \item
+    sequence (\lit{*}), which specifies a sequence of zero or more values of the
+    specified type, or
+  \item
+    shared (\lit{!}), which specifies that a value is shared across multiple points
+    in the data structure (\ie{}, the structure has a DAG shape instead of just a tree).
+\end{itemize}%
+
+Note that while at most one type operator is allowed in a type expression, one can use alias
+types to combine two or more operators.
+For example, a sequence of optional integers could be defined by:
+\begin{code}\begin{lstlisting}[language=ASDL]
+int_opt = integer?
+int_opt_seq = int_opt*
+\end{lstlisting}\end{code}%
+
+\subsection{ASDL Primitive Types}
+There are seven pre-defined primitive types in ASDL, which are available without qualification:
 \begin{description}
   \item[\normalfont\texttt{\color{\cdColor}bool}] describes Boolean values.
   \item[\normalfont\texttt{\color{\cdColor}int}] describes signed-integer values that are representable in 30 bits
@@ -185,11 +236,13 @@ There are seven primitive types in ASDL:
     analogous to Lisp symbols.
 \end{description}%
 
-In addition, the \lstinline!StdTypes! module defines additional fixed-precision numeric types
-that can be used when necessary (\eg{}, \lstinline!StdTypes.int32!).
+% TODO: Not implemented yet
+%In addition, the \lstinline!StdTypes! module defines additional fixed-precision numeric types
+%that can be used when necessary (\eg{}, \lstinline!StdTypes.int32!).
 
 \subsection{Product Types}
-Product types are record or tuple declarations. They consist of a non-empty 
+Product types are record or tuple declarations.
+They consist of a non-empty 
 sequence of fields separated by commas enclosed in parenthesis. For
 example 
 \begin{code}\begin{lstlisting}[language=ASDL] 
@@ -208,7 +261,8 @@ by an optional sequence of fields similar to a product type.
 Constructor names must be unique within the module in which they are
 declared. Constructors can be viewed as functions who take some number of
 arguments of arbitrary type and create a value belonging to the sum type in
-which they are declared. For example
+which they are declared.
+For example
 \begin{code}\begin{lstlisting}[language=ASDL]
 module M {
   sexpr = Int(int)
@@ -218,10 +272,13 @@ module M {
 	| Nil
 }
 \end{lstlisting}\end{code}%
-declares that values of type \lstinline[language=ASDL]!sexpr! can either be constructed from an
-\lstinline[language=ASDL]!int! using the \lstinline[language=ASDL]!Int! constructor or a \lstinline[language=ASDL]!string! from a \lstinline[language=ASDL]!String!
-constructor, an \lstinline[language=ASDL]!identifier! using the \lstinline[language=ASDL]!Symbol! constructor, or from
-two other \lstinline[language=ASDL]!sexpr! using the \lstinline[language=ASDL]!Cons! constructor, or from no arguments
+declares that values of type \lstinline[language=ASDL]!sexpr! can either be
+constructed from an \lstinline[language=ASDL]!int! using the
+\lstinline[language=ASDL]!Int! constructor or a \lstinline[language=ASDL]!string!
+from a \lstinline[language=ASDL]!String! constructor, an
+\lstinline[language=ASDL]!identifier! using the \lstinline[language=ASDL]!Symbol!
+constructor, or from two other \lstinline[language=ASDL]!sexpr! using the
+\lstinline[language=ASDL]!Cons! constructor, or from no arguments
 using the \lstinline[language=ASDL]!Nil! constructor.
 Notice that the \lstinline[language=ASDL]!Cons! constructor
 recursively refers to the \lstinline[language=ASDL]!sexpr! type.
@@ -242,21 +299,21 @@ module Op {
 }
 \end{lstlisting}\end{code}%
 %
-Is translated into \Cplusplus{} as follows:
+Is translated into the following \Cplusplus{} code:
 %
 \begin{code}\begin{lstlisting}[language=c++]
 namespace M {
-    class enum op {
-        PLUS, MINUS, TIMES, DIVIDE
+    enum class op {
+        PLUS = 1, MINUS, TIMES, DIVIDE
     };
 }
 \end{lstlisting}\end{code}%
 
-\subsection{Field Labels}
-Field declarations can be as simple as a single type identifier, or they can
-be followed with an optional label.
-If any field in a product type (or constructor type argument) has a label, then
-all of the fields must have labels.
+\subsection{Fields}
+A field consists of a type expression followed by an optional label.
+The fields of a product or sum type must either all be labeled or unlabeled.
+We use \emph{record} to refer to products of labeled fields and \emph{tuple}
+to products of unlabeled fields.
 Labels aid in the readability of
 descriptions and are used by \asdlgen{} to name the fields of records
 and classes for languages.
@@ -277,44 +334,35 @@ module Tree {
 
 When translating the first definition without labels 
 into \Cplusplus{} one would normally get
-\begin{code}\begin{lstlisting}[language=c++]
+\begin{code}\begin{lstlisting}[language=c++,mathescape=true]
 namespace Tree {
-
-    class tree {
+    $\cdots$
+    class Node : public tree {
       public:
-        enum tag_t {
-            _Node, _EmptyTree
-        };
-        tag_t tag () const { return this->_tag; }
-        bool is_Node () const { return this->_tag = _Node; }
-        bool is_EmptyTree () const { return this->_tag = _EmptyTree; }
-        virtual ~tree ();
-      protected:
-        tag _tag;
-        tree (tag t) : _tag(t) { }
+        Node (int p_value, tree * p_left, tree * p_right)
+            : tree(tree::_con_Node), _v_value(p_value), _v_left(p_left),
+            _v_right(p_right)
+        { }
+        ~Node ();
+        void encode (asdl::outstream & os);
+        int get_value () { return this->_v_value; }
+        void set_value (int v) { this->_v_value = v; }
+        tree * get_left () { return this->_v_left; }
+        void set_left (tree * v) { this->_v_left = v; }
+        tree * get_right () { return this->_v_right; }
+        void set_right (tree * v) { this->_v_right = v; }
+      private:
+        int _v_value;
+        tree * _v_left;
+        tree * _v_right;
     };
-
-    struct Node : public tree {
-        int _v1;
-        tree *_v2;
-        tree *_v3;
-        Node (int v1, tree *v2, tree * v3)
-          : tree(tree::_Node), _v1(v1), _v2(v2), _v3(v3) { }
-        ~Node () { }
-    };
-    
-    struct EmptyTree : public tree {
-        EmptyTree () : tree(tree::_EmptyTree) { }
-        ~EmptyTree () { }
-    };
-}
+    $\cdots$
+} // namespace Tree
 \end{lstlisting}\end{code}%
 with labels one would get
 \begin{code}\begin{lstlisting}[language=c++]
 namespace Tree {
-
-    ...
-    
+    $\cdots$
     struct Node : public tree {
         int value;
         tree *left;
@@ -323,31 +371,15 @@ namespace Tree {
           : tree(tree::_Node), value(v1), left(v2), right(v3) { }
         ~Node () { }
     };
-    
-    ...
+    $\cdots$
 }
 \end{lstlisting}\end{code}%
 
 For the \sml{} target, product types without labels are translated to tuples, while those with
-labels are translated to 
-\subsection{Type Qualifiers}
-
-The type identifier of a field declaration can also be qualified with either
-a sequence (\lit{*}) or option (\lit{?}) qualifier.
-The sequence qualifier
-is an abbreviation that stands for a sequence or list of that given type,
-while the option qualifier stands for a type whose value may be
-uninitialized.
-Sequence types are equivalent to the lists or arrays of a
-fixed type.
-Option types are equivalent to the \lstinline[language=ASDL]!option!
-type in \sml{}.
-%\asdlgen{} provides various different translation schemes for handling option
-%and sequence types in languages that do not have parametric polymorphism. 
-%See \chapref{chap:invocation} for details.
+labels are translated to records.
 
 \subsection{Attribute Fields}
-Sum types may optionally be followed by a list of attribute fields, which
+A sum-type definition may optionally be followed by a list of attribute fields, which
 provide a concise way to specify fields that are common to all of the constructors
 of a sum type.
 For example, the definition
@@ -383,7 +415,7 @@ Note that this interpretation implies that attribute fields are labeled if, and 
 of the constructor fields are labeled.
 
 Attribute fields are treated specially when translating to some targets.
-For example in \Cplusplus{} code the attribute field is defined in the base class for the sum type.
+For example in \Cplusplus{} code, the attribute field is defined in the base class for the sum type.
 
 \section{Primitive Modules}
 \label{sec:primitive-syntax}
@@ -412,31 +444,31 @@ Then, depending on the target language, we define
 supporting code to read and write guids from the byte stream.
 In \sml{}, we would define three modules:
 \begin{enumerate}
-  \item \lstinline[language=SML]!structure PrimPickle!, which defines the representation of the
+  \item \lstinline[language=SML]!structure Prim! that defines the representation of the
     \lstinline[language=SML]!guid! type.
   \item
-    \lstinline[language=SML]!structure PrimPickleUtil!, which defines a function for calculating
-    the number size of a pickle (in bytes) and functions for converting between GUIDs and
-    vectors of bytes.
+    \lstinline[language=SML]!structure PrimPickle! that defines functions for pickling/unpickling
+    a GUID to/from memory.
   \item
-    \lstinline[language=SML]!structure PrimPickleIO!, which defines functions for reading
+    \lstinline[language=SML]!structure PrimPickleIO! that defines functions for reading
     and writing GUIDs on binary I/O streams.
 \end{enumerate}%
 The \sml{} implementation of these modules could be written as follows:
 \begin{code}\begin{lstlisting}[language=SML]
-structure PrimPickle : sig
+structure Prim : sig
     type guid
   end = struct
     type guid = GUID.guid
   end
 
-structure PrimPickleUtil : sig
-    val guidSize : PrimPickle.guid -> size
-    val guidToBytes : PrimPickle.guid -> Word8Vector.vector
-    val guidFromBytes : { input : int -> Word8Vector.vector option }
-          -> PrimPickle.guid
+structure PrimPickle : sig
+    val guidEncode : Word8Buffer.buf * Prim.guid -> unit
+    val guidDecode : Word8VectorSlice.slice -> Prim.guid * Word8VectorSlice.slice
   end = struct
-    fun guidSize _ = 16
+    val guidSize = 16
+    fun guidEncode (buf, guid) = Word8Buffer.addVec(buf, GUID.toBytes guid)
+    fun guidDecode slice = let
+    	  val 
     fun guidToBytes = GUID.toBytes
     fun guidFromBytes { input } = (case input 16
            of NONE => raise Fail "bogus GUID"
@@ -509,9 +541,10 @@ This section covers the syntax of views, but leaves the semantics to
       <view-entities> ::= <view-entity>
          \alt{} `{' \{ <view-entity> \} `}'
 
-      <view-entity> ::= <id> `.' <typ-id> [ `.' `*' ]
-         \alt{} <id> `.' <con-id>
+      <view-entity> ::= `<file>'
          \alt{} `module' <id>
+         \alt{} <id> `.' <typ-id> [ `.' `*' ]
+         \alt{} <id> `.' <typ-id> `.' <con-id>
 
       <view-properties> ::= <id> <text>
           \alt{} `{' \{ <id> <text> \} `}'
@@ -523,8 +556,9 @@ This section covers the syntax of views, but leaves the semantics to
 
 \subsection{Basic View Syntax}
 Views are named and consist of series of entries.
-In its basic form, a view entry consists of a \synt<view-entity>, which specifies a module,
-type, or constructor, and a view property, which is a name-value pair.
+In its basic form, a view entry consists of a \synt{view-entity}, which specifies a file, module,
+type, or constructor entity, and a view property, which is a name-value pair that is associated with
+the entity.
 %
 \begin{quote}\begin{grammar}
   <view-entry>  ::= <view-entity> `<=' <id> <text>

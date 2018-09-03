@@ -28,12 +28,14 @@ the pickle.
 Since \asdl{} data structures have a tree-like form, they can be represented
 linearly with a simple prefix encoding.
 
+\subsection{Primitive types}
+
 \begin{description}
   \item[bool] \mbox{}\\
     Boolean values are represented by \lstinline!0! (false) or \lstinline!1! (true)
     and are encoded in one byte.
 
- \item[int] \mbox{}\\
+  \item[int] \mbox{}\\
     The \lstinline!int! type provides 30-bits of signed precision encoded in one to
     four bytes.
     The top two bits of the first byte (bit~6--7) specify the number of additional
@@ -51,11 +53,11 @@ linearly with a simple prefix encoding.
     0 to 16383 unsigned in two bytes, \etc{}
 
   \item[integer] \mbox{}\\
-    Since the \asdl{} \lstinline!integer! type is infinite precision, they are
-    represented with a variable-length, big-endian, signed-magnitude encoding.
+    The \asdl{} \lstinline!integer! type is represented with a variable-length,
+    big-endian, signed-magnitude encoding.
     The high bit of each byte indicates if the byte is the last byte of
     the encoding.
-    The seventh bit of the most significant byte is used to determine the
+    The bit~6 of the most significant byte is used to determine the
     sign of the value.
     Thus, numbers in the range of -63 to 63 are encoded in one byte.
     Numbers outside of this range require an extra byte for every seven bits
@@ -68,35 +70,19 @@ linearly with a simple prefix encoding.
     to 1,073,741,823 characters.
 
   \item[identifier] \mbox{}\\
-    Identifiers are represented as if they were strings. 
+    Identifiers are represented as if they were strings.
+\end{description}%
 
-  \item[product types] \mbox{}\\ 
-    Product types are represented sequentially without any tag.
-    The fields of the product type are packed from left to right.
+\subsection{Product types}
+The fields of a product type are encoded sequentially (left to right)
+without any initial tag.
 
-  \item[enumeration types] \mbox{}\\
-
-  \item[sum types] \mbox{}\\
-    Sum types begin with a unique tag to identify the constructor
-    followed by the fields of the constructor.
-    The tag is encoded as either one (\lstinline!tag8!) or two (\lstinline!tag16!)
-    bytes, depending on the number of constructors in the type.
-    Tag values are assigned in order of constructor definition starting from one (the
-    value zero is used to encode empty option values).
-    Fields are packed left to right based of the order in the definition.
-    If there are any attribute values associated with the type, they are packed left to right
-    after the tag but before other constructor fields.
-    
-    There are two special cases for sum-type encodings.
-    If the sum types is an enumeration with only one constructor, then no space is used to
-    encode the value, and if the type has a single constructor with fields, then it is
-    encoded without a tag (\ie{}, like a product type).
-
+\begin{description}
   \item[sequence types] \mbox{}\\
     Sequence types are represented with an integer length-header followed by
     that many values of that type.
     The length-header is encoded as a \lstinline!uint! value, thus sequences are limited
-    to 1,073,741,823 items.
+    to at most 1,073,741,823 items.
 
   \item[option types] \mbox{}\\
     The encoding of optional values depends on the base type.
@@ -106,13 +92,32 @@ linearly with a simple prefix encoding.
     For any other base type, there is an initial byte that is either one or zero.
     A zero indicates that the value is empty and no more data follows.
     A one indicates that the next value is the value of the optional value.
-
-  \item[alias types] \mbox{} \\
-
-  \item[primitive types] \mbox{}\\
-    User-defined primitive types are pickled/unpickled by user-provided functions (see
-    \secref{sec:primitive-syntax}).
 \end{description}%
+
+\subsection{Enumeration types}
+
+\subsection{Sum types}
+Sum types begin with a unique tag to identify the constructor
+followed by the fields of the constructor.
+The tag is encoded as either one (\lstinline!tag8!) or two (\lstinline!tag16!)
+bytes, depending on the number of constructors in the type.
+Tag values are assigned in order of constructor definition starting from one (the
+value zero is used to encode empty option values).
+Fields are packed left to right based of the order in the definition.
+If there are any attribute values associated with the type, they are packed left to right
+after the tag but before other constructor fields.
+    
+There are two special cases for sum-type encodings.
+If the sum types is an enumeration with only one constructor, then no space is used to
+encode the value, and if the type has a single constructor with fields, then it is
+encoded without a tag (\ie{}, like a product type).
+
+
+\subsection{Alias types}
+
+\subsection{primitive types}
+User-defined primitive types are pickled/unpickled by user-provided functions (see
+\secref{sec:primitive-syntax}).
 
 \section{S-expression Format}
 It is also possible to generate a text-based representation of pickles in S-Expression

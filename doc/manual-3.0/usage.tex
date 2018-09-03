@@ -19,10 +19,11 @@ Where \texttt{\textit{command}} is one of
       & Generate \Cplusplus{} \\
     \texttt{sml}
       & Generate Standard ML \\
-    \texttt{typ}
-      & Generate a machine readable type description of the ASDL modules \\
+% NOT YET IMPLEMENTED!!!
+%    \texttt{typ}
+%      & Generate a machine readable type description of the ASDL modules \\
     \texttt{check}
-      & Check correctness of inputs \\
+      & Check correctness of inputs, but do not generate output \\
   \end{tabular}%
 \end{quote}%
 
@@ -36,10 +37,11 @@ Options common to all the commands include
 \begin{description}
   \item[\normalfont\texttt{-n}] \mbox{}\\
     Do not write any output files.
-    Instead output the list of files that would have been written to standard out.
-  \item[\normalfont\texttt{--line-width=}\textit{width}] \mbox{}\\
-    Set the maximum line width for pretty printing code.
-    The default value is 90 characters.
+    Instead write the list of files that would have been written to standard out.
+% NOT YET IMPLEMENTED!!!
+%  \item[\normalfont\texttt{--line-width=}\textit{width}] \mbox{}\\
+%    Set the maximum line width for pretty printing code.
+%    The default value is 90 characters.
   \item[\normalfont\texttt{--output-directory=}\textit{dir} or \texttt{-d} \textit{dir}] \mbox{}\\
     Specify the output directory to place the generated files.
     By default the output will be placed in the same directory as the
@@ -72,16 +74,17 @@ to the default set of primitive types and functions.
 \subsection*{Options for \Cplusplus}
 
 \begin{description}
-  \item[\normalfont\texttt{--base-include=}\textit{file}\texttt{.hxx}] \mbox{}\\
+  \item[\normalfont\texttt{--base-include=}\textit{file}] \mbox{}\\
     Specify the name of the \Cplusplus{}header file that defines the primitive \asdl{} types
     and functions.
     The default value is \texttt{asdl/asdl.hxx}.
 \end{description}%
 
-\subsection*{Options for Standard ML}
-\begin{description}
-  \item[\normalfont\texttt{--base-structure=}\textit{structure-name}] \mbox{}\\
-    Specify the name of the 'BASE' structure that defines the primitive ASDL types.
-    The default value is \lstinline[language=SML]!ASDL!.
-\end{description}%
+% NOT YET IMPLEMENTED!!!
+%\subsection*{Options for Standard ML}
+%\begin{description}
+%  \item[\normalfont\texttt{--base-structure=}\textit{structure-name}] \mbox{}\\
+%    Specify the name of the structure that defines the primitive ASDL types.
+%    The default value is \lstinline[language=SML]!ASDL!.
+%\end{description}%
 
