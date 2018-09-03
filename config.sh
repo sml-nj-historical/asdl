@@ -15,6 +15,14 @@ if [ x"$INSTALLDIR" = x ] ; then
   exit 1
 fi
 
+# make sure that the configure script is present
+#
+if [ ! -f ./configure ] ; then
+  autoheader -Iconfig
+  autoconf -Iconfig
+  rm -rf autom4te.cache
+fi
+
 SMLNJ_CMD=$INSTALLDIR/bin/sml
 export SMLNJ_CMD
 
