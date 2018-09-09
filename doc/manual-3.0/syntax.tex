@@ -14,8 +14,8 @@ Each section describes a fragment of the syntax and its meaning.
 
 The lexical conventions for \asdl{} are given in \figref{fig:lexical-syntax}.
 ASDL is a case-sensitive language and, furthermore, classifies identifiers
-into lower-case (\synt{lc-id}) and upper-case (\synt{uc-id}) identifiers.
-Type identifiers are lower-case, while constructor identifiers are upper-case.
+into initial-lower-case (\synt{lc-id}) and initial-upper-case (\synt{uc-id}) identifiers.
+Type identifiers are initial-lower-case, while constructor identifiers are initial-upper-case.
 Module and field identifiers can be either upper or lower-case.
 
 \begin{figure}[t]
@@ -39,7 +39,7 @@ Module and field identifiers can be either upper or lower-case.
 
       <con-id>    ::= <uc-id>
 
-      <comment>   ::= `--' <text-character> <end-of-line>
+      <comment>   ::= `--' \{ <text-character> \} <end-of-line>
 
       <text>      ::= `:' \{ <text-character> \} <end-of-line>
                \alt{} `\%\%' \{ <text-character> | <end-of-line> \} <end-of-line> `\%\%'
@@ -56,7 +56,7 @@ Verbatim text is denoted by \synt{text} and can be specified in one of two ways.
 Either by an initial ``\lstinline!:!'' followed by a sequence of \synt{text-character}s that
 continues to the end of the line or by a ``\lstinline!%%!'' terminated by a ``\lstinline!%%!''
 at the beginning of a line by itself. 
-Text include using the ``\lstinline!:!'' notation will have trailing and leading 
+Text included using the ``\lstinline!:!'' notation will have trailing and leading 
 whitespace removed.
 
 ASDL has the following keywords:
@@ -105,7 +105,7 @@ sequence of type definitions enclosed in braces.
 \begin{figure}[t]
   \begin{quote}
     \begin{grammar}
-      <module>  ::=  `module' <id> [ <imports> ] `{' <definitions> `}'
+      <module>  ::=  `module' <id> [ <imports> ] `{' \{ <type-definition> \} `}'
 
       <imports> ::=  `(' \{ `import' <id> [ `alias' <id> ] \} `)'
     \end{grammar}
@@ -173,7 +173,7 @@ is used to prefix all the globally exported identifiers.
 
       <field>        ::=  <typ-exp> [ <id> ]
       
-      <typ-exp>      ::= [ <id> `.' ] <typ-id> [`?' | `*' | `!']
+      <typ-exp>      ::= [ <id> `.' ] <typ-id> [ `?' | `*' | `!' ]
     \end{grammar}
   \end{quote}
   \caption{\asdl{} type definition syntax}
