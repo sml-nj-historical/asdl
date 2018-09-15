@@ -8,6 +8,7 @@ Library
 
   structure Test
   structure TestIO
+  structure TestMix
 
 is
 
@@ -24,5 +25,6 @@ is
 
   sml-test.sml
   sml-test-io.sml
+  sml-test-mix.sml
   util.sml
 
