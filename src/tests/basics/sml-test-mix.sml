@@ -45,7 +45,9 @@ structure TestMix =
     in
   (* tree: file -> memory *)
     fun chkTreeFM () = let
-	  val chk = checkFM "tree" (U.tree_toString, U.tree_same, PIO.write_tree, Pkl.decode_tree)
+	  fun chk tr = (
+		checkFM "tree" (U.tree_toString, U.tree_same, PIO.write_tree, Pkl.decode_tree) tr;
+		checkMF "tree" (U.tree_toString, U.tree_same, Pkl.encode_tree, PIO.read_tree) tr)
 	  in
 	    chk EMPTY;
 	    chk (NODE{value ="2", left=NODE{value ="1", left = EMPTY, right = EMPTY}, right=EMPTY});
@@ -58,21 +60,27 @@ structure TestMix =
   (* tree: memory -> file *)
   (* coord *)
     fun chkCoordFM () = let
-	  val chk = checkFM "coord" (U.coord_toString, U.coord_same, PIO.write_coord, Pkl.decode_coord)
+	  fun chk tr = (
+		checkFM "coord" (U.coord_toString, U.coord_same, PIO.write_coord, Pkl.decode_coord) tr;
+		checkMF "coord" (U.coord_toString, U.coord_same, Pkl.encode_coord, PIO.read_coord) tr)
 	  in
 	    chk {x = 12, y = 13};
 	    chk {x = ~12, y = 13}
 	  end
   (* pos *)
     fun chkPosFM () = let
-	  val chk = checkFM "pos" (U.pos_toString, U.pos_same, PIO.write_pos, Pkl.decode_pos)
+	  fun chk tr = (
+		checkFM "pos" (U.pos_toString, U.pos_same, PIO.write_pos, Pkl.decode_pos) tr;
+		checkMF "pos" (U.pos_toString, U.pos_same, Pkl.encode_pos, PIO.read_pos) tr)
 	  in
 	    chk (12, 13);
 	    chk (~12, 42)
 	  end
   (* nat *)
     fun chkNatFM () = let
-	  val chk = checkFM "nat" (U.nat_toString, U.nat_same, PIO.write_nat, Pkl.decode_nat)
+	  fun chk tr = (
+		checkFM "nat" (U.nat_toString, U.nat_same, PIO.write_nat, Pkl.decode_nat) tr;
+		checkMF "nat" (U.nat_toString, U.nat_same, Pkl.encode_nat, PIO.read_nat) tr)
 	  in
 	    chk ZERO;
 	    chk (SUCC ZERO);
@@ -80,7 +88,9 @@ structure TestMix =
 	  end
   (* value *)
     fun chkValueFM () = let
-	  val chk = checkFM "value" (U.value_toString, U.value_same, PIO.write_value, Pkl.decode_value)
+	  fun chk tr = (
+		checkFM "value" (U.value_toString, U.value_same, PIO.write_value, Pkl.decode_value) tr;
+		checkMF "value" (U.value_toString, U.value_same, Pkl.encode_value, PIO.read_value) tr)
 	  in
 	    chk (BOOL false);
 	    chk (BOOL true);
@@ -94,7 +104,9 @@ structure TestMix =
 	  end
   (* color *)
     fun chkColorFM () = let
-	  val chk = checkFM "color" (U.color_toString, U.color_same, PIO.write_color, Pkl.decode_color)
+	  fun chk tr = (
+		checkFM "color" (U.color_toString, U.color_same, PIO.write_color, Pkl.decode_color) tr;
+		checkMF "color" (U.color_toString, U.color_same, Pkl.encode_color, PIO.read_color) tr)
 	  in
 	    chk RED;
 	    chk GREEN;
@@ -102,14 +114,20 @@ structure TestMix =
 	  end
   (* wrap_bool *)
     fun chkWrapBoolFM () = let
-	  val chk = checkFM "wrap_bool" (U.wrap_bool_toString, U.wrap_bool_same, PIO.write_wrap_bool, Pkl.decode_wrap_bool)
+	  fun chk tr = (
+		checkFM "wrap_bool"
+		  (U.wrap_bool_toString, U.wrap_bool_same, PIO.write_wrap_bool, Pkl.decode_wrap_bool) tr;
+		checkMF "wrap_bool"
+		  (U.wrap_bool_toString, U.wrap_bool_same, Pkl.encode_wrap_bool, PIO.read_wrap_bool) tr)
 	  in
 	    chk (WRAP true);
 	    chk (WRAP false)
 	  end
   (* unit *)
     fun chkUnitFM () = let
-	  val chk = checkFM "unit" (U.unit_toString, U.unit_same, PIO.write_unit, Pkl.decode_unit)
+	  fun chk tr = (
+		checkFM "unit" (U.unit_toString, U.unit_same, PIO.write_unit, Pkl.decode_unit) tr;
+		checkMF "unit" (U.unit_toString, U.unit_same, Pkl.encode_unit, PIO.read_unit) tr)
 	  in
 	    chk UNIT
 	  end
