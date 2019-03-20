@@ -61,7 +61,7 @@ whitespace removed.
 
 ASDL has the following keywords:
 \begin{quote}
-  \lit{alias}  \lit{attributes} \lit{import},
+  \lit{alias}  \lit{attributes} \lit{import}
   \lit{include} \lit{module} \lit{primitive} \lit{view}
 \end{quote}%
 Note that it is allowed to use a keyword as an identifier wherever a \synt{lc-id} is permitted.
@@ -463,21 +463,18 @@ structure Prim : sig
 
 structure PrimPickle : sig
     val guidEncode : Word8Buffer.buf * Prim.guid -> unit
-    val guidDecode : Word8VectorSlice.slice -> Prim.guid * Word8VectorSlice.slice
+    val guidDecode : Word8VectorSlice.slice
+          -> Prim.guid * Word8VectorSlice.slice
   end = struct
     val guidSize = 16
-    fun guidEncode (buf, guid) = Word8Buffer.addVec(buf, GUID.toBytes guid)
+    fun guidEncode (buf, guid) =
+          Word8Buffer.addVec(buf, GUID.toBytes guid)
     fun guidDecode slice = let
-    	  val 
-    fun guidToBytes = GUID.toBytes
-    fun guidFromBytes { input } = (case input 16
-           of NONE => raise Fail "bogus GUID"
-	        | (SOME v) => (case GUID.fromBytes v
-                 of NONE => raise Fail "bogus GUID"
-	              | SOME g => g
-                (* end case *))
-	      (* end case *))
-  end
+    	  val (guid, rest) = Word8VectorSlice.splitAt(slice, guidSize)
+	  in
+	    (GUID.fromBytes(Word8VectorSlice.vector guid), rest)
+	  end
+   end
 
 structure PrimPickleIO : sig
     val guidInput : BinIO.instream -> guid
