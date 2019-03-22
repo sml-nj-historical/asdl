@@ -18,6 +18,8 @@ structure SMLView : sig
 	val getPickleName : AST.ModuleId.t -> string
       (* name of pickle-io module *)
 	val getIOName : AST.ModuleId.t -> string
+      (* name of S-expression pickle module *)
+        val getSExpName : AST.ModuleId.t -> string
       end
 
     structure Type : VIEW_TYPE_BASE
@@ -62,6 +64,7 @@ structure SMLView : sig
 	in
 	val getPickleName = getModName (PN.pickler_name, "Pickle")
 	val getIOName = getModName (PN.io_name, "PickleIO")
+	val getSExpName = getModName (PN.sexp_pickle_name, "SExpPickleIO")
 	end (* local *)
 
       end

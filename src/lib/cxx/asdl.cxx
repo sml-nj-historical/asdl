@@ -14,6 +14,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream> // for debuggging
+#include <cassert>
 
 namespace asdl {
 

@@ -16,6 +16,7 @@ structure PropNames =
     val name = Atom.atom "name"
     val pickler_name = Atom.atom "pickler_name"
     val io_name = Atom.atom "io_name"
+    val sexp_pickle_name = Atom.atom "sexp_pickle_name"
     val header = Atom.atom "header"
     val natural_type = Atom.atom "natural_type"
 

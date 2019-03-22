@@ -14,7 +14,7 @@ structure Util : sig
 
   (* convert a module name to a signature name by converting all characters to upper
    * case and inserting "_" at case-change points.  The second argument is an optional
-   * suffix. For example, "FooBar" ==> "FOO_BAR"
+   * suffix. For example, "FooBar" ==> "FOO_BAR" or "FOO_BAR_SUFFIX"
    *)
     val sigName : string * string option -> string
 

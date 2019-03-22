@@ -115,7 +115,7 @@ encoded without a tag (\ie{}, like a product type).
 
 \subsection{Alias types}
 
-\subsection{primitive types}
+\subsection{User-defined primitive types}
 User-defined primitive types are pickled/unpickled by user-provided functions (see
 \secref{sec:primitive-syntax}).
 
@@ -123,28 +123,36 @@ User-defined primitive types are pickled/unpickled by user-provided functions (s
 It is also possible to generate a text-based representation of pickles in S-Expression
 syntax.
 
+\subsection{Primitive types}
+
 \begin{description}
   \item[bool] \mbox{}\\
-
+    Boolean values are mapped to the literals \lstinline!#t! and \lstinline!#f!.
+    
   \item[numbers] \mbox{}\\
-    The ASDL numeric types (\lstinline!int!, \lstinline!uint!, and \lstinline!integer!)
+    Values of the ASDL numeric types (\lstinline!int!, \lstinline!uint!, and \lstinline!integer!)
     are represented by decimal literals.
 
   \item[string and identifier] \mbox{}\\
     These values are represented by string literals.
-
-  \item[enumeration types] \mbox{}\\
-    
-  \item[sum types] \mbox{}\\
-
-  \item[sequence types] \mbox{}\\
-
-  \item[option types] \mbox{}\\
-
-  \item[primitive types] \mbox{}\\
-    User-defined primitive types are not yet supported in S-Expression form.
-    
 \end{description}%
+
+\subsection{Product types}
+An unlabeled product value \lstinline[mathescape=true]@($v_1$, $\ldots$, $v_n$)@ is encoded as the
+S-expression \lstinline[mathescape=true]@($n$-tuple $v_1$, $\ldots$, $v_n$)@.
+
+Labeled product types have their fields represented as pairs of the label and encoded value.
+
+\subsection{Sum types}
+Nullary constructors are mapped to quoted symbols, while non-nullary constructors are mapped
+to an S-expression with the constructor name as the operator and the 
+
+\subsection{Sequence types}
+
+\subsection{Alias types}
+
+\subsection{User-defined primitive types}
+User-defined primitive types are not yet supported in S-Expression form.
 
 \section{XML Pickle Format}
 
