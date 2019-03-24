@@ -15,10 +15,12 @@ local
 
 in
 
-  signature ASDL_PKL
-  signature ASDL_TYPES
+  signature ASDL
+  signature ASDL_PICKLE
 
-  structure ASDLPkl
-  structure ASDLTypes
+  structure ASDL
+  structure ASDLMemoryPickle
+  structure ASDLFilePickle
+  structure ASDLSExpPickle
 
 end

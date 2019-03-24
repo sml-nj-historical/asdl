@@ -1,11 +1,20 @@
-(* asdl-pickle-io.sml
+(* asdl-file-pickle.sml
  *
- * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * COPYRIGHT (c) 2019 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *)
 
-structure ASDLPickleIO : ASDL_PICKLE_IO =
-  struct
+structure ASDLFilePickle : sig
+
+    include ASDL_PICKLE
+
+  (* pickle to/from files *)
+    val toFile : (outstream * 'a -> unit) -> (string * 'a) -> unit
+    val fromFile : (instream -> 'a) -> string -> 'a
+
+  end where type instream = BinIO.instream
+      where type outstream = BinIO.outstream
+  = struct
 
     structure W = Word
     structure W8 = Word8
@@ -18,6 +27,9 @@ structure ASDLPickleIO : ASDL_PICKLE_IO =
     infix 5 << >>
     infix 6 ++
     infix 7 &
+
+    type instream = BinIO.instream
+    type outstream = BinIO.outstream
 
     fun toByte w = W8.fromLarge (W.toLarge w)
     fun fromByte b = W.fromLarge (W8.toLarge b)

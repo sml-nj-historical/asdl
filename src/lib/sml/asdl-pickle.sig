@@ -7,34 +7,31 @@
 signature ASDL_PICKLE =
   sig
 
-    val encodeBool : Word8Buffer.buf * ASDL.bool -> unit
-    val decodeBool : Word8VectorSlice.slice -> ASDL.bool * Word8VectorSlice.slice
+    type instream
+    type outstream
 
-    val encodeInt : Word8Buffer.buf * ASDL.int -> unit
-    val decodeInt : Word8VectorSlice.slice -> ASDL.int * Word8VectorSlice.slice
+    val writeBool : outstream * ASDL.bool -> unit
+    val readBool : instream -> ASDL.bool
 
-    val encodeUInt : Word8Buffer.buf * ASDL.uint -> unit
-    val decodeUInt : Word8VectorSlice.slice -> ASDL.uint * Word8VectorSlice.slice
+    val writeInt : outstream * ASDL.int -> unit
+    val readInt : instream -> ASDL.int
 
-    val encodeInteger : Word8Buffer.buf * ASDL.integer -> unit
-    val decodeInteger : Word8VectorSlice.slice -> ASDL.integer * Word8VectorSlice.slice
+    val writeUInt : outstream * ASDL.uint -> unit
+    val readUInt : instream -> ASDL.uint
 
-    val encodeString : Word8Buffer.buf * ASDL.string -> unit
-    val decodeString : Word8VectorSlice.slice -> ASDL.string * Word8VectorSlice.slice
+    val writeInteger : outstream * ASDL.integer -> unit
+    val readInteger : instream -> ASDL.integer
 
-    val encodeIdentifier : Word8Buffer.buf * ASDL.identifier -> unit
-    val decodeIdentifier : Word8VectorSlice.slice -> ASDL.identifier * Word8VectorSlice.slice
+    val writeString : outstream * ASDL.string -> unit
+    val readString : instream -> ASDL.string
+
+    val writeIdentifier : outstream * ASDL.identifier -> unit
+    val readIdentifier : instream -> ASDL.identifier
 
   (* utility functions for sum-type tags *)
-    val encodeTag8 : Word8Buffer.buf * word -> unit
-    val decodeTag8 : Word8VectorSlice.slice -> word * Word8VectorSlice.slice
-    val encodeTag16 : Word8Buffer.buf * word -> unit
-    val decodeTag16 : Word8VectorSlice.slice -> word * Word8VectorSlice.slice
-
-  (* pickle to/from a vector *)
-    val toVector : (Word8Buffer.buf * 'a -> unit) -> 'a -> Word8Vector.vector
-    val fromVector : (Word8VectorSlice.slice -> 'a * Word8VectorSlice.slice)
-	  -> Word8Vector.vector
-	  -> 'a
+    val writeTag8 : outstream * word -> unit
+    val readTag8 : instream -> word
+    val writeTag16 : outstream * word -> unit
+    val readTag16 : instream -> word
 
   end

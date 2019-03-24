@@ -1,6 +1,6 @@
 (* asdl-lib.cm
  *
- * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * COPYRIGHT (c) 2019 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *)
 
@@ -8,11 +8,11 @@ Library
 
   signature ASDL
   signature ASDL_PICKLE
-  signature ASDL_PICKLE_IO
 
   structure ASDL
-  structure ASDLPickle
-  structure ASDLPickleIO
+  structure ASDLMemoryPickle
+  structure ASDLFilePickle
+  structure ASDLSExpPickle
 
 is
 
@@ -22,6 +22,6 @@ is
   asdl.sig
   asdl.sml
   asdl-pickle.sig
-  asdl-pickle.sml
-  asdl-pickle-io.sig
-  asdl-pickle-io.sml
+  asdl-memory-pickle.sml
+  asdl-file-pickle.sml
+  asdl-sexp-pickle.sml
