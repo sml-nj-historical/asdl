@@ -77,27 +77,18 @@ linearly with a simple prefix encoding.
 The fields of a product type are encoded sequentially (left to right)
 without any initial tag.
 
-\begin{description}
-  \item[sequence types] \mbox{}\\
-    Sequence types are represented with an integer length-header followed by
-    that many values of that type.
-    The length-header is encoded as a \lstinline!uint! value, thus sequences are limited
-    to at most 1,073,741,823 items.
-
-  \item[option types] \mbox{}\\
-    The encoding of optional values depends on the base type.
-    For sum types with more than one constructor, the special tag value of zero is
-    used to denote an empty value and non-zero values are interpreted as
-    the constructor's tag.
-    For any other base type, there is an initial byte that is either one or zero.
-    A zero indicates that the value is empty and no more data follows.
-    A one indicates that the next value is the value of the optional value.
-\end{description}%
-
 \subsection{Enumeration types}
+Enumeration types are represented by a tag value, that is either
+one (\lstinline!tag8!) or two (\lstinline!tag16!)
+bytes, depending on the number of constructors in the type.
+Tag values are assigned in order of constructor definition starting from one (the
+value zero is used to encode empty option values).
+
+If the enumeration type has only a single constructor, then it is implicit in
+the encoding (\ie{}, no space is used to represent it).
 
 \subsection{Sum types}
-Sum types begin with a unique tag to identify the constructor
+Non-enumeration sum types begin with a unique tag to identify the constructor
 followed by the fields of the constructor.
 The tag is encoded as either one (\lstinline!tag8!) or two (\lstinline!tag16!)
 bytes, depending on the number of constructors in the type.
@@ -106,14 +97,27 @@ value zero is used to encode empty option values).
 Fields are packed left to right based of the order in the definition.
 If there are any attribute values associated with the type, they are packed left to right
 after the tag but before other constructor fields.
-    
-There are two special cases for sum-type encodings.
-If the sum types is an enumeration with only one constructor, then no space is used to
-encode the value, and if the type has a single constructor with fields, then it is
+  
+If the sum type has a single constructor with fields, then it is
 encoded without a tag (\ie{}, like a product type).
 
+\subsection{Sequence types}
+Sequence types are represented with an integer length-header followed by
+that many values of that type.
+The length-header is encoded as a \lstinline!uint! value, thus sequences are limited
+to at most 1,073,741,823 items.
+
+\subsection{Option types}
+The encoding of optional values depends on the base type.
+For sum types with more than one constructor, the special tag value of zero is
+used to denote an empty value and non-zero values are interpreted as
+the constructor's tag.
+For any other base type, there is an initial byte that is either one or zero.
+A zero indicates that the value is empty and no more data follows.
+A one indicates that the next value is the value of the optional value.
 
 \subsection{Alias types}
+Alias types use the encoding of their definition.
 
 \subsection{User-defined primitive types}
 User-defined primitive types are pickled/unpickled by user-provided functions (see
@@ -121,7 +125,14 @@ User-defined primitive types are pickled/unpickled by user-provided functions (s
 
 \section{S-expression Format}
 It is also possible to generate a text-based representation of pickles in S-Expression
-syntax.
+syntax.  Primitive values are represented as literals, enumerations are represented
+as quoted symbols, and structured values are represented with a parenthesized
+expression of the form
+\begin{code}\begin{lstlisting}[mathescape=true]
+( $\mathit{op}$ $v'_1$ $\cdots$ $v'_n$ )
+\end{lstlisting}\end{code}%
+where $\mathit{op}$ is an identifier that defines the structure of the value
+and the $v'_1,\,\ldots,\,v'_n$ are the encodings of the sub-values.
 
 \subsection{Primitive types}
 
@@ -130,29 +141,42 @@ syntax.
     Boolean values are mapped to the literals \lstinline!#t! and \lstinline!#f!.
     
   \item[numbers] \mbox{}\\
-    Values of the ASDL numeric types (\lstinline!int!, \lstinline!uint!, and \lstinline!integer!)
-    are represented by decimal literals.
+    Values of the ASDL numeric types (\lstinline!int!, \lstinline!uint!, and
+    \lstinline!integer!) are represented by decimal literals.
 
   \item[string and identifier] \mbox{}\\
     These values are represented by string literals.
 \end{description}%
 
 \subsection{Product types}
-An unlabeled product value \lstinline[mathescape=true]@($v_1$, $\ldots$, $v_n$)@ is encoded as the
-S-expression \lstinline[mathescape=true]@($n$-tuple $v_1$, $\ldots$, $v_n$)@.
-
-Labeled product types have their fields represented as pairs of the label and encoded value.
+A product value \lstinline[mathescape=true]@($f_1$, $\ldots$, $f_n$)@
+is encoded as the
+S-expression \lstinline[mathescape=true]@($n$-tuple $f'_1$ $\cdots$ $f'_n$)@,
+where the $f'_i$ are the encoded fields of the value.
+Unlabeled fields are directly represented by their value, whereas a
+field with label $l$ and value $v$ is encoded as
+\lstinline[mathescape=true]@($l$ $v'$)@, where $v'$ is the encoding of the field's
+value.
 
 \subsection{Sum types}
 Nullary constructors are mapped to quoted symbols, while non-nullary constructors are mapped
 to an S-expression with the constructor name as the operator and the 
 
 \subsection{Sequence types}
+A sequence of values $v_1,\,\ldots,\,v_n$ is encoded as
+\lstinline[mathescape=true]@(* $v'_1$ $\cdots$ $v'_n$)@,
+where the $v'_i$ are the encoded fields of the sequence.
+
+\subsection{Option types}
+An empty option value is represented as \lstinline@(?)@, while a non-empty
+option value with contents $v$ is represented as \lstinline[mathescape=true]@(? $v'$)@,
+where $v'$ is the encoding of the contents.
 
 \subsection{Alias types}
+Alias types use the encoding of their definition.
 
 \subsection{User-defined primitive types}
 User-defined primitive types are not yet supported in S-Expression form.
 
-\section{XML Pickle Format}
-
+%\section{XML Pickle Format}
+% TODO

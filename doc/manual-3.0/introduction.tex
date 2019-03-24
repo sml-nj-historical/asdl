@@ -6,11 +6,13 @@
 \thispagestyle{empty}
 
 The \emph{Abstract Syntax Description Lanuguage} (\asdl{}) is a language
-designed to describe the tree-like data structures in compilers.
-Its original purpose to provide a method for
+designed to describe the tree-like data structures used in compilers.
+Its original purpose was to provide a method for
 compiler components written in different languages to
-interoperate.
-\asdl{} makes it easier for applications written in a
+interoperate~\cite{usenix:zephyr-asdl}, but it has also been
+used to support communicating information between separate runs
+of a compiler.
+\asdl{} makes it fairly easy for applications written in a
 variety of programming languages to communicate complex recursive data
 structures. 
 
@@ -37,12 +39,12 @@ The sequence of bytes is called a \emph{pickle}.
 
 \asdl{} was originally developed in the 1990's by Daniel Wang as part of the
 \emph{National Compiler Infrastructure} project at Princeton University.
-Tha \asdl{} implementation has not kept up with the significant changes
+That \asdl{} implementation has not kept up with the significant changes
 in many of its target languages (\eg{}, \Cplusplus{}, \haskell{}, \java{},
 \etc{}), so it was time for a rewrite.\footnote{
   Version~2.0 of \asdl{} is still available from
   \url{https://sourceforge.net/projects/asdl}
-  and the~2.0 version of the manual (converted to \LaTeX{} is included
+  and the~2.0 version of the manual (converted to \LaTeX{}) is included
   in the documentation of this system.
 }
 Version~3.0 of \asdl{} and \asdlgen{} is a complete reimplementation of the
@@ -76,5 +78,5 @@ and \asdlgen{}:
     Alias-type definitions were added to the ASDL syntax.
   \item
     Include directives were added to support splitting specifications into multiple
-    files (and sharing of common specifications).
+    files (and the sharing of common specifications).
 \end{itemize}%

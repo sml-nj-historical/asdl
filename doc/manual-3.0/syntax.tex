@@ -5,7 +5,7 @@
 
 This section describes the syntax of the input language to \asdlgen{}.
 The syntax is described using EBNF notation.
-Literal terminals are typeset in bold and enclosed in single quotes.
+Literal terminals are typeset in \lit{bold} and enclosed in single quotes.
 Optional terms are enclosed in square brackets and terms that are
 repeated zero or more times are enclosed in braces.
 Each section describes a fragment of the syntax and its meaning.
@@ -49,14 +49,14 @@ Module and field identifiers can be either upper or lower-case.
   \label{fig:lexical-syntax}
 \end{figure}%
 
-Comments begin with ``\lstinline[language=ASDL]!--!''
+Comments begin with \lit{--}
 and continue to the end of the line.
 
 Verbatim text is denoted by \synt{text} and can be specified in one of two ways.
-Either by an initial ``\lstinline!:!'' followed by a sequence of \synt{text-character}s that
-continues to the end of the line or by a ``\lstinline!%%!'' terminated by a ``\lstinline!%%!''
+Either by an initial \lit{:} followed by a sequence of \synt{text-character}s that
+continues to the end of the line or by a \lit{\%\%} terminated by a \lit{\%\%}
 at the beginning of a line by itself. 
-Text included using the ``\lstinline!:!'' notation will have trailing and leading 
+Text included using the `\lit{:} notation will have trailing and leading 
 whitespace removed.
 
 ASDL has the following keywords:
@@ -360,7 +360,7 @@ namespace Tree {
 } // namespace Tree
 \end{lstlisting}\end{code}%
 with labels one would get
-\begin{code}\begin{lstlisting}[language=c++]
+\begin{code}\begin{lstlisting}[language=c++,mathescape=true]
 namespace Tree {
     $\cdots$
     struct Node : public tree {

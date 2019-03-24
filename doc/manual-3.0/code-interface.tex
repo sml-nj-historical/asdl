@@ -31,22 +31,24 @@ implements functions to convert between the types and byte vectors, and the
 \lstinline[language=SML,mathescape=true]@$M$PickleIO@ structure implements functions to
 read and write pickles from binary files.
 
-For an ASDL source file \texttt{f.asdl}, \asdlgen{} will produce five \sml{} source files:
-\begin{center}
-  \begin{tabular}{lp{4in}}
-    \texttt{f.sml}
-      & contains type definition structures (\eg{}, \lstinline[mathescape=true]@structure $M$@) \\
-    \texttt{f-pickle.sig}
-      & contains memory-pickler signatures (\eg{}, \lstinline[mathescape=true]@signature $M$_PICKLE@) \\
-    \texttt{f-pickle.sml}
-      & contains memory-pickler structures (\eg{}, \lstinline[mathescape=true]@structure $M$Pickle@) \\
-    \texttt{f-pickle-io.sig}
-      & contains file-pickler signatures (\eg{}, \lstinline[mathescape=true]@signature $M$_PICKLE_IO@) \\
-    \texttt{f-pickle-io.sml}
-      & contains file-pickler structures (\eg{}, \lstinline[mathescape=true]@structure $M$PickleIO@)
-  \end{tabular}
-\end{center}%
-
+For an ASDL source file \texttt{f.asdl}, \asdlgen{} will produce five \sml{} source files.
+\begin{description}
+  \item[\normalfont\texttt{f.sml}] \mbox{}\\
+    contains type definition structures (\eg{},
+    \lstinline[mathescape=true]@structure $M$@)
+  \item[\normalfont\texttt{f-pickle.sig}] \mbox{}\\
+    contains memory-pickler signatures (\eg{},
+    \lstinline[mathescape=true]@signature $M$_PICKLE@)
+  \item[\normalfont\texttt{f-pickle.sml}] \mbox{}\\
+    contains memory-pickler structures (\eg{},
+    \lstinline[mathescape=true]@structure $M$Pickle@)
+  \item[\normalfont\texttt{f-pickle-io.sig}] \mbox{}\\
+    contains file-pickler signatures (\eg{},
+    \lstinline[mathescape=true]@signature $M$_PICKLE_IO@)
+  \item[\normalfont\texttt{f-pickle-io.sml}] \mbox{}\\
+    contains file-pickler structures (\eg{},
+    \lstinline[mathescape=true]@structure $M$PickleIO@)
+\end{description}%
 
 \begin{table}[tp]
   \caption{Translation of \asdl{} types to \sml{}}
@@ -166,13 +168,12 @@ class $C_n$ : public $t$ {
 \section{The Rosetta Stone for Sum Types}
 \label{sec:rosetta-stone}
 
-In languages that have algebraic data types sum types are equivalent to the
-\lstinline[language=ASDL]!datatype! and \lstinline[language=ASDL]!data! declarations in ML and Haskell. In Algol like
-languages they are equivalent to tagged \lstinline[language=ASDL]!unions! in C or variant records
-in Pascal. In class based object oriented languages sum types are equivalent
-to an abstract base class that represents the type of a family of subclasses
-one for each constructor of the type. The previous example written in ML would
-be
+For languages that support algebraic data types, \asdlgen{} maps sum types directly
+to the language's mechanism (\eg{}, \lstinline[language=SML]!datatype! declarations
+in \sml{}).
+For class-based object-oriented languages, like \Cplusplus{}, \asdlgen{} maps
+sum types to abstract base classes and the constructors to individual subclasses.
+The previous example written in \sml{} would be
 \begin{quote}\begin{lstlisting}[language=SML]
 structure M =
   struct
