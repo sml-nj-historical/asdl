@@ -22,11 +22,16 @@ structure GenSML : sig
     structure PP = TextIOPP
 
     val baseStructureOpt = ref "ASDL"
+    val genSExpFlg = ref false
 
     val options = [
 	    { short = "", long = ["base-structure"],
 	      desc = GetOpt.ReqArg(fn s => baseStructureOpt := s, "<name>"),
 	      help = "specify structure that defines the ASDL primitive types"
+	    },
+	    { short = "", long = ["sexp"],
+	      desc = GetOpt.NoArg(fn () => genSExpFlg := true),
+	      help = "generate support for S-Expression pickles"
 	    }
 	  ]
 
@@ -60,13 +65,17 @@ structure GenSML : sig
   (* generate the type-declaration file *)
     val genTypes = genFile GenTypes.gen
 
+  (* generate the generic pickler signature *)
+    val genPicklerSig = genFile GenPickleSig.gen
+
   (* generate the pickler files *)
-    val genPicklerSig = genFile GenPickle.genSig
-    val genPicklerStr = genFile GenPickle.genStr
+    val genPicklerStr = genFile GenPickle.gen
 
   (* generate the pickle-io files *)
-    val genIOSig = genFile GenIO.genSig
-    val genIOStr = genFile GenIO.genStr
+    val genIOStr = genFile GenIO.gen
+
+  (* generate the S-Expression pickler files *)
+    val genSExpStr = genFile GenSExpPickle.gen
 
   (* generate SML code for the given list of modules using the "Sml" view *)
     fun gen {src, dir, stem, modules} = let
@@ -79,8 +88,11 @@ structure GenSML : sig
 	    genTypes (src, smlFilename basePath, modules);
 	    genPicklerSig (src, sigFilename(basePath ^ "-pickle"), modules);
 	    genPicklerStr (src, smlFilename(basePath ^ "-pickle"), modules);
-	    genIOSig (src, sigFilename(basePath ^ "-pickle-io"), modules);
-	    genIOStr (src, smlFilename(basePath ^ "-pickle-io"), modules)
+	    genIOStr (src, smlFilename(basePath ^ "-pickle-io"), modules);
+	    if (!genSExpFlg)
+	      then (
+		genSExpStr (src, smlFilename(basePath ^ "-sexp"), modules))
+	      else ()
 	  end
 
   end

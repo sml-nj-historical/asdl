@@ -6,11 +6,8 @@
 
 structure GenIO : sig
 
-  (* generate the signature for the pickle-io structure *)
-    val genSig : AST.module -> SML.top_decl
-
   (* generate the pickle-io structure *)
-    val genStr : AST.module -> SML.top_decl
+    val gen : AST.module -> SML.top_decl
 
   end = struct
 
@@ -22,33 +19,6 @@ structure GenIO : sig
     structure E = Encoding
     structure S = SML
 
-  (***** Signature generation *****)
-
-    fun genSig (AST.Module{isPrim=false, id, decls}) = let
-	  val typeModName = ModV.getName id
-	  val sigName = Util.sigName(ModV.getIOName id, NONE)
-	  val specs = List.foldr (genSpec typeModName) [] (!decls)
-	  in
-	    S.SIGtop(sigName, S.BASEsig specs)
-	  end
-      | genSig _ = raise Fail "GenIO.genSig: unexpected primitive module"
-
-  (* generate the encoder/decoder specifications for a type *)
-    and genSpec modName (AST.TyDcl{id, ...}, specs) = let
-	  val ty = S.CONty([], concat[modName, ".", TyV.getName id])
-	  val outStrmTy = S.CONty([], "BinIO.outstream")
-	  val inStrmTy = S.CONty([], "BinIO.instream")
-	  val unitTy = S.CONty([], "unit")
-	(* writer *)
-	  val wrTy = S.FUNty(S.TUPLEty[outStrmTy, ty], unitTy)
-	  val wrSpc = S.VALspec(TyV.getWriter id, wrTy)
-	(* reader *)
-	  val rdTy = S.FUNty(inStrmTy, ty)
-	  val rdSpc = S.VALspec(TyV.getReader id, rdTy)
-	  in
-	    wrSpc :: rdSpc :: specs
-	  end
-
   (***** Structure generation *****)
 
   (* generate a simple application *)
@@ -57,17 +27,25 @@ structure GenIO : sig
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
-    fun genStr (AST.Module{isPrim=false, id, decls}) = let
+    val outStrmTy = S.CONty([], "BinIO.outstream")
+    val inStrmTy = S.CONty([], "BinIO.instream")
+
+    fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val typeModName = ModV.getName id
 	  val ioModName = ModV.getIOName id
-	  val sigName = Util.sigName(ioModName, NONE)
-	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
+	  val sign = S.AUGsig(
+(* TODO: move Util.sigName to SML view *)
+		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
+		[ S.WHERETY([], ["instream"], inStrmTy),
+		  S.WHERETY([], ["outstream"], outStrmTy)])
+	  fun genGrp (dcls, dcls') =
+		S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
 	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
 	  val decls = S.VERBdec[Fragments.ioUtil] :: decls
 	  in
-	    S.STRtop(ioModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
+	    S.STRtop(ioModName, SOME(false, sign), S.BASEstr decls)
 	  end
-      | genStr _ = raise Fail "GenIO.genStr: unexpected primitive module"
+      | gen _ = raise Fail "GenIO.gen: unexpected primitive module"
 
     and genType typeModName (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl

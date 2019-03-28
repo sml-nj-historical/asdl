@@ -14,6 +14,8 @@ structure SMLView : sig
 
     structure Module : sig
 	include VIEW_MODULE_BASE
+      (* name of pickler signature *)
+        val getPickleSigName : AST.ModuleId.t -> string
       (* name of pickler module *)
 	val getPickleName : AST.ModuleId.t -> string
       (* name of pickle-io module *)
@@ -62,6 +64,7 @@ structure SMLView : sig
 		  | _ => raise Fail("unexpected multiple values for "^Atom.toString prop)
 		(* end case *))
 	in
+        val getPickleSigName = getModName (PN.pickler_name, "Pickle")
 	val getPickleName = getModName (PN.pickler_name, "Pickle")
 	val getIOName = getModName (PN.io_name, "PickleIO")
 	val getSExpName = getModName (PN.sexp_pickle_name, "SExpPickleIO")

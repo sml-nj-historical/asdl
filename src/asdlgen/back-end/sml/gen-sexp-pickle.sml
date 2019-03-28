@@ -8,11 +8,8 @@
 
 structure GenSExpPickle : sig
 
-  (* generate the signature for the pickler structure *)
-    val genSig : AST.module -> SML.top_decl
-
   (* generate the pickler structure *)
-    val genStr : AST.module -> SML.top_decl
+    val gen : AST.module -> SML.top_decl
 
   end = struct
 
@@ -24,52 +21,31 @@ structure GenSExpPickle : sig
     structure E = Encoding
     structure S = SML
 
-  (***** Signature generation *****)
-
-    fun genSig (AST.Module{isPrim=false, id, decls}) = let
-	  val typeModName = ModV.getName id
-	  val sigName = Util.sigName(ModV.getSExpName id, NONE)
-	  val specs = List.foldr (genSpec typeModName) [] (!decls)
-	  in
-	    S.SIGtop(sigName, S.BASEsig specs)
-	  end
-      | genSig _ = raise Fail "GenIO.genSig: unexpected primitive module"
-
-  (* generate the encoder/decoder specifications for a type *)
-    and genSpec modName (AST.TyDcl{id, ...}, specs) = let
-	  val ty = S.CONty([], concat[modName, ".", TyV.getName id])
-	  val outStrmTy = S.CONty([], "TextIO.outstream")
-	  val inStrmTy = S.CONty([], "TextIO.instream")
-	  val unitTy = S.CONty([], "unit")
-	(* writer *)
-	  val wrTy = S.FUNty(S.TUPLEty[outStrmTy, ty], unitTy)
-	  val wrSpc = S.VALspec(TyV.getWriter id, wrTy)
-	(* reader *)
-	  val rdTy = S.FUNty(inStrmTy, ty)
-	  val rdSpc = S.VALspec(TyV.getReader id, rdTy)
-	  in
-	    wrSpc :: rdSpc :: specs
-	  end
-
-  (***** Structure generation *****)
-
   (* generate a simple application *)
     fun funApp (f, args) = S.appExp(S.IDexp f, S.tupleExp args)
   (* pairs *)
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
-    fun genStr (AST.Module{isPrim=false, id, decls}) = let
+    val outStrmTy = S.CONty([], "TextIO.outstream")
+    val inStrmTy = S.CONty([], "TextIO.instream")
+
+    fun gen (AST.Module{isPrim=false, id, decls}) = let
+	  val sign = S.AUGsig(
+(* TODO: move Util.sigName to SML view *)
+		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
+		[ S.WHERETY([], ["instream"], inStrmTy),
+		  S.WHERETY([], ["outstream"], outStrmTy)])
 	  val typeModName = ModV.getName id
 	  val sexpModName = ModV.getSExpName id
 	  val sigName = Util.sigName(sexpModName, NONE)
 	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
 	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
-	  val decls = S.VERBdec[Fragments.ioUtil] :: decls
+	  val decls = S.VERBdec[Fragments.sexpUtil] :: decls
 	  in
-	    S.STRtop(sexpModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
+	    S.STRtop(sexpModName, SOME(false, sign), S.BASEstr decls)
 	  end
-      | genStr _ = raise Fail "GenIO.genStr: unexpected primitive module"
+      | gen _ = raise Fail "GenSExpPickle.gen: unexpected primitive module"
 
     and genType typeModName (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl
@@ -82,6 +58,7 @@ structure GenSExpPickle : sig
 
     and genWriter (typeModName, wrName, encoding) = let
 	  val outSV = S.IDexp "outS"
+	  fun textOut s = funApp("TextIO.output", [outSV, S.STRINGexp s])
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseWriter (NONE, tyId) = TyV.getWriter tyId
 	    | baseWriter (SOME modId, tyId) = concat[
@@ -93,7 +70,8 @@ structure GenSExpPickle : sig
 	  fun gen (arg, E.UNIT conId) = S.unitExp (* no storage required *)
 	    | gen (arg, E.ENUM(nCons, cons)) = let
 		val tagTyId = E.tagTyId nCons
-		fun genRule (tag, conId) = (S.IDpat(getConName conId), genTag (tagTyId, tag))
+		fun genRule (tag, conId) =
+		      (S.IDpat(getConName conId), textOut("'" ^ ConV.getName conId))
 		in
 		  S.caseExp(arg, List.map genRule cons)
 		end

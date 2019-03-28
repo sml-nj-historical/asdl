@@ -20,7 +20,9 @@ is
 
   fragments.sml		(* generated *)
   gen-pickle.sml
+  gen-pickle-sig.sml
   gen-io.sml
+  gen-sexp-pickle.sml
   gen-sml.sml
   gen-types.sml
   print-sml.sml

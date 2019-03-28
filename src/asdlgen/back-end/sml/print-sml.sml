@@ -78,20 +78,32 @@ structure PrintSML : sig
 		PP.openHBox strm;
 		  str "exception"; sp(); ppCon (strm, con);
 		PP.closeBox strm)
-	  in
-	    case sigExp
-	     of S.IDsig id => str id
-	      | S.AUGsig(sigExp, whereTys) => () (* FIXME *)
-	      | S.BASEsig specs => (
+	  fun ppSig (S.IDsig id) = str id
+	    | ppSig (S.AUGsig(sigExp, wTys)) = let
+		fun ppWTy (S.WHERETY(tvs, qid, ty)) = (
+		      nl();
+		      PP.openHBox strm;
+			str "where"; sp(); str "type"; sp();
+			ppTycBind(strm, tvs, String.concatWith "." qid);
+			sp(); str "="; sp(); ppTy(strm, ty);
+		      PP.closeBox strm)
+		in
 		  PP.openVBox strm indent2;
-		    str "sig";
-		    PP.openVBox strm indent2;
-		      List.app (fn spc => (nl(); ppSpec spc)) specs;
-		    PP.closeBox strm;
-		    nl();
-		    str "end";
-		  PP.closeBox strm)
-	    (* end case *)
+		    PP.openHBox strm; ppSig sigExp; PP.closeBox strm;
+		    List.app ppWTy wTys;
+		  PP.closeBox strm
+		end
+	    | ppSig (S.BASEsig specs) = (
+		PP.openVBox strm indent2;
+		  str "sig";
+		  PP.openVBox strm indent2;
+		    List.app (fn spc => (nl(); ppSpec spc)) specs;
+		  PP.closeBox strm;
+		  nl();
+		  str "end";
+		PP.closeBox strm)
+	  in
+	    ppSig sigExp
 	  end
 
     and ppStrExp (strm, strExp) = let

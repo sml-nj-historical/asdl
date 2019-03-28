@@ -8,11 +8,8 @@
 
 structure GenPickle : sig
 
-  (* generate the signature for the pickler structure *)
-    val genSig : AST.module -> SML.top_decl
-
   (* generate the pickler structure *)
-    val genStr : AST.module -> SML.top_decl
+    val gen : AST.module -> SML.top_decl
 
   end = struct
 
@@ -60,7 +57,7 @@ structure GenPickle : sig
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
-    fun genStr (AST.Module{isPrim=false, id, decls}) = let
+    fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val typeModName = ModV.getName id
 	  val pickleModName = ModV.getPickleName id
 	  val sigName = Util.sigName(pickleModName, NONE)
@@ -70,7 +67,7 @@ structure GenPickle : sig
 	  in
 	    S.STRtop(pickleModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
 	  end
-      | genStr _ = raise Fail "GenPickle.genStr: unexpected primitive module"
+      | gen _ = raise Fail "GenPickle.gen: unexpected primitive module"
 
     and genType typeModName (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl
