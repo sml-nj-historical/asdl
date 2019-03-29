@@ -16,9 +16,9 @@ structure SMLView : sig
 	include VIEW_MODULE_BASE
       (* name of pickler signature *)
         val getPickleSigName : AST.ModuleId.t -> string
-      (* name of pickler module *)
+      (* name of memory pickler module *)
 	val getPickleName : AST.ModuleId.t -> string
-      (* name of pickle-io module *)
+      (* name of file pickler module *)
 	val getIOName : AST.ModuleId.t -> string
       (* name of S-expression pickle module *)
         val getSExpName : AST.ModuleId.t -> string
@@ -42,6 +42,7 @@ structure SMLView : sig
 		moduleProps =
 		  CV.prop(PN.pickler_name, false) ::
 		  CV.prop(PN.io_name, false) ::
+		  CV.prop(PN.sexp_pickle_name, false) ::
 		  #moduleProps CV.template,
 		typeProps = #typeProps CV.template,
 		consProps = #consProps CV.template
@@ -96,41 +97,41 @@ structure SMLView : sig
 	    in
 	      List.app set [
 		  (PTy.boolTyId,	PN.name,	"bool"),
-		  (PTy.boolTyId,	PN.encoder,	"encodeBool"),
-		  (PTy.boolTyId,	PN.decoder,	"decodeBool"),
+		  (PTy.boolTyId,	PN.encoder,	"writeBool"),
+		  (PTy.boolTyId,	PN.decoder,	"readBool"),
 		  (PTy.boolTyId,	PN.writer,	"writeBool"),
 		  (PTy.boolTyId,	PN.reader,	"readBool"),
 		  (PTy.intTyId,		PN.name,	"int"),
-		  (PTy.intTyId,		PN.encoder,	"encodeInt"),
-		  (PTy.intTyId,		PN.decoder,	"decodeInt"),
+		  (PTy.intTyId,		PN.encoder,	"writeInt"),
+		  (PTy.intTyId,		PN.decoder,	"readInt"),
 		  (PTy.intTyId,		PN.writer,	"writeInt"),
 		  (PTy.intTyId,		PN.reader,	"readInt"),
 		  (PTy.uintTyId,	PN.name,	"word"),
-		  (PTy.uintTyId,	PN.encoder,	"encodeUInt"),
-		  (PTy.uintTyId,	PN.decoder,	"decodeUInt"),
+		  (PTy.uintTyId,	PN.encoder,	"writeUInt"),
+		  (PTy.uintTyId,	PN.decoder,	"readUInt"),
 		  (PTy.uintTyId,	PN.writer,	"writeUInt"),
 		  (PTy.uintTyId,	PN.reader,	"readUInt"),
 		  (PTy.integerTyId,	PN.name,	"IntInf.int"),
-		  (PTy.integerTyId,	PN.encoder,	"encodeInteger"),
-		  (PTy.integerTyId,	PN.decoder,	"decodeInteger"),
+		  (PTy.integerTyId,	PN.encoder,	"writeInteger"),
+		  (PTy.integerTyId,	PN.decoder,	"readInteger"),
 		  (PTy.integerTyId,	PN.writer,	"writeInteger"),
 		  (PTy.integerTyId,	PN.reader,	"readInteger"),
 		  (PTy.identifierTyId,	PN.name,	"Atom.atom"),
-		  (PTy.identifierTyId,	PN.encoder,	"encodeIdentifier"),
-		  (PTy.identifierTyId,	PN.decoder,	"decodeIdentifier"),
+		  (PTy.identifierTyId,	PN.encoder,	"writeIdentifier"),
+		  (PTy.identifierTyId,	PN.decoder,	"readIdentifier"),
 		  (PTy.identifierTyId,	PN.writer,	"writeIdentifier"),
 		  (PTy.identifierTyId,	PN.reader,	"readIdentifier"),
 		  (PTy.stringTyId,	PN.name,	"string"),
-		  (PTy.stringTyId,	PN.encoder,	"encodeString"),
-		  (PTy.stringTyId,	PN.decoder,	"decodeString"),
+		  (PTy.stringTyId,	PN.encoder,	"writeString"),
+		  (PTy.stringTyId,	PN.decoder,	"readString"),
 		  (PTy.stringTyId,	PN.writer,	"writeString"),
 		  (PTy.stringTyId,	PN.reader,	"readString"),
-		  (PTy.tag8TyId,	PN.encoder,	"encodeTag8"),
-		  (PTy.tag8TyId,	PN.decoder,	"decodeTag8"),
+		  (PTy.tag8TyId,	PN.encoder,	"writeTag8"),
+		  (PTy.tag8TyId,	PN.decoder,	"readTag8"),
 		  (PTy.tag8TyId,	PN.writer,	"writeTag8"),
 		  (PTy.tag8TyId,	PN.reader,	"readTag8"),
-		  (PTy.tag16TyId,	PN.encoder,	"encodeTag16"),
-		  (PTy.tag16TyId,	PN.decoder,	"decodeTag16"),
+		  (PTy.tag16TyId,	PN.encoder,	"writeTag16"),
+		  (PTy.tag16TyId,	PN.decoder,	"readTag16"),
 		  (PTy.tag16TyId,	PN.writer,	"writeTag16"),
 		  (PTy.tag16TyId,	PN.reader,	"readTag16")
 		]
@@ -147,8 +148,9 @@ structure SMLView : sig
 	    in
 	      List.app set [
 		  (PN.name,		"ASDL"),
-		  (PN.pickler_name,	"ASDLPickle"),
-		  (PN.io_name,		"ASDLPickleIO")
+		  (PN.pickler_name,	"ASDLMemoryPickle"),
+		  (PN.io_name,		"ASDLPickleIO"),
+		  (PN.sexp_pickle_name,	"ASDLSExpPickle")
 		]
 	    end
 

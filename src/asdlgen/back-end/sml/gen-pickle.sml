@@ -3,7 +3,9 @@
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * Generate the pickling code for the SML view
+ * Generate the memory pickling code for the SML view
+ *
+ * TODO: merge with gen-io.sml
  *)
 
 structure GenPickle : sig
@@ -39,10 +41,10 @@ structure GenPickle : sig
 	  val vecTy = S.CONty([], "Word8Vector.vector")
 	  val sliceTy = S.CONty([], "Word8VectorSlice.slice")
 	  val unitTy = S.CONty([], "unit")
-	(* encoder *)
+	(* writer *)
 	  val encTy = S.FUNty(S.TUPLEty[bufTy, ty], unitTy)
 	  val encSpc = S.VALspec(TyV.getEncoder id, encTy)
-	(* decoder *)
+	(* reader *)
 	  val decTy = S.FUNty(sliceTy, S.TUPLEty[ty, sliceTy])
 	  val decSpc = S.VALspec(TyV.getDecoder id, decTy)
 	  in
@@ -57,15 +59,25 @@ structure GenPickle : sig
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
+    fun pklMod () = ModV.getPickleName PrimTypes.primTypesId
+    fun outStrmTy () = S.CONty([], pklMod() ^ ".outstream")
+    fun inStrmTy () = S.CONty([], pklMod() ^ ".instream")
+
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val typeModName = ModV.getName id
 	  val pickleModName = ModV.getPickleName id
-	  val sigName = Util.sigName(pickleModName, NONE)
+	  val sign = S.AUGsig(
+(* TODO: move Util.sigName to SML view *)
+		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
+		[ S.WHERETY([], ["instream"], inStrmTy()),
+		  S.WHERETY([], ["outstream"], outStrmTy())])
 	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
 	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
-	  val decls = S.VERBdec[Fragments.pickleUtil] :: decls
+	  val decls = S.VERBdec[
+		  StringSubst.expand [("PICKLER", pklMod ())] Fragments.pickleUtil
+		] :: decls
 	  in
-	    S.STRtop(pickleModName, SOME(false, S.IDsig sigName), S.BASEstr decls)
+	    S.STRtop(pickleModName, SOME(false, sign), S.BASEstr decls)
 	  end
       | gen _ = raise Fail "GenPickle.gen: unexpected primitive module"
 
@@ -149,11 +161,11 @@ structure GenPickle : sig
 		end
 	  and genTy (arg, E.OPTION ty) =
 		S.appExp(
-		  funApp ("encodeOption", [S.IDexp(baseEncode ty)]),
+		  funApp ("writeOption", [S.IDexp(baseEncode ty)]),
 		  pairExp(bufV, arg))
 	    | genTy (arg, E.SEQUENCE ty) =
 		S.appExp(
-		  funApp ("encodeSeq", [S.IDexp(baseEncode ty)]),
+		  funApp ("writeSeq", [S.IDexp(baseEncode ty)]),
 		  pairExp(bufV, arg))
 	    | genTy (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (arg, E.BASE ty) = funApp (baseEncode ty, [bufV, arg])
@@ -220,11 +232,11 @@ structure GenPickle : sig
 		end
 	  and genTy (E.OPTION ty) =
 		S.appExp(
-		  funApp ("decodeOption", [S.IDexp(baseDecode ty)]),
+		  funApp ("readOption", [S.IDexp(baseDecode ty)]),
 		  sliceV)
 	    | genTy (E.SEQUENCE ty) =
 		S.appExp(
-		  funApp ("decodeSeq", [S.IDexp(baseDecode ty)]),
+		  funApp ("readSeq", [S.IDexp(baseDecode ty)]),
 		  sliceV)
 	    | genTy (E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (E.BASE ty) = funApp (baseDecode ty, [sliceV])

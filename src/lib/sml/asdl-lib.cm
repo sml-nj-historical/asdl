@@ -18,6 +18,7 @@ is
 
   $/basis.cm
   $/smlnj-lib.cm
+  $/pp-lib.cm		(* for S-Expression printing *)
 
   asdl.sig
   asdl.sml

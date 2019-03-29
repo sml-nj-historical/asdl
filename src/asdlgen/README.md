@@ -49,9 +49,11 @@ The back-end of **asdlgen** is organized into target-language-specific
 subdirectories.
 
 * `util/`
-    - `encoding.sml`
-    - `sort-decls.sml`
-    - `string-subst.sml`
+    - `encoding.sml` -- represents a target-language independent encoding of
+       **ASDL** types
+    - `sort-decls.sml` -- sorts **ASDL** type declarations by dependency
+       order
+    - `string-subst.sml` -- substitution expansion for code fragments
 
 * `cxx/` <br/>
   The back-end for **C++** code generation.  The **C++** backend generates code
@@ -90,6 +92,4 @@ subdirectories.
 ### TODO
 
   * move SML name mangling to the SMLView module
-
-  * define an imperative wrapper for input from memory in SML
 

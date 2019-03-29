@@ -134,14 +134,13 @@ structure SML =
   (* smart constructor for field-select *)
     fun selectExp (proj, e) = SELECTexp(proj, grpArg e)
 
-  (* smart constructor for raise expressio *)
+  (* smart constructor for raise expression *)
     fun raiseExp e = RAISEexp(grpArg e)
     end (* local *)
 
     local
       fun grpAction e = (case e
 	     of HANDLEexp _ => GRPexp e
-	      | RAISEexp _ => GRPexp e
 	      | CASEexp _ => GRPexp e
 	      | FNexp _ => GRPexp e
 	      | SEQexp _ => GRPexp e
@@ -166,6 +165,13 @@ structure SML =
 	  fun mkRule (pat, e) = (pat, grpAction e)
 	  in
 	    CASEexp(e, List.map mkRule rules)
+	  end
+
+  (* smart constructor for fn expression *)
+    fun fnExp rules = let
+	  fun mkRule (pat, e) = (pat, grpAction e)
+	  in
+	    FNexp(List.map mkRule rules)
 	  end
     end (* local *)
 

@@ -7,7 +7,7 @@
 structure ASDLSExpPickle : sig
 
     type instream = TextIO.instream
-    type outstream = TextIO.outstream
+    type outstream
 
     val writeBool : outstream * ASDL.bool -> unit
     val readBool : instream -> ASDL.bool
@@ -27,53 +27,116 @@ structure ASDLSExpPickle : sig
     val writeIdentifier : outstream * ASDL.identifier -> unit
     val readIdentifier : instream -> ASDL.identifier
 
+  (* output utility functions *)
+    val writeSExp : outstream * string * (unit -> unit) -> unit
+    val writeOption : (outstream * 'a -> unit) -> (outstream * 'a option) -> unit
+    val writeSeq : (outstream * 'a -> unit) -> (outstream * 'a list) -> unit
+    val writeEnum : outstream * string -> unit
+
+  (* input utility functions *)
+    val readOption : (instream -> 'a) -> instream -> 'a option
+    val readSeq : (instream -> 'a) -> instream -> 'a list
+
   (* pickle to/from files *)
     val toFile : (outstream * 'a -> unit) -> (string * 'a) -> unit
     val fromFile : (instream -> 'a) -> string -> 'a
 
   end  = struct
 
-(* TODO: add pretty-printing support *)
+(* for post-110.86
+    structure PP = TextPP
+*)
+    structure PP = TextIOPP
 
     type instream = TextIO.instream
-    type outstream = TextIO.outstream
+    type outstream = PP.stream
 
-    fun writeBool (outS, true) = TextIO.output(outS, "#t")
-      | writeBool (outS, false) = TextIO.output(outS, "#f")
+    val lineWid = 120
+
+    fun writeBool (ppS, true) = PP.string ppS "#t"
+      | writeBool (ppS, false) = PP.string ppS "#f"
 
     fun readBool inS = raise Fail "unimplemented"
 
-    fun writeInt (outS, n) = if n < 0
-	  then TextIO.output(outS, "-" ^ Int.toString(~n))
-	  else TextIO.output(outS, Int.toString n)
+    fun writeInt (ppS, n) = if n < 0
+	  then PP.string ppS ("-" ^ Int.toString(~n))
+	  else PP.string ppS (Int.toString n)
 
     fun readInt inS = raise Fail "unimplemented"
 
-    fun writeUInt (outS, n) = TextIO.output(outS, Word.fmt StringCvt.DEC n)
+    fun writeUInt (ppS, n) = PP.string ppS (Word.fmt StringCvt.DEC n)
 
     fun readUInt inS = raise Fail "unimplemented"
 
-    fun writeInteger (outS, n) = if n < 0
-	  then TextIO.output(outS, "-" ^ IntInf.toString(~n))
-	  else TextIO.output(outS, IntInf.toString n)
+    fun writeInteger (ppS, n) = if n < 0
+	  then PP.string ppS ("-" ^ IntInf.toString(~n))
+	  else PP.string ppS (IntInf.toString n)
 
     fun readInteger inS = raise Fail "unimplemented"
 
 (* FIXME: what is the correct escape encoding? *)
-    fun writeString (outS, s) =
-	  TextIO.output(outS, String.concat["\"", String.toCString s, "\""])
+    fun writeString (ppS, s) =
+	  PP.string ppS (String.concat["\"", String.toCString s, "\""])
 
     fun readString inS = raise Fail "unimplemented"
 
-    fun writeIdentifier (outS, id) = writeString (outS, Atom.toString id)
+    fun writeIdentifier (ppS, id) = PP.string ppS (Atom.toString id)
 
-    fun readIdentifier inS = Atom.atom(readString inS)
+    fun readIdentifier inS = raise Fail "unimplemented"
+
+  (* write an S-Expression *)
+    fun writeSExp (ppS, f, wrContents) = (
+	  PP.openHBox ppS;
+	    PP.string ppS "(";
+	    PP.string ppS f;
+	    PP.openHOVBox ppS (PP.Rel 0);
+	      wrContents();
+	      PP.string ppS ")";
+	    PP.closeBox ppS;
+	  PP.closeBox ppS)
+
+  (* write an option *)
+    fun writeOption wrFn (ppS, NONE) =
+          writeSExp (ppS, "?", fn () => ())
+      | writeOption wrFn (ppS, SOME obj) =
+          writeSExp (ppS, "?", fn () => wrFn(ppS, obj))
+
+  (* read an option *)
+    fun readOption rdFn inS = raise Fail "readOption"
+
+  (* write a list of values as a sequence *)
+    fun writeSeq wrFn (ppS, []) = PP.string ppS "(*)"
+      | writeSeq wrFn (ppS, [x]) = (
+	  PP.openHBox ppS;
+	    PP.string ppS "(*";
+	    PP.space ppS 1; wrFn(ppS, x);
+	    PP.string ppS ")";
+	  PP.closeBox ppS)
+      | writeSeq wrFn (ppS, xs as x1::xr) = (
+	  PP.openHBox ppS;
+	    PP.string ppS "(*"; PP.space ppS 1; wrFn(ppS, x1);
+	    PP.openHOVBox ppS (PP.Rel 0);
+	      List.app (fn x => (PP.space ppS 1; wrFn(ppS, x))) xr;
+	      PP.string ppS ")";
+	    PP.closeBox ppS;
+	  PP.closeBox ppS)
+
+  (* write an enumeration constructor as a quoted symbol *)
+    fun writeEnum (ppS, id) = PP.string ppS ("'" ^ id)
+
+  (* read a sequence into a sequence of values *)
+    fun readSeq rdFn inS = raise Fail "readSeq"
 
     fun toFile write (file, x) = let
 	  val outS = TextIO.openOut file
+(* for post-110.86
+	  val ppS = PP.openOutstream {dst=outS, wid=lineWid}
+*)
+	  val ppS = PP.openOut {dst=outS, wid=lineWid}
+	  fun finish () = (PP.flushStream ppS; TextIO.closeOut outS)
 	  in
-	    write (outS, x) handle exn => (TextIO.closeOut outS; raise exn);
-	    TextIO.closeOut outS
+	    write (ppS, x) handle exn => (finish(); raise exn);
+	    finish()
 	  end
 
     fun fromFile read file = let

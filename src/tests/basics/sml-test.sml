@@ -40,6 +40,7 @@ structure Test =
 	  val chk = check "tree" (U.tree_toString, U.tree_same, Pkl.encode_tree, Pkl.decode_tree)
 	  in
 	    chk EMPTY;
+	    chk (NODE{value = "1", left=EMPTY, right=EMPTY});
 	    chk (NODE{value ="2", left=NODE{value ="1", left = EMPTY, right = EMPTY}, right=EMPTY});
 	    chk (NODE{value ="1", left=EMPTY, right=NODE{value ="2", left = EMPTY, right = EMPTY}});
 	    chk (NODE{

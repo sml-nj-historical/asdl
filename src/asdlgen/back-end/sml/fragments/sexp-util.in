@@ -1,20 +1,8 @@
-  (* write an S-Expression *)
-    fun writeSExp (outS, f, wrContents) = (
-	  TextIO.output(outS, "(" ^ f);
-	  wrContents ();
-	  TextIO.output(outS, ")"))
-  (* write an option *)
-    fun writeOption wrFn (outS, NONE) = writeSExp (outS, "?", fn () => ())
-      | writeOption wrFn (outS, SOME obj) =
-          writeSExp (outS, "?", fn () => wrFn(outS, obj))
-  (* read an option *)
-    fun readOption rdFn inS = raise Fail "readOption"
-  (* write a list of values as a sequence *)
-    fun writeSeq wrFn (outS, xs) = let
-          fun write [] = ()
-            | write (x::xr) = (TextIO.output(outS, " "); wrFn(outS, x); write xr)
-          in
-	    writeSExp (outS, "*", fn () => write xs)
-          end
-  (* read a sequence into a sequence of values *)
-    fun readSeq rdFn inS = raise Fail "readSeq"
+    structure SExpPkl = @PICKLER@
+    val writeSExp = SExpPkl.writeSExp
+    val writeOption = SExpPkl.writeOption
+    val readOption = SExpPkl.readOption
+    val writeSeq = SExpPkl.writeSeq
+    val readSeq = SExpPkl.readSeq
+    val writeEnum = SExpPkl.writeEnum
+

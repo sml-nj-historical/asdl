@@ -27,21 +27,24 @@ structure GenSExpPickle : sig
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
-    val outStrmTy = S.CONty([], "TextIO.outstream")
-    val inStrmTy = S.CONty([], "TextIO.instream")
+    fun sexpPklMod () = ModV.getSExpName PrimTypes.primTypesId
+    fun outStrmTy () = S.CONty([], sexpPklMod() ^ ".outstream")
+    fun inStrmTy () = S.CONty([], sexpPklMod() ^ ".instream")
 
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val sign = S.AUGsig(
 (* TODO: move Util.sigName to SML view *)
 		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
-		[ S.WHERETY([], ["instream"], inStrmTy),
-		  S.WHERETY([], ["outstream"], outStrmTy)])
+		[ S.WHERETY([], ["instream"], inStrmTy()),
+		  S.WHERETY([], ["outstream"], outStrmTy())])
 	  val typeModName = ModV.getName id
 	  val sexpModName = ModV.getSExpName id
 	  val sigName = Util.sigName(sexpModName, NONE)
 	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
 	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
-	  val decls = S.VERBdec[Fragments.sexpUtil] :: decls
+	  val decls = S.VERBdec[
+		  StringSubst.expand [("PICKLER", sexpPklMod ())] Fragments.sexpUtil
+		] :: decls
 	  in
 	    S.STRtop(sexpModName, SOME(false, sign), S.BASEstr decls)
 	  end
@@ -58,42 +61,50 @@ structure GenSExpPickle : sig
 
     and genWriter (typeModName, wrName, encoding) = let
 	  val outSV = S.IDexp "outS"
-	  fun textOut s = funApp("TextIO.output", [outSV, S.STRINGexp s])
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseWriter (NONE, tyId) = TyV.getWriter tyId
 	    | baseWriter (SOME modId, tyId) = concat[
-		  ModV.getIOName modId, ".", TyV.getWriter tyId
+		  ModV.getSExpName modId, ".", TyV.getWriter tyId
 		]
 	  fun genTag (tagTyId, tag) = funApp(
 		baseWriter(SOME PT.primTypesId, tagTyId),
 		[outSV, S.NUMexp("0w" ^ Int.toString tag)])
-	  fun gen (arg, E.UNIT conId) = S.unitExp (* no storage required *)
+	  fun genEnum name = funApp("writeEnum", [outSV, S.STRINGexp name])
+	  fun genSExp (f, genContents) = funApp("writeSExp", [
+		  outSV,
+		  S.STRINGexp f,
+		  S.fnExp[(S.unitPat, S.SEQexp(genContents()))]
+		])
+	  fun gen (arg, E.UNIT conId) = genEnum (getConName conId)
 	    | gen (arg, E.ENUM(nCons, cons)) = let
-		val tagTyId = E.tagTyId nCons
-		fun genRule (tag, conId) =
-		      (S.IDpat(getConName conId), textOut("'" ^ ConV.getName conId))
+		fun genRule (tag, conId) = let
+		      val name = getConName conId
+		      in
+			(S.IDpat name, genEnum name)
+		      end
 		in
 		  S.caseExp(arg, List.map genRule cons)
 		end
 	    | gen (arg, E.WRAP(conId, fields)) = let
-		val (lhsPat, xs) = objPat fields
+		val (isLabeled, lhsPat, xs) = objPat fields
 		in
 		  S.LETexp(
 		    [S.VALdec(S.CONpat(getConName conId, lhsPat), arg)],
-		    S.SEQexp(List.map genTy' xs))
+(* FIXME: use labels for record types *)
+		    genSExp (getConName conId, fn () => List.map genTy' xs))
 		end
 	    | gen (arg, E.SWITCH(optAttribs, nCons, cons)) = let
 		val tagTyId = E.tagTyId nCons
-		fun genRule (tag, conId, optArg) = let
-		      val wrTag = genTag(tagTyId, tag)
+		fun genRule (_, conId, optArg) = let
 		      val conName = getConName conId
 		      in
 			case E.prefixWithAttribs(optAttribs, optArg)
-			 of NONE => (S.IDpat conName, wrTag)
+			 of NONE => (S.IDpat conName, genEnum conName)
 			  | SOME obj => let
-			      val (pat, flds) = objPat obj
+			      val (isLabeled, pat, flds) = objPat obj
 			      val pat = S.CONpat(conName, pat)
-			      val exp = S.SEQexp(wrTag :: List.map genTy' flds)
+(* FIXME: use labels for record types *)
+			      val exp = genSExp(conName, fn () => List.map genTy' flds)
 			      in
 				(pat, exp)
 			      end
@@ -105,11 +116,15 @@ structure GenSExpPickle : sig
 	    | gen (arg, E.OBJ obj) = genProd (arg, obj)
 	    | gen (arg, E.ALIAS ty) = genTy (arg, ty)
 	  and genProd (arg, obj) = let
-		val (pat, args) = objPat obj
+		val (isLabeled, pat, args) = objPat obj
+		val arity = List.length args
 		in
 		  S.LETexp(
 		    [S.VALdec(pat, arg)],
-		    S.SEQexp(List.map genTy' args))
+		    genSExp (
+		      Int.toString arity ^ "-tuple",
+(* FIXME: use labels for record types *)
+		      fn () => List.map genTy' args))
 		end
 	(* create a pattern for matching against a product type; returns the pattern and the
 	 * bound variables with their types.
@@ -117,7 +132,7 @@ structure GenSExpPickle : sig
 	  and objPat (E.TUPLE tys) = let
 		val args = List.map (fn (i, ty) => ("x"^Int.toString i, ty)) tys
 		in
-		  (S.tuplePat(List.map (S.IDpat o #1) args), args)
+		  (false, S.tuplePat(List.map (S.IDpat o #1) args), args)
 		end
 	    | objPat (E.RECORD flds) = let
 		val pat = S.RECORDpat{
@@ -125,7 +140,7 @@ structure GenSExpPickle : sig
 			flex = false
 		      }
 		in
-		  (pat, flds)
+		  (true, pat, flds)
 		end
 	  and genTy (arg, E.OPTION ty) =
 		S.appExp(
@@ -144,10 +159,11 @@ structure GenSExpPickle : sig
 
     and genReader (typeModName, rdName, encoding) = let
 	  val inSV = S.IDexp "inS"
+(*
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseReader (NONE, tyId) = TyV.getReader tyId
 	    | baseReader (SOME modId, tyId) = concat[
-		  ModV.getIOName modId, ".", TyV.getReader tyId
+		  ModV.getSExpName modId, ".", TyV.getReader tyId
 		]
 	  fun genTag tagTyId = funApp(
 		baseReader(SOME PT.primTypesId, tagTyId),
@@ -206,8 +222,13 @@ structure GenSExpPickle : sig
 		  inSV)
 	    | genTy (E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (E.BASE ty) = funApp (baseReader ty, [inSV])
+*)
 	  in
-	    S.simpleFB(rdName, ["inS"], gen encoding)
+	    S.simpleFB(rdName, ["inS"],
+	      S.raiseExp(funApp("Fail", [
+		  S.STRINGexp "S-Expression reading is not implemented yet"
+		])))
+
 	  end
 
   end

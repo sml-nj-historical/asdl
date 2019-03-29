@@ -2,6 +2,10 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * Generate the file pickling code for the SML view
+ *
+ * TODO: merge with gen-pickel.sml
  *)
 
 structure GenIO : sig
@@ -27,8 +31,9 @@ structure GenIO : sig
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
-    val outStrmTy = S.CONty([], "BinIO.outstream")
-    val inStrmTy = S.CONty([], "BinIO.instream")
+    fun ioPklMod () = ModV.getIOName PrimTypes.primTypesId
+    fun outStrmTy () = S.CONty([], ioPklMod() ^ ".outstream")
+    fun inStrmTy () = S.CONty([], ioPklMod() ^ ".instream")
 
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val typeModName = ModV.getName id
@@ -36,12 +41,14 @@ structure GenIO : sig
 	  val sign = S.AUGsig(
 (* TODO: move Util.sigName to SML view *)
 		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
-		[ S.WHERETY([], ["instream"], inStrmTy),
-		  S.WHERETY([], ["outstream"], outStrmTy)])
+		[ S.WHERETY([], ["instream"], inStrmTy()),
+		  S.WHERETY([], ["outstream"], outStrmTy())])
 	  fun genGrp (dcls, dcls') =
 		S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
 	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
-	  val decls = S.VERBdec[Fragments.ioUtil] :: decls
+	  val decls = S.VERBdec[
+		  StringSubst.expand [("PICKLER", ioPklMod ())] Fragments.pickleUtil
+		] :: decls
 	  in
 	    S.STRtop(ioModName, SOME(false, sign), S.BASEstr decls)
 	  end

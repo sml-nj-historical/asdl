@@ -244,23 +244,54 @@ structure PrintSML : sig
 		  PP.closeBox strm
 		end
 	    | ppExp (S.IFexp(e1, e2, e3)) = raise Fail "FIXME: IFexp"
-	    | ppExp (S.FNexp rules) = raise Fail "FIXME: FNexp"
-	    | ppExp (S.LETexp([dec], e)) = (
-		PP.openHVBox strm indent0;
-		  str "let"; sp(); ppDec(strm, dec); sp(); str "in";
-		  PP.break strm {nsp=1, offset=2};
-		  ppExp e;
-		  sp(); str "end";
-		PP.closeBox strm)
-	    | ppExp (S.LETexp(decs, e)) = (
-		PP.openVBox strm indent0;
-		  str "let"; nl();
-		  List.app (fn d => (ppDec(strm, d); nl())) decs;
-		  PP.openVBox strm indent2;
-		    str "in"; nl(); ppExp e;
-		  PP.closeBox strm;
-		  nl(); str "end";
-		PP.closeBox strm)
+	    | ppExp (S.FNexp []) = raise Fail "empty FNexp"
+	    | ppExp (S.FNexp(rule::rules)) = let
+		fun ppRule (p, e) = (
+		      PP.openHVBox strm indent4;
+			inHBox (fn () => (ppPat p; sp(); str "=>"; sp(); ppExp e));
+		      PP.closeBox strm)
+		in
+		  PP.openVBox strm indent0;
+		    inHBox (fn () => (str "fn"; sp(); ppRule rule));
+		    List.app
+		      (fn r => inHBox (fn () => (
+			  nl(); PP.space strm 2; str "|"; sp(); ppRule r)))
+			rules;
+		  PP.closeBox strm
+		end
+            | ppExp (S.LETexp(decs, body)) = let
+		fun ppBody body = (case body
+		       of S.SEQexp[e] => ppBody e
+			| S.SEQexp(e::es) => (
+			    PP.openVBox strm indent0;
+			      nl();
+			      inHBox (fn () => (ppExp e; str ";"));
+			      List.app (fn e => (nl(); inHBox (fn () => ppExp e))) es;
+			    PP.closeBox strm)
+			| e => (
+			    PP.break strm {nsp=1, offset=2};
+			    inHBox (fn () => ppExp e))
+		      (* end case *))
+		in
+		  case decs
+		   of [dec] => (
+			PP.openHVBox strm indent0;
+			  str "let"; sp(); ppDec(strm, dec); sp(); str "in";
+			  PP.openHOVBox strm indent2;
+			    ppBody body;
+			  PP.closeBox strm;
+			  sp(); str "end";
+			PP.closeBox strm)
+		    | decs => (
+			PP.openVBox strm indent0;
+			  str "let"; nl();
+			  List.app (fn d => (ppDec(strm, d); nl())) decs;
+			  PP.openVBox strm indent2;
+			    str "in"; ppBody body;
+			  PP.closeBox strm;
+			  nl(); str "end";
+			PP.closeBox strm)
+		end
 	    | ppExp (S.SEQexp es) = let
 		fun pp [] = raise Fail "empty sequence expression"
 		  | pp [e] = ppExp e

@@ -10,6 +10,12 @@ Library
   structure TestIO
   structure TestMix
 
+(* generated pickling modules *)
+  structure TestSpec
+  structure TestSpecPickle
+  structure TestSpecPickleIO
+  structure TestSpecSExpPickleIO
+
 is
 
   $/basis.cm
@@ -17,10 +23,10 @@ is
 
   ../../lib/sml/asdl-lib.cm
 
-  test-spec-pickle-io.sig
-  test-spec-pickle-io.sml
   test-spec-pickle.sig
   test-spec-pickle.sml
+  test-spec-pickle-io.sml
+  test-spec-sexp.sml
   test-spec.sml
 
   sml-test.sml
