@@ -21,10 +21,13 @@ structure GenSExpPickle : sig
     structure E = Encoding
     structure S = SML
 
+  (* out stream as a variable expression *)
+    val outSV = S.IDexp "outS"
   (* generate a simple application *)
     fun funApp (f, args) = S.appExp(S.IDexp f, S.tupleExp args)
+  (* expression to add a space to the output *)
+    val space = funApp("space", [outSV])
   (* pairs *)
-    fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
     fun sexpPklMod () = ModV.getSExpName PrimTypes.primTypesId
@@ -60,7 +63,6 @@ structure GenSExpPickle : sig
 	  end
 
     and genWriter (typeModName, wrName, encoding) = let
-	  val outSV = S.IDexp "outS"
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseWriter (NONE, tyId) = TyV.getWriter tyId
 	    | baseWriter (SOME modId, tyId) = concat[
@@ -70,11 +72,16 @@ structure GenSExpPickle : sig
 		baseWriter(SOME PT.primTypesId, tagTyId),
 		[outSV, S.NUMexp("0w" ^ Int.toString tag)])
 	  fun genEnum name = funApp("writeEnum", [outSV, S.STRINGexp name])
-	  fun genSExp (f, genContents) = funApp("writeSExp", [
-		  outSV,
-		  S.STRINGexp f,
-		  S.fnExp[(S.unitPat, S.SEQexp(genContents()))]
-		])
+	  fun genSExp (f, genContents) = let
+		  val contents = S.SEQexp(List.foldr
+			(fn (stm, stms) => space::stm::stms)
+			  []
+			    (genContents()))
+		  in
+		    funApp("writeSExp", [
+			outSV, S.STRINGexp f, S.fnExp[(S.unitPat, contents)]
+		      ])
+		  end
 	  fun gen (arg, E.UNIT conId) = genEnum (getConName conId)
 	    | gen (arg, E.ENUM(nCons, cons)) = let
 		fun genRule (tag, conId) = let
@@ -90,8 +97,7 @@ structure GenSExpPickle : sig
 		in
 		  S.LETexp(
 		    [S.VALdec(S.CONpat(getConName conId, lhsPat), arg)],
-(* FIXME: use labels for record types *)
-		    genSExp (getConName conId, fn () => List.map genTy' xs))
+		    genSExp (getConName conId, fn () => List.map (genTy' isLabeled) xs))
 		end
 	    | gen (arg, E.SWITCH(optAttribs, nCons, cons)) = let
 		val tagTyId = E.tagTyId nCons
@@ -103,8 +109,8 @@ structure GenSExpPickle : sig
 			  | SOME obj => let
 			      val (isLabeled, pat, flds) = objPat obj
 			      val pat = S.CONpat(conName, pat)
-(* FIXME: use labels for record types *)
-			      val exp = genSExp(conName, fn () => List.map genTy' flds)
+			      val exp = genSExp(conName,
+				    fn () => List.map (genTy' isLabeled) flds)
 			      in
 				(pat, exp)
 			      end
@@ -123,8 +129,7 @@ structure GenSExpPickle : sig
 		    [S.VALdec(pat, arg)],
 		    genSExp (
 		      Int.toString arity ^ "-tuple",
-(* FIXME: use labels for record types *)
-		      fn () => List.map genTy' args))
+		      fn () => List.map (genTy' isLabeled) args))
 		end
 	(* create a pattern for matching against a product type; returns the pattern and the
 	 * bound variables with their types.
@@ -152,7 +157,8 @@ structure GenSExpPickle : sig
 		  pairExp(outSV, arg))
 	    | genTy (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
-	  and genTy' (x, ty) = genTy (S.IDexp x, ty)
+	  and genTy' false (x, ty) = genTy (S.IDexp x, ty)
+	    | genTy' true (x, ty) = genSExp(x, fn () => [genTy (S.IDexp x, ty)])
 	  in
 	    S.simpleFB(wrName, ["outS", "obj"], gen(S.IDexp "obj", encoding))
 	  end

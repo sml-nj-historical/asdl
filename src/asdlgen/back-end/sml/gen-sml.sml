@@ -69,10 +69,10 @@ structure GenSML : sig
     val genPicklerSig = genFile GenPickleSig.gen
 
   (* generate the pickler files *)
-    val genPicklerStr = genFile GenPickle.gen
+    val genPicklerStr = genFile GenMemoryPickle.gen
 
   (* generate the pickle-io files *)
-    val genIOStr = genFile GenIO.gen
+    val genIOStr = genFile GenFilePickle.gen
 
   (* generate the S-Expression pickler files *)
     val genSExpStr = genFile GenSExpPickle.gen
@@ -87,11 +87,11 @@ structure GenSML : sig
 	  in
 	    genTypes (src, smlFilename basePath, modules);
 	    genPicklerSig (src, sigFilename(basePath ^ "-pickle"), modules);
-	    genPicklerStr (src, smlFilename(basePath ^ "-pickle"), modules);
-	    genIOStr (src, smlFilename(basePath ^ "-pickle-io"), modules);
+	    genPicklerStr (src, smlFilename(basePath ^ "-memory-pickle"), modules);
+	    genIOStr (src, smlFilename(basePath ^ "-file-pickle"), modules);
 	    if (!genSExpFlg)
 	      then (
-		genSExpStr (src, smlFilename(basePath ^ "-sexp"), modules))
+		genSExpStr (src, smlFilename(basePath ^ "-sexp-pickle"), modules))
 	      else ()
 	  end
 

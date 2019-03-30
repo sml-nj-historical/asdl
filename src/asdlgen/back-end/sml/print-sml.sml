@@ -262,12 +262,18 @@ structure PrintSML : sig
             | ppExp (S.LETexp(decs, body)) = let
 		fun ppBody body = (case body
 		       of S.SEQexp[e] => ppBody e
-			| S.SEQexp(e::es) => (
-			    PP.openVBox strm indent0;
-			      nl();
-			      inHBox (fn () => (ppExp e; str ";"));
-			      List.app (fn e => (nl(); inHBox (fn () => ppExp e))) es;
-			    PP.closeBox strm)
+			| S.SEQexp es => let
+			    fun pp [] = raise Fail "empty let-expression body"
+			      | pp [e] = inHBox (fn () => ppExp e)
+			      | pp (e::er) = (
+				  inHBox (fn () => (ppExp e; str ";"));
+				  pp er)
+			    in
+			      PP.openVBox strm indent0;
+				nl();
+				pp es;
+			      PP.closeBox strm
+			    end
 			| e => (
 			    PP.break strm {nsp=1, offset=2};
 			    inHBox (fn () => ppExp e))

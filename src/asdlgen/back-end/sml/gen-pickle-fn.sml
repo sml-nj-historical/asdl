@@ -1,14 +1,14 @@
-(* gen-pickle.sml
+(* gen-pickle-fn.sml
  *
- * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * COPYRIGHT (c) 2019 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * Generate the memory pickling code for the SML view
- *
- * TODO: merge with gen-io.sml
+ * Generate the memory and file pickler structures.
  *)
 
-structure GenPickle : sig
+functor GenPickleFn (
+    val getPklModName : AST.ModuleId.t -> string
+  ) : sig
 
   (* generate the pickler structure *)
     val gen : AST.module -> SML.top_decl
@@ -31,13 +31,13 @@ structure GenPickle : sig
     fun pairPat (a, b) = S.TUPLEpat[a, b]
     fun pairExp (a, b) = S.TUPLEexp[a, b]
 
-    fun pklMod () = ModV.getPickleName PrimTypes.primTypesId
+    fun pklMod () = getPklModName PrimTypes.primTypesId
     fun outStrmTy () = S.CONty([], pklMod() ^ ".outstream")
     fun inStrmTy () = S.CONty([], pklMod() ^ ".instream")
 
     fun gen (AST.Module{isPrim=false, id, decls}) = let
 	  val typeModName = ModV.getName id
-	  val pickleModName = ModV.getPickleName id
+	  val pickleModName = getPklModName id
 	  val sign = S.AUGsig(
 (* TODO: move Util.sigName to SML view *)
 		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
@@ -65,17 +65,18 @@ structure GenPickle : sig
     and genEncoder (typeModName, encName, encoding) = let
 	  val bufV = S.IDexp "buf"
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
-	  fun baseEncode (NONE, tyId) = TyV.getEncoder tyId
-	    | baseEncode (SOME modId, tyId) = concat[
-		  ModV.getPickleName modId, ".", TyV.getEncoder tyId
+	  fun baseWriter (NONE, tyId) = TyV.getEncoder tyId
+	    | baseWriter (SOME modId, tyId) = concat[
+		  getPklModName modId, ".", TyV.getEncoder tyId
 		]
 	  fun genTag (tagTyId, tag) = funApp(
-		baseEncode(SOME PT.primTypesId, tagTyId),
+		baseWriter(SOME PT.primTypesId, tagTyId),
 		[bufV, S.NUMexp("0w" ^ Int.toString tag)])
 	  fun gen (arg, E.UNIT conId) = S.unitExp (* no storage required *)
 	    | gen (arg, E.ENUM(nCons, cons)) = let
 		val tagTyId = E.tagTyId nCons
-		fun genRule (tag, conId) = (S.IDpat(getConName conId), genTag (tagTyId, tag))
+		fun genRule (tag, conId) =
+		      (S.IDpat(getConName conId), genTag (tagTyId, tag))
 		in
 		  S.caseExp(arg, List.map genRule cons)
 		end
@@ -133,14 +134,14 @@ structure GenPickle : sig
 		end
 	  and genTy (arg, E.OPTION ty) =
 		S.appExp(
-		  funApp ("writeOption", [S.IDexp(baseEncode ty)]),
+		  funApp ("writeOption", [S.IDexp(baseWriter ty)]),
 		  pairExp(bufV, arg))
 	    | genTy (arg, E.SEQUENCE ty) =
 		S.appExp(
-		  funApp ("writeSeq", [S.IDexp(baseEncode ty)]),
+		  funApp ("writeSeq", [S.IDexp(baseWriter ty)]),
 		  pairExp(bufV, arg))
 	    | genTy (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | genTy (arg, E.BASE ty) = funApp (baseEncode ty, [bufV, arg])
+	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [bufV, arg])
 	  and genTy' (x, ty) = genTy (S.IDexp x, ty)
 	  in
 	    S.simpleFB(encName, ["buf", "obj"], gen(S.IDexp "obj", encoding))
@@ -149,12 +150,12 @@ structure GenPickle : sig
     and genDecoder (typeModName, decName, encoding) = let
 	  val inSV = S.IDexp "inS"
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
-	  fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
-	    | baseDecode (SOME modId, tyId) = concat[
-		  ModV.getPickleName modId, ".", TyV.getDecoder tyId
+	  fun baseReader (NONE, tyId) = TyV.getDecoder tyId
+	    | baseReader (SOME modId, tyId) = concat[
+		  getPklModName modId, ".", TyV.getDecoder tyId
 		]
 	  fun genTag tagTyId = funApp(
-		baseDecode(SOME PT.primTypesId, tagTyId),
+		baseReader(SOME PT.primTypesId, tagTyId),
 		[inSV])
 	  val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
 	  fun gen (E.UNIT conId) = S.IDexp(getConName conId)
@@ -203,14 +204,14 @@ structure GenPickle : sig
 		end
 	  and genTy (E.OPTION ty) =
 		S.appExp(
-		  funApp ("readOption", [S.IDexp(baseDecode ty)]),
+		  funApp ("readOption", [S.IDexp(baseReader ty)]),
 		  inSV)
 	    | genTy (E.SEQUENCE ty) =
 		S.appExp(
-		  funApp ("readSeq", [S.IDexp(baseDecode ty)]),
+		  funApp ("readSeq", [S.IDexp(baseReader ty)]),
 		  inSV)
 	    | genTy (E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | genTy (E.BASE ty) = funApp (baseDecode ty, [inSV])
+	    | genTy (E.BASE ty) = funApp (baseReader ty, [inSV])
 	  in
 	    S.simpleFB(decName, ["inS"], gen encoding)
 	  end

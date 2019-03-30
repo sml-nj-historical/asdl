@@ -7,4 +7,4 @@
     val writeSeq = SExpPkl.writeSeq
     val readSeq = SExpPkl.readSeq
     val writeEnum = SExpPkl.writeEnum
-
+    val space = SExpPkl.space
