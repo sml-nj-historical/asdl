@@ -16,22 +16,29 @@ and \asdl{} sum types map the \sml{} datatypes.
 If an \asdl{} identifier conflicts with an \sml{} keyword or pervasive identifier, then the translation
 adds a trailing prime character (\lstinline[language=SML]!'!) to the identifier.
 
-For an \asdl{} module \lstinline[mathescape=true]@$M$@, we generate two \sml{} signatures
-and three \sml{} structures:
+For an \asdl{} module \lstinline[mathescape=true]@$M$@, we generate an \sml{} signature
+and several \sml{} structures:
 \begin{code}\begin{lstlisting}[language=SML,mathescape=true]
 structure $M$ = struct ... end
 signature $M$_PICKLE = sig ... end
-structure $M$Pickle : $M$_PICKLE = struct ... end
-signature $M$_PICKLE_IO = sig ... end
-structure $M$PickleIO : $M$_PICKLE_IO = struct ... end
+structure $M$MemoryPickle : $M$_PICKLE = struct ... end
+structure $M$FilePickle : $M$_PICKLE = struct ... end
+structure $M$SExpPickle : $M$_PICKLE = struct ... end (* optional *)
 \end{lstlisting}\end{code}%
 where \lstinline[language=SML,mathescape=true]@$M$@ structure contains the type definitions
-for the \asdl{} specification, \lstinline[language=SML,mathescape=true]@$M$Pickle@ structure
+for the \asdl{} specification,
+\lstinline[language=SML,mathescape=true]@$M$MemoryPickle@ structure
 implements functions to convert between the types and byte vectors, and the
-\lstinline[language=SML,mathescape=true]@$M$PickleIO@ structure implements functions to
+\lstinline[language=SML,mathescape=true]@$M$FilePickle@ structure implements functions to
 read and write pickles from binary files.
+The optional \lstinline[language=SML,mathescape=true]@$M$SExpPickle@ structure implements
+functions to  read and write textual pickles in S-Expression syntax.\footnote{
+  Currently, only output of S-Expression pickles is implemented.
+}
+This module is generated when the ``\texttt{--sexp}'' option is specified
+(see see \secref{sec:s-expressions} for more details).
 
-For an ASDL source file \texttt{f.asdl}, \asdlgen{} will produce five \sml{} source files.
+For an \asdl{} source file \texttt{f.asdl}, \asdlgen{} will produce four \sml{} source files.
 \begin{description}
   \item[\normalfont\texttt{f.sml}] \mbox{}\\
     contains type definition structures (\eg{},
@@ -39,15 +46,17 @@ For an ASDL source file \texttt{f.asdl}, \asdlgen{} will produce five \sml{} sou
   \item[\normalfont\texttt{f-pickle.sig}] \mbox{}\\
     contains memory-pickler signatures (\eg{},
     \lstinline[mathescape=true]@signature $M$_PICKLE@)
-  \item[\normalfont\texttt{f-pickle.sml}] \mbox{}\\
+  \item[\normalfont\texttt{f-memory-pickle.sml}] \mbox{}\\
     contains memory-pickler structures (\eg{},
-    \lstinline[mathescape=true]@structure $M$Pickle@)
-  \item[\normalfont\texttt{f-pickle-io.sig}] \mbox{}\\
-    contains file-pickler signatures (\eg{},
-    \lstinline[mathescape=true]@signature $M$_PICKLE_IO@)
-  \item[\normalfont\texttt{f-pickle-io.sml}] \mbox{}\\
+    \lstinline[mathescape=true]@structure $M$MemoryPickle@)
+  \item[\normalfont\texttt{f-file-pickle.sml}] \mbox{}\\
     contains file-pickler structures (\eg{},
-    \lstinline[mathescape=true]@structure $M$PickleIO@)
+    \lstinline[mathescape=true]@structure $M$FilePickle@)
+  \item[\normalfont\texttt{f-sexp-pickle.sml}] \mbox{}\\
+    contains the optional S-Expression pickler structures (\eg{},
+    \lstinline[mathescape=true]@structure $M$SExpPickle@).
+    This file is only generated when the ``\texttt{--sexp}''
+    command-line option is specified.
 \end{description}%
 
 \begin{table}[tp]

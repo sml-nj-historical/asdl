@@ -57,13 +57,13 @@ All the commands that produce source code as output offer a different
 command option to select the default base environment.
 The base environment is the set of the initial definitions available to the code.
 It defines the set of primitive types and functions used by the generated code.
-For example using the option \texttt{--base-include=my-base.h}
-when generating C code will insert the directive
-\begin{quote}\begin{lstlisting}[language=c]
-#include "my-base.h"
+For example using the option \texttt{--base-include=my-base.hxx}
+when generating \Cplusplus{} code will insert the directive
+\begin{quote}\begin{lstlisting}[language=c++]
+#include "my-base.hxx"
 \end{lstlisting}\end{quote}%
 in the appropriate place so the resulting code will use the definitions found in
-\texttt{my-base.h} rather than the default set of primitive types.
+\texttt{my-base.hxx} rather than the default set of primitive types.
 Unless there is a need to globally redefine
 the primitive types changing the base environment should be avoided.
 The actual option names vary depending on the output language.
@@ -80,11 +80,24 @@ to the default set of primitive types and functions.
     The default value is \texttt{asdl/asdl.hxx}.
 \end{description}%
 
+\subsection*{Options for Standard ML}
+
+\begin{description}
 % NOT YET IMPLEMENTED!!!
-%\subsection*{Options for Standard ML}
-%\begin{description}
 %  \item[\normalfont\texttt{--base-structure=}\textit{structure-name}] \mbox{}\\
 %    Specify the name of the structure that defines the primitive ASDL types.
 %    The default value is \lstinline[language=SML]!ASDL!.
-%\end{description}%
+  \item[\normalfont\texttt{--cm=}\textit{file}] \mbox{}\\
+    Generate a \cm{} file for the pickler; this will define a \cm{} library.
+    Note that if the \asdl{} specification includes primitive modules, these
+    will be included in the list of exported structures, but the supporting source
+    files will have to be added to the \cm{} file by hand.
+  \item[\normalfont\texttt{--mlb=}\textit{file}] \mbox{}\\
+    Generate an \mlb{} file for the pickler.
+    Note that if the \asdl{} specification includes primitive modules, these
+    will be included in the list of exported structures, but the supporting source
+    files will have to be added to the \mlb{} file by hand.
+  \item[\normalfont\texttt{--sexp}] \mbox{}\\
+    Generate the optional S-Expression pickler module.
+\end{description}%
 
