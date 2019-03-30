@@ -17,12 +17,14 @@ structure Main : sig
 	    { names = ["c++", "cxx"],
 	      opts = GenCxx.options,
 	      desc = "Generate C++ implementation",
-	      gen = GenCxx.gen
+	      gen = GenCxx.gen,
+	      genBuild = fn () => () (* FIXME: makefile support? *)
 	    },
 	    { names = ["sml"],
 	      opts = GenSML.options,
 	      desc = "Generate SML implementation",
-	      gen = GenSML.gen
+	      gen = GenSML.gen,
+	      genBuild = GenSML.genBuildFiles
 	    }
 (*
 	    { names = ["typ"],		??
@@ -83,9 +85,12 @@ structure Main : sig
 	      | Options.CHECK => if List.exists checkFile files
 		  then OS.Process.failure
 		  else OS.Process.success
-	      | Options.GENERATE gen => if List.exists (doFile gen) files
-		  then OS.Process.failure
-		  else OS.Process.success
+	      | Options.GENERATE{gen, genBuild} =>
+		  if List.exists (doFile gen) files
+		    then OS.Process.failure
+		    else (
+		      genBuild();
+		      OS.Process.success)
 	    (* end case *)
 	  end
 	    handle Options.Usage msg => fail (cmdName, msg)

@@ -26,7 +26,10 @@ structure Options : sig
       = HELP
       | VERSION
       | CHECK
-      | GENERATE of generator
+      | GENERATE of {
+	    gen : generator,
+	    genBuild : unit -> unit
+	  }
 
   (* register the generators *)
     val registerGen : {
@@ -34,7 +37,8 @@ structure Options : sig
 	    opts : unit GetOpt.opt_descr list,
 					(* generator-specific options *)
 	    desc : string,		(* description of generator *)
-	    gen : generator		(* the actual generator *)
+	    gen : generator,		(* the actual generator *)
+	    genBuild : unit -> unit	(* build-file generator *)
 	  } -> unit
 
   (* parse the command-line args *)
@@ -73,7 +77,10 @@ structure Options : sig
       = HELP
       | VERSION
       | CHECK
-      | GENERATE of generator
+      | GENERATE of {
+	    gen : generator,
+	    genBuild : unit -> unit
+	  }
 
     exception Usage of string
 
@@ -86,6 +93,7 @@ structure Options : sig
     val lineWidOpt : int ref = ref 90
     val outputDirOpt : string option ref = ref NONE
 
+(* FIXME: we have switched to "--sexp" as a target-specific option *)
   (* get a pickler specification *)
     fun picklerFromString s = (case String.map Char.toLower s
 	   of "binary" => BINARY
@@ -162,8 +170,11 @@ structure Options : sig
 	    }
 	  ]
 
-    fun registerGen {names, opts, desc, gen} =
-	  commands := !commands @ [{names=names, opts=opts, desc=desc, cmd=GENERATE gen}]
+    fun registerGen {names, opts, desc, gen, genBuild} =
+	  commands := !commands @ [{
+	      names=names, opts=opts, desc=desc,
+	      cmd=GENERATE{gen=gen,genBuild=genBuild}
+	    }]
 
     fun parseCmdLine (command::rest) = let
 	  fun isCmd ({names, ...} : cmd_info) =
