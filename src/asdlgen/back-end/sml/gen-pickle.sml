@@ -23,34 +23,6 @@ structure GenPickle : sig
     structure E = Encoding
     structure S = SML
 
-  (***** Signature generation *****)
-
-    fun genSig (AST.Module{isPrim=false, id, decls}) = let
-	  val typeModName = ModV.getName id
-	  val sigName = Util.sigName(ModV.getPickleName id, NONE)
-	  val specs = List.foldr (genSpec typeModName) [] (!decls)
-	  in
-	    S.SIGtop(sigName, S.BASEsig specs)
-	  end
-      | genSig _ = raise Fail "GenPickle.genSig: unexpected primitive module"
-
-  (* generate the encoder/decoder specifications for a type *)
-    and genSpec modName (AST.TyDcl{id, ...}, specs) = let
-	  val ty = S.CONty([], concat[modName, ".", TyV.getName id])
-	  val bufTy = S.CONty([], "Word8Buffer.buf")
-	  val vecTy = S.CONty([], "Word8Vector.vector")
-	  val sliceTy = S.CONty([], "Word8VectorSlice.slice")
-	  val unitTy = S.CONty([], "unit")
-	(* writer *)
-	  val encTy = S.FUNty(S.TUPLEty[bufTy, ty], unitTy)
-	  val encSpc = S.VALspec(TyV.getEncoder id, encTy)
-	(* reader *)
-	  val decTy = S.FUNty(sliceTy, S.TUPLEty[ty, sliceTy])
-	  val decSpc = S.VALspec(TyV.getDecoder id, decTy)
-	  in
-	    encSpc :: decSpc :: specs
-	  end
-
   (***** Structure generation *****)
 
   (* generate a simple application *)
@@ -175,8 +147,7 @@ structure GenPickle : sig
 	  end
 
     and genDecoder (typeModName, decName, encoding) = let
-	  val sliceP = S.IDpat "slice"
-	  val sliceV = S.IDexp "slice"
+	  val inSV = S.IDexp "inS"
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
 	    | baseDecode (SOME modId, tyId) = concat[
@@ -184,14 +155,14 @@ structure GenPickle : sig
 		]
 	  fun genTag tagTyId = funApp(
 		baseDecode(SOME PT.primTypesId, tagTyId),
-		[sliceV])
+		[inSV])
 	  val dfltRule = (S.WILDpat, S.raiseExp(S.IDexp "ASDL.DecodeError"))
-	  fun gen (E.UNIT conId) = pairExp(S.IDexp(getConName conId), sliceV)
+	  fun gen (E.UNIT conId) = S.IDexp(getConName conId)
 	    | gen (E.ENUM(nCons, cons)) = let
 		fun genRule (tag, conId) = let
-		      val pat = pairPat(S.NUMpat("0w"^Int.toString tag), sliceP)
+		      val pat = S.NUMpat("0w"^Int.toString tag)
 		      in
-			(pat, pairExp(S.IDexp(getConName conId), sliceV))
+			(pat, S.IDexp(getConName conId))
 		      end
 		in
 		  S.caseExp(genTag(E.tagTyId nCons), List.map genRule cons @ [dfltRule])
@@ -201,10 +172,10 @@ structure GenPickle : sig
 	    | gen (E.SWITCH(optAttribs, nCons, cons)) = let
 		fun genRule (tag, conId, optArg) = let
 		      val conName = getConName conId
-		      val pat = pairPat(S.NUMpat("0w"^Int.toString tag), sliceP)
+		      val pat = S.NUMpat("0w"^Int.toString tag)
 		      in
 			case E.prefixWithAttribs(optAttribs, optArg)
-			 of NONE => (pat, pairExp(S.IDexp conName, sliceV))
+			 of NONE => (pat, S.IDexp conName)
 			  | SOME obj =>
 			      (pat, genObj(obj, fn x => S.appExp(S.IDexp conName, x)))
 			(* end case *)
@@ -217,31 +188,31 @@ structure GenPickle : sig
 	  and genObj (E.TUPLE tys, k) = let
 		val xs = List.mapi (fn (i, _) => "x"^Int.toString i) tys
 		val decs = ListPair.map
-		      (fn (x, (_, ty)) => S.VALdec(pairPat(S.IDpat x, sliceP), genTy ty))
+		      (fn (x, (_, ty)) => S.VALdec(S.IDpat x, genTy ty))
 			(xs, tys)
 		in
-		  S.LETexp(decs, pairExp (k(S.TUPLEexp(List.map S.IDexp xs)), sliceV))
+		  S.LETexp(decs, k (S.TUPLEexp(List.map S.IDexp xs)))
 		end
 	    | genObj (E.RECORD fields, k) = let
 		val decs = List.map
-		      (fn (lab, ty) => S.VALdec(pairPat(S.IDpat lab, sliceP), genTy ty))
+		      (fn (lab, ty) => S.VALdec(S.IDpat lab, genTy ty))
 			fields
 		val fields = List.map (fn (lab, _) => (lab, S.IDexp lab)) fields
 		in
-		  S.LETexp(decs, pairExp (k(S.RECORDexp fields), sliceV))
+		  S.LETexp(decs, k (S.RECORDexp fields))
 		end
 	  and genTy (E.OPTION ty) =
 		S.appExp(
 		  funApp ("readOption", [S.IDexp(baseDecode ty)]),
-		  sliceV)
+		  inSV)
 	    | genTy (E.SEQUENCE ty) =
 		S.appExp(
 		  funApp ("readSeq", [S.IDexp(baseDecode ty)]),
-		  sliceV)
+		  inSV)
 	    | genTy (E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | genTy (E.BASE ty) = funApp (baseDecode ty, [sliceV])
+	    | genTy (E.BASE ty) = funApp (baseDecode ty, [inSV])
 	  in
-	    S.simpleFB(decName, ["slice"], gen encoding)
+	    S.simpleFB(decName, ["inS"], gen encoding)
 	  end
 
   end

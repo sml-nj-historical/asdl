@@ -1,4 +1,6 @@
     structure SExpPkl = @PICKLER@
+    type instream = SExpPkl.instream
+    type outstream = SExpPkl.outstream
     val writeSExp = SExpPkl.writeSExp
     val writeOption = SExpPkl.writeOption
     val readOption = SExpPkl.readOption

@@ -9,7 +9,7 @@ structure TestIO =
 
     local
       open TestSpec
-      structure Pkl = TestSpecPickleIO
+      structure Pkl = TestSpecFilePickle
       structure U = Util
     (* pickle/unpickle identity *)
       fun ident (pickle, unpickle) x = let

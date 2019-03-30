@@ -66,9 +66,9 @@ structure SMLView : sig
 		(* end case *))
 	in
         val getPickleSigName = getModName (PN.pickler_name, "Pickle")
-	val getPickleName = getModName (PN.pickler_name, "Pickle")
-	val getIOName = getModName (PN.io_name, "PickleIO")
-	val getSExpName = getModName (PN.sexp_pickle_name, "SExpPickleIO")
+	val getPickleName = getModName (PN.pickler_name, "MemoryPickle")
+	val getIOName = getModName (PN.io_name, "FilePickle")
+	val getSExpName = getModName (PN.sexp_pickle_name, "SExpPickle")
 	end (* local *)
 
       end
@@ -149,7 +149,7 @@ structure SMLView : sig
 	      List.app set [
 		  (PN.name,		"ASDL"),
 		  (PN.pickler_name,	"ASDLMemoryPickle"),
-		  (PN.io_name,		"ASDLPickleIO"),
+		  (PN.io_name,		"ASDLFilePickle"),
 		  (PN.sexp_pickle_name,	"ASDLSExpPickle")
 		]
 	    end

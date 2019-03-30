@@ -12,9 +12,9 @@ Library
 
 (* generated pickling modules *)
   structure TestSpec
-  structure TestSpecPickle
-  structure TestSpecPickleIO
-  structure TestSpecSExpPickleIO
+  structure TestSpecMemoryPickle
+  structure TestSpecFilePickle
+  structure TestSpecSExpPickle
 
 is
 

@@ -1,3 +1,5 @@
+    type instream = @PICKLER@.instream
+    type outstream = @PICKLER@.outstream
   (* write an option *)
     fun writeOption wrFn (outS, NONE) = @PICKLER@.writeTag8(outS, 0w0)
       | writeOption wrFn (outS, SOME obj) = (

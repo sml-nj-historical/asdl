@@ -9,13 +9,13 @@ structure Test =
 
     local
       open TestSpec
-      structure Pkl = TestSpecPickle
+      structure Pkl = TestSpecMemoryPickle
       structure U = Util
     (* pickle/unpickle identity *)
       fun ident (pickle, unpickle) x = let
 	    val buf = Word8Buffer.new 100
 	    val _ = pickle (buf, x)
-	    val (y, rest) = unpickle (Word8VectorSlice.full(Word8Buffer.contents buf))
+	    val y = unpickle (Word8VectorSlice.full(Word8Buffer.contents buf))
 	    in
 	      if Word8VectorSlice.length rest <> 0
 		then raise Fail(concat[
@@ -37,7 +37,7 @@ structure Test =
     in
   (* tree *)
     fun chkTree () = let
-	  val chk = check "tree" (U.tree_toString, U.tree_same, Pkl.encode_tree, Pkl.decode_tree)
+	  val chk = check "tree" (U.tree_toString, U.tree_same, Pkl.write_tree, Pkl.read_tree)
 	  in
 	    chk EMPTY;
 	    chk (NODE{value = "1", left=EMPTY, right=EMPTY});
@@ -50,21 +50,21 @@ structure Test =
 	  end
   (* coord *)
     fun chkCoord () = let
-	  val chk = check "coord" (U.coord_toString, U.coord_same, Pkl.encode_coord, Pkl.decode_coord)
+	  val chk = check "coord" (U.coord_toString, U.coord_same, Pkl.write_coord, Pkl.read_coord)
 	  in
 	    chk {x = 12, y = 13};
 	    chk {x = ~12, y = 13}
 	  end
   (* pos *)
     fun chkPos () = let
-	  val chk = check "pos" (U.pos_toString, U.pos_same, Pkl.encode_pos, Pkl.decode_pos)
+	  val chk = check "pos" (U.pos_toString, U.pos_same, Pkl.write_pos, Pkl.read_pos)
 	  in
 	    chk (12, 13);
 	    chk (~12, 42)
 	  end
   (* nat *)
     fun chkNat () = let
-	  val chk = check "nat" (U.nat_toString, U.nat_same, Pkl.encode_nat, Pkl.decode_nat)
+	  val chk = check "nat" (U.nat_toString, U.nat_same, Pkl.write_nat, Pkl.read_nat)
 	  in
 	    chk ZERO;
 	    chk (SUCC ZERO);
@@ -72,7 +72,7 @@ structure Test =
 	  end
   (* value *)
     fun chkValue () = let
-	  val chk = check "value" (U.value_toString, U.value_same, Pkl.encode_value, Pkl.decode_value)
+	  val chk = check "value" (U.value_toString, U.value_same, Pkl.write_value, Pkl.read_value)
 	  in
 	    chk (BOOL false);
 	    chk (BOOL true);
@@ -86,7 +86,7 @@ structure Test =
 	  end
   (* color *)
     fun chkColor () = let
-	  val chk = check "color" (U.color_toString, U.color_same, Pkl.encode_color, Pkl.decode_color)
+	  val chk = check "color" (U.color_toString, U.color_same, Pkl.write_color, Pkl.read_color)
 	  in
 	    chk RED;
 	    chk GREEN;
@@ -94,14 +94,14 @@ structure Test =
 	  end
   (* wrap_bool *)
     fun chkWrapBool () = let
-	  val chk = check "wrap_bool" (U.wrap_bool_toString, U.wrap_bool_same, Pkl.encode_wrap_bool, Pkl.decode_wrap_bool)
+	  val chk = check "wrap_bool" (U.wrap_bool_toString, U.wrap_bool_same, Pkl.write_wrap_bool, Pkl.read_wrap_bool)
 	  in
 	    chk (WRAP true);
 	    chk (WRAP false)
 	  end
   (* unit *)
     fun chkUnit () = let
-	  val chk = check "unit" (U.unit_toString, U.unit_same, Pkl.encode_unit, Pkl.decode_unit)
+	  val chk = check "unit" (U.unit_toString, U.unit_same, Pkl.write_unit, Pkl.read_unit)
 	  in
 	    chk UNIT
 	  end

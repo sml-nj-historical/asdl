@@ -58,8 +58,8 @@ functor ViewBaseFn (V : sig
 		      (* end case *))
 		end
 	in
-	val getEncoder = getFn (PN.encoder, "encode")
-	val getDecoder = getFn (PN.decoder, "decode")
+	val getEncoder = getFn (PN.encoder, "write")
+	val getDecoder = getFn (PN.decoder, "read")
 	val getReader = getFn (PN.reader, "read")
 	val getWriter = getFn (PN.writer, "write")
 	end (* local *)
