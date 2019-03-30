@@ -78,10 +78,9 @@ subdirectories.
        + `pickle-util.in` -- memory pickling operations for options and sequences
        + `sexp-util.in`
     - `fragments.sml` -- this file is generated from the `fragments` directory
-    - `gen-io.sml` -- code generation for file pickling
-    - `gen-pickle-sig.sml`
-    - `gen-pickle.sml` -- code generation for memory pickling
-    - `gen-sexp-pickle.sml`
+    - `gen-pickle-sig.sml` -- code generation for the common pickler signature
+    - `gen-pickle-fn.sml` -- common code generation for memory and file picklers
+    - `gen-sexp-pickle.sml` -- code generation for S-Expression pickler
     - `gen-sml.sml` -- the main entrypoint for the **SML** backend
     - `gen-types.sml` -- code generation for the **SML** types that represent
       the **ASDL** types in a module.

@@ -2,6 +2,8 @@
  *
  * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
+ *
+ * Common interface for basic pickling operations.
  *)
 
 signature ASDL_PICKLE =

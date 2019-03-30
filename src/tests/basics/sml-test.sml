@@ -15,13 +15,11 @@ structure Test =
       fun ident (pickle, unpickle) x = let
 	    val buf = Word8Buffer.new 100
 	    val _ = pickle (buf, x)
-	    val y = unpickle (Word8VectorSlice.full(Word8Buffer.contents buf))
+	    val inS = ASDLMemoryPickle.openVector(Word8Buffer.contents buf)
+	    val y = unpickle inS
 	    in
-	      if Word8VectorSlice.length rest <> 0
-		then raise Fail(concat[
-		    Int.toString(Word8VectorSlice.length rest),
-		    " excess bytes after unpickling"
-		  ])
+	      if not(ASDLMemoryPickle.endOfStream inS)
+		then raise Fail " excess bytes after unpickling"
 		else y
 	    end
     (* check that the pickle/unpickle cycle preserves values *)

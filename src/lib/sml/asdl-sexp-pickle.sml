@@ -32,6 +32,7 @@ structure ASDLSExpPickle : sig
     val writeOption : (outstream * 'a -> unit) -> (outstream * 'a option) -> unit
     val writeSeq : (outstream * 'a -> unit) -> (outstream * 'a list) -> unit
     val writeEnum : outstream * string -> unit
+    val space : outstream -> unit
 
   (* input utility functions *)
     val readOption : (instream -> 'a) -> instream -> 'a option
@@ -52,6 +53,8 @@ structure ASDLSExpPickle : sig
     type outstream = PP.stream
 
     val lineWid = 120
+
+    fun space ppS = PP.space ppS 1;
 
     fun writeBool (ppS, true) = PP.string ppS "#t"
       | writeBool (ppS, false) = PP.string ppS "#f"
@@ -88,8 +91,8 @@ structure ASDLSExpPickle : sig
     fun writeSExp (ppS, f, wrContents) = (
 	  PP.openHBox ppS;
 	    PP.string ppS "(";
-	    PP.string ppS f;
-	    PP.openHOVBox ppS (PP.Rel 0);
+	    PP.openHVBox ppS (PP.Rel 1);
+	      PP.string ppS f;
 	      wrContents();
 	      PP.string ppS ")";
 	    PP.closeBox ppS;
@@ -99,7 +102,7 @@ structure ASDLSExpPickle : sig
     fun writeOption wrFn (ppS, NONE) =
           writeSExp (ppS, "?", fn () => ())
       | writeOption wrFn (ppS, SOME obj) =
-          writeSExp (ppS, "?", fn () => wrFn(ppS, obj))
+          writeSExp (ppS, "?", fn () => (space ppS; wrFn(ppS, obj)))
 
   (* read an option *)
     fun readOption rdFn inS = raise Fail "readOption"
@@ -109,14 +112,15 @@ structure ASDLSExpPickle : sig
       | writeSeq wrFn (ppS, [x]) = (
 	  PP.openHBox ppS;
 	    PP.string ppS "(*";
-	    PP.space ppS 1; wrFn(ppS, x);
+	    space ppS; wrFn(ppS, x);
 	    PP.string ppS ")";
 	  PP.closeBox ppS)
       | writeSeq wrFn (ppS, xs as x1::xr) = (
 	  PP.openHBox ppS;
-	    PP.string ppS "(*"; PP.space ppS 1; wrFn(ppS, x1);
+	    PP.string ppS "(*"; space ppS;
 	    PP.openHOVBox ppS (PP.Rel 0);
-	      List.app (fn x => (PP.space ppS 1; wrFn(ppS, x))) xr;
+	      wrFn(ppS, x1);
+	      List.app (fn x => (space ppS; wrFn(ppS, x))) xr;
 	      PP.string ppS ")";
 	    PP.closeBox ppS;
 	  PP.closeBox ppS)

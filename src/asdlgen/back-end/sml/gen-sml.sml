@@ -21,6 +21,12 @@ structure GenSML : sig
     structure S = SML
     structure PP = TextIOPP
 
+  (* Generate the memory pickling code for the SML view *)
+    structure GenMemoryPickle = GenPickleFn (val getPklModName = ModV.getPickleName)
+
+  (* Generate the file pickling code for the SML view *)
+    structure GenFilePickle = GenPickleFn (val getPklModName = ModV.getIOName)
+
     val baseStructureOpt = ref "ASDL"
     val genSExpFlg = ref false
 

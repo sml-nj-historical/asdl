@@ -19,8 +19,6 @@ is
   ../util/sources.cm
 
   fragments.sml		(* generated *)
-  gen-file-pickle.sml
-  gen-memory-pickle.sml
   gen-pickle-fn.sml
   gen-pickle-sig.sml
   gen-sexp-pickle.sml

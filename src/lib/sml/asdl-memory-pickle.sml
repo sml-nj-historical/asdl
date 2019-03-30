@@ -9,7 +9,10 @@ structure ASDLMemoryPickle : sig
     include ASDL_PICKLE
 
   (* open a vector as an input stream *)
-    val openVec : Word8Vector.vector -> instream
+    val openVector : Word8Vector.vector -> instream
+
+  (* has all the input been consumed? *)
+    val endOfStream : instream -> bool
 
   (* pickle to/from a vector *)
     val toVector : (outstream * 'a -> unit) -> 'a -> Word8Vector.vector
@@ -42,11 +45,13 @@ structure ASDLMemoryPickle : sig
 	len : int
       }
 
-    fun openVec v = Instrm{
+    fun openVector v = Instrm{
 	    data = v,
 	    idx = ref 0,
 	    len = W8V.length v
 	  }
+
+    fun endOfStream (Instrm{idx, len, ...}) = (!idx >= len)
 
     fun toByte w = W8.fromLarge (W.toLarge w)
     fun getByte (data, ix) = W.fromLarge (W8.toLarge (W8V.sub(data, ix)))
@@ -78,12 +83,15 @@ structure ASDLMemoryPickle : sig
 	      else raise ASDL.DecodeError
 	  end
 
-    fun getSlice (Instrm{data, idx as ref ix, len}, n) =
-	  if (ix + n < len)
-	    then (
-	      idx := ix + n;
-	      W8S.slice(data, ix, SOME n))
-	    else raise ASDL.DecodeError
+    fun getSlice (Instrm{data, idx as ref ix, len}, n) = let
+	  val ix' = ix + n
+	  in
+	    if (ix' <= len)
+	      then (
+		idx := ix';
+		W8S.slice(data, ix, SOME n))
+	      else raise ASDL.DecodeError
+	  end
 
     fun writeBool (buf, false) = W8B.add1 (buf, 0w0)
       | writeBool (buf, true) = W8B.add1 (buf, 0w1)
@@ -240,11 +248,10 @@ structure ASDLMemoryPickle : sig
 	  writeUInt(buf, Word.fromInt(size s));
 	  W8B.addVec(buf, Byte.stringToBytes s))
 
-    fun readString inS = let
-	  val len = W.toIntX (readUInt inS)
-	  in
-	    Byte.unpackStringVec(getSlice (inS, len))
-	  end
+    fun readString inS = (case W.toIntX (readUInt inS)
+	   of 0 => ""
+	    | len => Byte.unpackStringVec(getSlice (inS, len))
+	  (* end case *))
 
     fun writeIdentifier (buf, id) = writeString (buf, Atom.toString id)
 
@@ -271,6 +278,6 @@ structure ASDLMemoryPickle : sig
 	    W8B.contents buf
 	  end
 
-    fun fromVector decode v = decode (openVec v)
+    fun fromVector decode v = decode (openVector v)
 
   end

@@ -28,5 +28,8 @@ module TestSpec {
 -- a sum type with products
   tree = EMPTY
        | NODE(string value, tree left, tree right)
+
+-- a tuple of everything
+  everything = (unit, wrap_bool, color, value, nat, pos, coord, tree)
 }
 
