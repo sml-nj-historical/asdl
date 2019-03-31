@@ -17,7 +17,6 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
-#include <iostream>
 
 #include "asdl-stream.hxx"
 
@@ -96,7 +95,7 @@ namespace asdl {
       // global hash table for uniquifying identifiers
 	static table_t _Tbl;
 
-      // resolve a string to its unique
+      // resolve a string to its unique representation
 	static rep_t _resolve (std::string const &s)
 	{
 	    auto got = _Tbl.find(s);
