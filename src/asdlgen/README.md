@@ -18,6 +18,11 @@ This file gives an overview of the implementation architecture of **asdlgen**.
 
 * `front-end.sml`
 
+* `ast/`
+     - `ast.sml`
+     - `ident-fn.sml`
+     - `prim-types.sml`
+
 * `parser`
      - `asdl.grm` -- ML-Antlr grammar for ASDL
      - `asdl.lex` -- ML-ULex specification for ASDL
@@ -28,18 +33,18 @@ This file gives an overview of the implementation architecture of **asdlgen**.
      - `error.sml` -- implements error reporting for the front-end
 
 * `typechecker/` <br/>
-  This directory contains code to convert the parse tree into a
-  abstract syntax tree.  It also contains the definitions of the
-  views that control how the back-ends access process the specification.
-     - `ast.sml`
+  This directory contains code to typecheck an **ASDL** specification
+  while converting the parse tree into a abstract syntax tree.
+     - `env.sml`
+     - `typecheck.sml`
+
+* `views/` <br/>
+  This directory contains the  definitions of the views that control
+  how the back-ends access process the specification.
      - `common-view.sml`
      - `cxx-view.sml` -- implementes the C** view
-     - `env.sml`
-     - `ident-fn.sml`
-     - `prim-types.sml`
      - `prop-names.sml`
      - `sml-view.sml` -- implementes the SML view
-     - `typecheck.sml`
      - `view-base-fn.sml`
      - `view-base-sig.sml`
      - `view.sml`
