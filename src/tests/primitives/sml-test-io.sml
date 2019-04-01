@@ -1,16 +1,16 @@
 (* sml-test-io.sml
  *
- * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * COPYRIGHT (c) 2019 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
- * Test primitive pickling I/O operations from the ASDL library.
+ * Test primitive file pickling operations from the ASDL library.
  *)
 
 structure TestIO =
   struct
 
     local
-      structure Pkl = ASDLPickleIO
+      structure Pkl = ASDLFilePickle
     (* pickle/unpickle identity *)
       fun ident (pickle, unpickle) x = let
 	    val file = OS.FileSys.tmpName()

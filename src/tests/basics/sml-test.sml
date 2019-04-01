@@ -19,7 +19,7 @@ structure Test =
 	    val y = unpickle inS
 	    in
 	      if not(ASDLMemoryPickle.endOfStream inS)
-		then raise Fail " excess bytes after unpickling"
+		then raise Fail "excess bytes after unpickling"
 		else y
 	    end
     (* check that the pickle/unpickle cycle preserves values *)
