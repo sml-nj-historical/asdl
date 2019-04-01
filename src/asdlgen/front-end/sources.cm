@@ -22,9 +22,11 @@ is
   $/smlnj-lib.cm
   $/pp-lib.cm
 
+  ast/sources.cm
   common/sources.cm
   parser/sources.cm
   typechecker/sources.cm
+  views/sources.cm
 
   front-end.sml
 

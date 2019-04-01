@@ -6,7 +6,8 @@
 
 Library
 
-  structure Typecheck
+  structure AST
+  structure PrimTypes
 
 is
 
@@ -15,9 +16,8 @@ is
 
   ../common/sources.cm
   ../parser/sources.cm
-  ../ast/sources.cm
-  ../views/sources.cm
 
-  env.sml
-  typecheck.sml
+  ast.sml
+  ident-fn.sml
+  prim-types.sml
 

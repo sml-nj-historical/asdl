@@ -6,7 +6,9 @@
 
 Library
 
-  structure Typecheck
+  structure View
+  structure SMLView
+  structure CxxView
 
 is
 
@@ -16,8 +18,12 @@ is
   ../common/sources.cm
   ../parser/sources.cm
   ../ast/sources.cm
-  ../views/sources.cm
 
-  env.sml
-  typecheck.sml
+  common-view.sml
+  cxx-view.sml
+  prop-names.sml
+  sml-view.sml
+  view.sml
+  view-base-fn.sml
+  view-base-sig.sml
 
