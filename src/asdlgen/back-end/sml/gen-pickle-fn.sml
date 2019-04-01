@@ -7,7 +7,16 @@
  *)
 
 functor GenPickleFn (
+
+  (* function to get the name of the pickler module for an ASDL module *)
     val getPklModName : AST.ModuleId.t -> string
+  (* functions to get the name of the reader/writer functions for an ASDL type *)
+    val getReader : AST.TypeId.t -> string
+    val getWriter : AST.TypeId.t -> string
+  (* the names of the functions for reading/writing bytes *)
+    val getByte : string
+    val putByte : string
+
   ) : sig
 
   (* generate the pickler structure *)
@@ -35,35 +44,55 @@ functor GenPickleFn (
     fun outStrmTy () = S.CONty([], pklMod() ^ ".outstream")
     fun inStrmTy () = S.CONty([], pklMod() ^ ".instream")
 
-    fun gen (AST.Module{isPrim=false, id, decls}) = let
-	  val typeModName = ModV.getName id
+    val outSV = S.IDexp "outS"
+    val outSP = S.IDpat "outS"
+    val inSV = S.IDexp "inS"
+
+    fun gen (AST.Module{isPrim, id, decls}) = let
+	  val typeModName = ModV.getName id (* name of module that defines the types *)
 	  val pickleModName = getPklModName id
 	  val sign = S.AUGsig(
 (* TODO: move Util.sigName to SML view *)
 		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
 		[ S.WHERETY([], ["instream"], inStrmTy()),
 		  S.WHERETY([], ["outstream"], outStrmTy())])
-	  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr (genType typeModName) [] dcls) :: dcls'
-	  val decls = List.foldr genGrp [] (SortDecls.sort (!decls))
+	  val decls = let
+	        val gen = if isPrim
+		      then genPrimType typeModName
+		      else genType typeModName
+		fun genGrp (dcls, dcls') = S.FUNdec(List.foldr gen [] dcls) :: dcls'
+		in
+		  List.foldr genGrp [] (SortDecls.sort (!decls))
+		end
 	  val decls = S.VERBdec[
 		  StringSubst.expand [("PICKLER", pklMod ())] Fragments.pickleUtil
 		] :: decls
 	  in
 	    S.STRtop(pickleModName, SOME(false, sign), S.BASEstr decls)
 	  end
-      | gen _ = raise Fail "GenPickle.gen: unexpected primitive module"
+
+(* FIXME: change getEncoder/getDecoder to getWriter/getReader *)
+
+    and genPrimType typeModName (AST.TyDcl{id, ...}, fbs) = let
+	  val wr = S.FB(TyV.getDecoder id, [(
+		  pairPat (outSP, S.IDpat "x"),
+		  funApp ()
+		)]
+	  val rd = ??
+	  in
+	    wr :: rd :: fbs
+	  end
 
     and genType typeModName (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl
 	  val name = TyV.getName id
 	  in
-	    genEncoder (typeModName, TyV.getEncoder id, encoding) ::
-	    genDecoder (typeModName, TyV.getDecoder id, encoding) ::
+	    genWriter (typeModName, TyV.getEncoder id, encoding) ::
+	    genReader (typeModName, TyV.getDecoder id, encoding) ::
 	      fbs
 	  end
 
-    and genEncoder (typeModName, encName, encoding) = let
-	  val bufV = S.IDexp "buf"
+    and genWriter (typeModName, encName, encoding) = let
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseWriter (NONE, tyId) = TyV.getEncoder tyId
 	    | baseWriter (SOME modId, tyId) = concat[
@@ -71,7 +100,7 @@ functor GenPickleFn (
 		]
 	  fun genTag (tagTyId, tag) = funApp(
 		baseWriter(SOME PT.primTypesId, tagTyId),
-		[bufV, S.NUMexp("0w" ^ Int.toString tag)])
+		[outSV, S.NUMexp("0w" ^ Int.toString tag)])
 	  fun gen (arg, E.UNIT conId) = S.unitExp (* no storage required *)
 	    | gen (arg, E.ENUM(nCons, cons)) = let
 		val tagTyId = E.tagTyId nCons
@@ -135,20 +164,19 @@ functor GenPickleFn (
 	  and genTy (arg, E.OPTION ty) =
 		S.appExp(
 		  funApp ("writeOption", [S.IDexp(baseWriter ty)]),
-		  pairExp(bufV, arg))
+		  pairExp(outSV, arg))
 	    | genTy (arg, E.SEQUENCE ty) =
 		S.appExp(
 		  funApp ("writeSeq", [S.IDexp(baseWriter ty)]),
-		  pairExp(bufV, arg))
+		  pairExp(outSV, arg))
 	    | genTy (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
-	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [bufV, arg])
+	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
 	  and genTy' (x, ty) = genTy (S.IDexp x, ty)
 	  in
 	    S.simpleFB(encName, ["buf", "obj"], gen(S.IDexp "obj", encoding))
 	  end
 
-    and genDecoder (typeModName, decName, encoding) = let
-	  val inSV = S.IDexp "inS"
+    and genReader (typeModName, decName, encoding) = let
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
 	  fun baseReader (NONE, tyId) = TyV.getDecoder tyId
 	    | baseReader (SOME modId, tyId) = concat[

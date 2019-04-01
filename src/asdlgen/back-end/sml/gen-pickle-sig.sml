@@ -43,7 +43,7 @@ structure GenPickleSig : sig
     val inStrmTy = S.CONty([], "instream")
     val unitTy = S.CONty([], "unit")
 
-    fun gen (AST.Module{isPrim=false, id, decls}) = let
+    fun gen (AST.Module{id, decls, ...}) = let
 	  val typeModName = ModV.getName id
 (* TODO: move Util.sigName to SML view *)
 	  val sigName = Util.sigName(ModV.getPickleSigName id, NONE)
@@ -51,7 +51,6 @@ structure GenPickleSig : sig
 	  in
 	    S.SIGtop(sigName, S.BASEsig(streamSpecs @ specs))
 	  end
-      | gen _ = raise Fail "GenPickleSig.gen: unexpected primitive module"
 
   (* generate the encoder/decoder specifications for a type *)
     and genSpec modName (AST.TyDcl{id, ...}, specs) = let

@@ -82,7 +82,14 @@ structure GenSML : sig
 	    else output (src, outFile, List.map codeGen modules)
 
   (* generate the type-declaration file *)
-    val genTypes = genFile GenTypes.gen
+    val genTypes = let
+	  val gen = genFile GenTypes.gen
+	  in
+	  (* for the types, the primitive modules are supplied by the user *)
+	    fn (src, outFile, modules) => gen (
+		src, outFile,
+		List.filter (fn (AST.Module{isPrim, ...}) => not isPrim) modules)
+	  end
 
   (* generate the generic pickler signature *)
     val genPicklerSig = genFile GenPickleSig.gen
@@ -135,8 +142,6 @@ structure GenSML : sig
 	  fun sigFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sig"}
 	(* record the inputs before filtering out the primitive modules *)
 	  val _ = addModules modules
-	(* we only generate code for the non-primitive modules *)
-	  val modules = List.filter (fn (AST.Module{isPrim, ...}) => not isPrim) modules
 	  in
 	    genTypes (src, addFile(smlFilename basePath), modules);
 	    genPicklerSig (src, addFile(sigFilename(basePath ^ "-pickle")), modules);
