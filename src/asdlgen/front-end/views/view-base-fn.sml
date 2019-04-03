@@ -39,6 +39,19 @@ functor ViewBaseFn (V : sig
 	       of [name] => name
 		| _ => raise Fail "Module.getName"
 	      (* end case *))
+
+        local
+          fun getCode prop modId = View.getOptValue prop (view, View.Module modId)
+        in
+	fun getInterfaceCode modId = {
+		prologue = getCode PN.interface_prologue modId,
+		epilogue = getCode PN.interface_epilogue modId
+	      }
+	fun getImplementationCode modId = {
+		prologue = getCode PN.implementation_prologue modId,
+		epilogue = getCode PN.implementation_epilogue modId
+	      }
+	end (* local *)
       end
 
     structure Type =
@@ -58,10 +71,28 @@ functor ViewBaseFn (V : sig
 		      (* end case *))
 		end
 	in
-	val getEncoder = getFn (PN.encoder, "write")
-	val getDecoder = getFn (PN.decoder, "read")
 	val getReader = getFn (PN.reader, "read")
 	val getWriter = getFn (PN.writer, "write")
+	end (* local *)
+
+	fun getNaturalType tyId = (
+	      case View.getOptValue PN.natural_type (view, View.Type tyId)
+	       of SOME[name] => name
+		| _ => getName tyId
+	      (* end case *))
+        local
+	  fun getFn prop = let
+		val get = View.getOptValue prop
+		in
+		  fn id => (case get (view, View.Type id)
+		       of SOME[name] => SOME name
+			| _ => NONE
+		      (* end case *))
+		end
+	in
+	val getNaturalTypeCon = getFn PN.natural_type_con
+	val getWrapper = getFn PN.wrapper
+	val getUnwrapper = getFn PN.unwrapper
 	end (* local *)
       end
 

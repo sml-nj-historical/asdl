@@ -25,10 +25,18 @@ structure GenSML : sig
     structure PP = TextIOPP
 
   (* Generate the memory pickling code for the SML view *)
-    structure GenMemoryPickle = GenPickleFn (val getPklModName = ModV.getPickleName)
+    structure GenMemoryPickle = GenPickleFn (
+	val getPklModName = ModV.getPickleName
+      (* the names of the functions for reading/writing bytes *)
+	val getByte = "ASDLMemoryPickle.input1"
+	val putByte = "ASDLMemoryPickle.output1")
 
   (* Generate the file pickling code for the SML view *)
-    structure GenFilePickle = GenPickleFn (val getPklModName = ModV.getIOName)
+    structure GenFilePickle = GenPickleFn (
+	val getPklModName = ModV.getIOName
+      (* the names of the functions for reading/writing bytes *)
+	val getByte = "ASDLFilePickle.input1"
+	val putByte = "ASDLFilePickle.output1")
 
     val baseStructureOpt = ref "ASDL"
     val cmFileOpt = ref (NONE : string option)

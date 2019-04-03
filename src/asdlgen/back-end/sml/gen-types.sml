@@ -27,10 +27,78 @@ structure GenTypes : sig
 		 of ([], tbs) => List.map S.TYPEdec tbs @ dcls'
 		  | (dbs, tbs) => S.DATATYPEdec(dbs, tbs) :: dcls'
 		(* end case *))
+	  val {prologue, epilogue} = ModV.getImplementationCode id
+	(* sort and group the ASDL declarations *)
+	  val asdlDecls = SortDecls.sort (!decls)
+	(* add optional epilogue code *)
+	  val dcls = (case epilogue
+		 of SOME code => [S.VERBdec code]
+		  | NONE => []
+		(* end case *))
+	(* generate declarations *)
+	  val dcls = List.foldr genGrp dcls asdlDecls
+	(* add optional prologue code *)
+	  val dcls = (case prologue
+		 of SOME code => S.VERBdec code :: dcls
+		  | NONE => dcls
+		(* end case *))
 	  in
-	    S.STRtop(name, NONE, S.BASEstr(List.foldr genGrp [] (SortDecls.sort (!decls))))
+	    S.STRtop(name, genSig(id, asdlDecls), S.BASEstr dcls)
 	  end
       | gen _ = raise Fail "GenTypes.gen: unexpected primitive module"
+
+  (* generate the optional signature constrait for the module.  This is only
+   * generated when the view includes an interface_prologue or interface_epilogue
+   * property for the module.
+   *)
+    and genSig (id, decls) = (
+	  case ModV.getInterfaceCode id
+	   of {prologue=NONE, epilogue=NONE} => NONE
+	    | {prologue, epilogue} => let
+		fun tySpec (tvs, name, ty) = S.TYPEspec(false, tvs, name, SOME ty)
+		fun genGrp (dcls, dcls') = (case List.foldr genType ([], []) dcls
+		       of ([], tbs) => List.map tySpec tbs @ dcls'
+			| (dbs, tbs) => S.DATATYPEspec(dbs, tbs) :: dcls'
+		      (* end case *))
+	      (* add optional epilogue code *)
+		val specs = (case epilogue
+		       of SOME code => [S.VERBspec code]
+			| NONE => []
+		      (* end case *))
+	      (* generate declarations for any specified wrapper/unwrappers *)
+		fun addWrappers (AST.TyDcl{id, ...}, specs) = let
+		      fun valSpec (f, ty1, ty2) =
+			    S.VALspec(f, S.FUNty(S.CONty([], ty1), S.CONty([], ty2)))
+		      val specs = (case TyV.getUnwrapper id
+			     of NONE => specs
+			      | SOME f =>
+				  valSpec(f, TyV.getNaturalType id, TyV.getName id)
+				    :: specs
+			    (* end case *))
+		      val specs = (case TyV.getWrapper id
+			     of NONE => specs
+			      | SOME f =>
+				  valSpec(f, TyV.getName id, TyV.getNaturalType id)
+				    :: specs
+			    (* end case *))
+		      in
+			specs
+		      end
+		val specs = List.foldr
+		      (fn (dcls, specs) => List.foldr addWrappers specs dcls)
+			specs
+			  decls
+	      (* generate declarations *)
+		val specs = List.foldr genGrp specs decls
+	      (* add optional prologue code *)
+		val specs = (case prologue
+		       of SOME code => S.VERBspec code :: specs
+			| NONE => specs
+		      (* end case *))
+		in
+		  SOME(false, S.BASEsig specs)
+		end
+	  (* end case *))
 
     and genType (AST.TyDcl{id, def, ...}, (dbs, tbs)) = let
 	  val name = TyV.getName id

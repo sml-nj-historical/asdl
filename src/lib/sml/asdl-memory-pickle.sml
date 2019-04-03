@@ -8,6 +8,10 @@ structure ASDLMemoryPickle : sig
 
     include ASDL_PICKLE
 
+  (* byte-level I/O to support primitive picklers *)
+    val input1 : instream -> Word8.word
+    val output1 : outstream * Word8.word -> unit
+
   (* open a vector as an input stream *)
     val openVector : Word8Vector.vector -> instream
 
@@ -45,6 +49,16 @@ structure ASDLMemoryPickle : sig
 	len : int
       }
 
+  (* byte-level I/O to support primitive picklers *)
+    fun input1 (Instrm{data, idx as ref ix, len}) =
+          if (ix < len)
+            then (
+              idx := ix+1;
+              getByte(data, ix))
+            else raise ASDL.DecodeError
+
+    val output1 = W8B.add1
+
     fun openVector v = Instrm{
 	    data = v,
 	    idx = ref 0,
@@ -56,12 +70,7 @@ structure ASDLMemoryPickle : sig
     fun toByte w = W8.fromLarge (W.toLarge w)
     fun getByte (data, ix) = W.fromLarge (W8.toLarge (W8V.sub(data, ix)))
 
-    fun get1 (Instrm{data, idx as ref ix, len}) =
-	  if (ix < len)
-	    then (
-	      idx := ix+1;
-	      getByte(data, ix))
-	    else raise ASDL.DecodeError
+    val get1 = input1
 
     fun get2 (Instrm{data, idx as ref ix, len}) = let
 	  val n = ix + 2

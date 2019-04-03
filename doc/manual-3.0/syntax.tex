@@ -241,14 +241,32 @@ There are seven pre-defined primitive types in ASDL, which are available without
 %that can be used when necessary (\eg{}, \lstinline!StdTypes.int32!).
 
 \subsection{Product Types}
-Product types are record or tuple declarations.
-They consist of a non-empty 
-sequence of fields separated by commas enclosed in parenthesis. For
-example 
+Product types are defined by a non-empty  sequence of fields separated by
+commas enclosed in parenthesis.
+A field consists of a type expression followed by an optional label.
+The fields of a product or sum type must either all be labeled or unlabeled.
+We use \emph{record} to refer to products of labeled fields and \emph{tuple}
+to products of unlabeled fields.
+Labels aid in the readability of
+descriptions and are used by \asdlgen{} to name the fields of records
+and classes for languages.
+
+For example, the declaration
 \begin{code}\begin{lstlisting}[language=ASDL] 
 pair_of_ints = (int, int) 
 \end{lstlisting}\end{code}% 
-declares a new type \lstinline[language=ASDL]!pair_of_ints! that consists of two integers.
+defines the tuple type \lstinline[language=ASDL]!pair_of_ints! that consists of two integers,
+whereas the declaration
+\begin{code}\begin{lstlisting}[language=ASDL] 
+size = (int width, int height) 
+\end{lstlisting}\end{code}%
+defines the record type \lstinline[language=ASDL]!size! that consists of two
+labeled fields: \lstinline[language=ASDL]@width@ and \lstinline[language=ASDL]@height@.
+Note that ASDL requires that if any field in a product type has a label, then all
+of them must have labels.
+
+For the \sml{} target, product types without labels are translated to tuples, while
+those with labels are translated to records.
 
 \subsection{Sum Types}
 
@@ -256,7 +274,7 @@ Sum types are the most useful types in ASDL. They provide concise notation
 used to describe a type that is the tagged union of a finite set of other
 types.  Sum types consists of a series of constructors separated by a
 vertical bar. Each constructor consist of a constructor identifier followed
-by an optional sequence of fields similar to a product type. 
+by an optional product type. 
 
 Constructor names must be unique within the module in which they are
 declared. Constructors can be viewed as functions who take some number of
@@ -277,7 +295,7 @@ constructed from an \lstinline[language=ASDL]!int! using the
 \lstinline[language=ASDL]!Int! constructor or a \lstinline[language=ASDL]!string!
 from a \lstinline[language=ASDL]!String! constructor, an
 \lstinline[language=ASDL]!identifier! using the \lstinline[language=ASDL]!Symbol!
-constructor, or from two other \lstinline[language=ASDL]!sexpr! using the
+constructor, from two other \lstinline[language=ASDL]!sexpr! using the
 \lstinline[language=ASDL]!Cons! constructor, or from no arguments
 using the \lstinline[language=ASDL]!Nil! constructor.
 Notice that the \lstinline[language=ASDL]!Cons! constructor
@@ -309,76 +327,7 @@ namespace M {
 }
 \end{lstlisting}\end{code}%
 
-\subsection{Fields}
-A field consists of a type expression followed by an optional label.
-The fields of a product or sum type must either all be labeled or unlabeled.
-We use \emph{record} to refer to products of labeled fields and \emph{tuple}
-to products of unlabeled fields.
-Labels aid in the readability of
-descriptions and are used by \asdlgen{} to name the fields of records
-and classes for languages.
-For example the declarations
-\begin{code}\begin{lstlisting}[language=ASDL]
-module Tree {
-  tree = Node(int, tree, tree)
-       | EmptyTree
-}
-\end{lstlisting}\end{code}%
-can also be written as
-\begin{code}\begin{lstlisting}[language=ASDL]
-module Tree {
-  tree = Node(int value, tree left, tree right)
-       | EmptyTree
-}
-\end{lstlisting}\end{code}%
-
-When translating the first definition without labels 
-into \Cplusplus{} one would normally get
-\begin{code}\begin{lstlisting}[language=c++,mathescape=true]
-namespace Tree {
-    $\cdots$
-    class Node : public tree {
-      public:
-        Node (int p_value, tree * p_left, tree * p_right)
-            : tree(tree::_con_Node), _v_value(p_value), _v_left(p_left),
-            _v_right(p_right)
-        { }
-        ~Node ();
-        void encode (asdl::outstream & os);
-        int get_value () { return this->_v_value; }
-        void set_value (int v) { this->_v_value = v; }
-        tree * get_left () { return this->_v_left; }
-        void set_left (tree * v) { this->_v_left = v; }
-        tree * get_right () { return this->_v_right; }
-        void set_right (tree * v) { this->_v_right = v; }
-      private:
-        int _v_value;
-        tree * _v_left;
-        tree * _v_right;
-    };
-    $\cdots$
-} // namespace Tree
-\end{lstlisting}\end{code}%
-with labels one would get
-\begin{code}\begin{lstlisting}[language=c++,mathescape=true]
-namespace Tree {
-    $\cdots$
-    struct Node : public tree {
-        int value;
-        tree *left;
-        tree *right;
-        Node (int v1, tree *v2, tree * v3)
-          : tree(tree::_Node), value(v1), left(v2), right(v3) { }
-        ~Node () { }
-    };
-    $\cdots$
-}
-\end{lstlisting}\end{code}%
-
-For the \sml{} target, product types without labels are translated to tuples, while those with
-labels are translated to records.
-
-\subsection{Attribute Fields}
+\subsubsection{Attribute Fields}
 A sum-type definition may optionally be followed by a list of attribute fields, which
 provide a concise way to specify fields that are common to all of the constructors
 of a sum type.
@@ -442,16 +391,13 @@ primitive module Prim { guid }
 %
 Then, depending on the target language, we define
 supporting code to read and write guids from the byte stream.
-In \sml{}, we would define three modules:
+In \sml{}, we would define two modules:
 \begin{enumerate}
   \item \lstinline[language=SML]!structure Prim! that defines the representation of the
     \lstinline[language=SML]!guid! type.
   \item
-    \lstinline[language=SML]!structure PrimPickle! that defines functions for pickling/unpickling
-    a GUID to/from memory.
-  \item
-    \lstinline[language=SML]!structure PrimPickleIO! that defines functions for reading
-    and writing GUIDs on binary I/O streams.
+    \lstinline[language=SML]!structure PrimPickle! that defines functions
+    for pickling/unpickling a GUID using an imperative stream API.
 \end{enumerate}%
 The \sml{} implementation of these modules could be written as follows:
 \begin{code}\begin{lstlisting}[language=SML]
@@ -462,30 +408,19 @@ structure Prim : sig
   end
 
 structure PrimPickle : sig
-    val guidEncode : Word8Buffer.buf * Prim.guid -> unit
-    val guidDecode : Word8VectorSlice.slice
-          -> Prim.guid * Word8VectorSlice.slice
-  end = struct
-    val guidSize = 16
-    fun guidEncode (buf, guid) =
-          Word8Buffer.addVec(buf, GUID.toBytes guid)
-    fun guidDecode slice = let
-    	  val (guid, rest) = Word8VectorSlice.splitAt(slice, guidSize)
-	  in
-	    (GUID.fromBytes(Word8VectorSlice.vector guid), rest)
-	  end
-   end
 
-structure PrimPickleIO : sig
-    val guidInput : BinIO.instream -> guid
-    val guidOutput : BinIO.outstream * guid -> unit
+    val read_guid : (unit -> Word8.word) -> unit -> Prim.guid
+    val write_guid : (Word8.word -> unit) -> Prim.guid -> unit
+    
   end = struct
-    fun guidInput strm = (case GUID.fromBytes(BinIO.inputN(strm, 16))
-	       of NONE => raise Fail "bogus GUID"
-	        | (SOME g) => g
-	      (* end case *))
-    fun guidOutput (strm, g) = BinIO.output(strm, GUID.toBytes g)
-  end
+  
+    val guidSize = 16
+    fun read_guid getByte () =
+          GUID.fromBytes(Word8Vector.tabulate(guidSize, fn _ => getByte()))
+    fun write_guid putByte guid = let
+          Word8Vector.app putByte (GUID.toBytes guid)
+
+   end
 \end{lstlisting}\end{code}%
 (assuming that the \lstinline!GUID! module implements the application's representation
 of GUIDs).

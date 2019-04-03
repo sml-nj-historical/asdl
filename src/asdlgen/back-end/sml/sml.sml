@@ -32,9 +32,10 @@ structure SML =
     and spec
       = STRspec of id * sigexp
       | TYPEspec of bool * id list * id * ty option
-      | DATATYPEspec of db list
+      | DATATYPEspec of db list * (id list * id * ty) list
       | VALspec of id * ty
       | EXNspec of id * ty option
+      | VERBspec of string list
 
     and dec
       = VALdec of pat * exp
@@ -178,6 +179,9 @@ structure SML =
   (* construct a simple function binding of the form `f (x1, ..., xn) = e` *)
     fun simpleFB (f, [x], e) = funBind(f, [([IDpat x], e)])
       | simpleFB (f, xs, e) = funBind(f, [([TUPLEpat(List.map IDpat xs)], e)])
+
+  (* construct a simple variable binding of the form `val x = e` *)
+    fun simpleVB (x, e) = VALdec(IDpat x, e)
 
     fun tupleTy [] = CONty([], "unit")
       | tupleTy [ty] = ty

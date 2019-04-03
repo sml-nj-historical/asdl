@@ -88,7 +88,11 @@
 
 % indented code displays
 %
-\newenvironment{code}{\begin{quote}}{\end{quote}}
+%\newenvironment{code}{\begin{quote}}{\end{quote}}
+\newenvironment{code}%
+  {\list{}{\leftmargin=\parindent}\item[]}%
+  {\endlist}
+
 
 % for typesetting the syntax
 %

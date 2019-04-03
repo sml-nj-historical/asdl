@@ -8,6 +8,10 @@ structure ASDLFilePickle : sig
 
     include ASDL_PICKLE
 
+  (* byte-level I/O to support primitive picklers *)
+    val input1 : instream -> Word8.word
+    val output1 : outstream * Word8.word -> unit
+
   (* pickle to/from files *)
     val toFile : (outstream * 'a -> unit) -> (string * 'a) -> unit
     val fromFile : (instream -> 'a) -> string -> 'a
@@ -30,6 +34,13 @@ structure ASDLFilePickle : sig
 
     type instream = BinIO.instream
     type outstream = BinIO.outstream
+
+  (* byte-level I/O to support primitive picklers *)
+    fun input1 inS = (case BinIO.input1 inS
+	   of SOME b => b
+	    | NONE => raise ASDL.DecodeError
+	  (* end case *))
+    val output1 = BinIO.output1
 
     fun toByte w = W8.fromLarge (W.toLarge w)
     fun fromByte b = W.fromLarge (W8.toLarge b)

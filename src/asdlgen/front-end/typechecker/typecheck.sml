@@ -62,20 +62,26 @@ structure Typecheck : sig
       | checkTop (cxt, env, PT.D_Module{name, imports, decls}) = (
 	  case Env.findModule(env, #tree name)
 	   of SOME _ => (
-		err (markCxt(cxt, #span name), [S "module '", I name, S "' is already defined"]);
+		err (markCxt(cxt, #span name), [
+		    S "module '", I name, S "' is already defined"
+		  ]);
 		NONE)
 	    | NONE => checkModule (cxt, env, #tree name, imports, decls)
 	  (* end case *))
       | checkTop (cxt, env, PT.D_Primitive{name, exports}) = (
 	  case Env.findModule(env, #tree name)
 	   of SOME _ => (
-		err (markCxt(cxt, #span name), [S "module '", I name, S "' is already defined"]);
+		err (markCxt(cxt, #span name), [
+		    S "module '", I name, S "' is already defined"
+		  ]);
 		NONE)
 	    | NONE => checkPrimModule (cxt, env, #tree name, exports)
 	  (* end case *))
       | checkTop (cxt, env, PT.D_View{name, entries}) = (
 	  case Env.findView(env, #tree name)
-	   of NONE => err (markCxt(cxt, #span name), [S "unknown view '", I name, S "'"])
+	   of NONE => err (markCxt(cxt, #span name), [
+		  S "unknown view '", I name, S "'"
+		])
 	    | SOME view => checkView (cxt, env, view, entries)
 	  (* end case *);
 	  NONE)

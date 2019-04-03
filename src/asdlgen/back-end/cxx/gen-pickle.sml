@@ -9,11 +9,11 @@
  * For a  boxed ASDL type "TYPE", the encoder is a method with the following
  * signature:
  *
- *	void encode (asdl::outstream &os);
+ *	void write (asdl::outstream &os);
  *
  * and the decoder is a static class method with the following signature:
  *
- *	TYPE *decode (asdl::instream &is);
+ *	TYPE *read (asdl::instream &is);
  *
  * For enumeration and alias types, we generate the functions:
  *
@@ -21,7 +21,7 @@
  *	TYPE decode_TYPE (asdl::instream &is);
  *
  * TODO:
- * 	encode/decoder names should be taken from view
+ * 	write/decoder names should be taken from view
  *	proper implementation of destructor functions
  *)
 
@@ -49,25 +49,25 @@ structure GenPickle : sig
     val isArg = CL.mkVar "is"
 
   (* pickler function name for primitive types *)
-    fun baseEncode (NONE, tyId) = TyV.getEncoder tyId
+    fun baseEncode (NONE, tyId) = TyV.getWriter tyId
       | baseEncode (SOME modId, tyId) = concat[
-	    ModV.getName modId, "::", TyV.getEncoder tyId
+	    ModV.getName modId, "::", TyV.getWriter tyId
 	  ]
 
   (* unpickler function name for primitive types *)
-    fun baseDecode (NONE, tyId) = TyV.getDecoder tyId
+    fun baseDecode (NONE, tyId) = TyV.getReader tyId
       | baseDecode (SOME modId, tyId) = concat[
-	    ModV.getName modId, "::", TyV.getDecoder tyId
+	    ModV.getName modId, "::", TyV.getReader tyId
 	  ]
 
   (* invoke the pickler operation on the argument *)
-    fun encode (optModId, tyId, arg) = if U.isBoxed tyId
-	  then CL.mkExpStm(CL.mkIndirectDispatch (arg, "encode", [osArg]))
+    fun write (optModId, tyId, arg) = if U.isBoxed tyId
+	  then CL.mkExpStm(CL.mkIndirectDispatch (arg, "write", [osArg]))
 	  else CL.mkCall (baseEncode(optModId, tyId), [osArg, arg])
 
   (* apply the unpickler operation to the input stream *)
-    fun decode (optModId, tyId) = if U.isBoxed tyId
-	  then CL.mkApply (TyV.getName tyId ^ "::decode", [isArg])
+    fun read (optModId, tyId) = if U.isBoxed tyId
+	  then CL.mkApply (TyV.getName tyId ^ "::read", [isArg])
 	  else CL.mkApply (baseDecode(optModId, tyId), [isArg])
 
   (* return a list of delete statements for boxed fields of an object *)
@@ -128,7 +128,7 @@ structure GenPickle : sig
 		  val pickler = CL.mkFuncDcl (
 			CL.voidTy, U.enumPickler name,
 			[osParam, CL.param(ty, "v")],
-			encode (
+			write (
 			  SOME PT.primTypesId,
 			  tagTyId,
 			  CL.mkStaticCast(CL.T_Named(TyV.getName tagTyId), CL.mkVar "v")))
@@ -136,7 +136,7 @@ structure GenPickle : sig
 			ty, U.enumUnpickler name,
 			[isParam],
 			CL.mkReturn(SOME(
-			  CL.mkStaticCast(ty, decode (SOME PT.primTypesId, tagTyId)))))
+			  CL.mkStaticCast(ty, read (SOME PT.primTypesId, tagTyId)))))
 		  in
 		    pickler :: unpickler :: dcls
 		  end
@@ -149,14 +149,14 @@ structure GenPickle : sig
 		  val cTy = CL.T_Named name
 		  val vv = CL.mkVar "v"
 		  val pickler = CL.mkFuncDcl (
-			CL.voidTy, TyV.getEncoder id,
+			CL.voidTy, TyV.getWriter id,
 			[osParam, CL.param(cTy, "v")],
 			CL.mkBlock(encodeTy(vv, ty)))
 		  val unpickler = let
 			val stms = decodeTy ("v", ty)
 			in
 			  CL.mkFuncDcl (
-			    cTy, TyV.getDecoder id,
+			    cTy, TyV.getReader id,
 			    [isParam],
 			    CL.mkBlock(stms @ [CL.mkReturn(SOME vv)]))
 			end
@@ -171,7 +171,7 @@ structure GenPickle : sig
 	  val ty = CL.T_Named name
 	  val ptrTy = CL.T_Ptr ty
 	  val tagTy = CL.T_Named "_tag_t"
-	(* decode common attribute fields *)
+	(* read common attribute fields *)
 	  val (getAttribs, attribArgs) = (case optAttribs
 		 of NONE => ([], [])
 		  | SOME obj => decodeFields obj
@@ -192,9 +192,9 @@ structure GenPickle : sig
 	  val body = getAttribs @ body
 	  val body = (* get tag *)
 		CL.mkDeclInit(tagTy, "tag",
-		  CL.mkStaticCast(tagTy, decode (SOME PT.primTypesId, E.tagTyId nCons))) :: body
+		  CL.mkStaticCast(tagTy, read (SOME PT.primTypesId, E.tagTyId nCons))) :: body
 	  val unpickler = CL.D_Func(
-		[], ptrTy, [CL.SC_Type ty], "decode", [isParam],
+		[], ptrTy, [CL.SC_Type ty], "read", [isParam],
 		SOME(CL.mkBlock body))
 	(* destructor *)
 	  val destr = CL.mkDestrDcl(name,
@@ -216,11 +216,11 @@ structure GenPickle : sig
 		       of SOME obj => encodeFields obj
 			| NONE => []
 		      (* end case *))
-		val body = encode(
+		val body = write(
 			SOME PT.primTypesId, tagTyId, CL.mkVar(U.constrTagName conId)
 		      ) :: body
 		val pickler = CL.D_Func(
-		      [], CL.voidTy, [CL.SC_Type(CL.T_Named name)], "encode", [osParam],
+		      [], CL.voidTy, [CL.SC_Type(CL.T_Named name)], "write", [osParam],
 		      SOME(CL.mkBlock body))
 	      (* destructor *)
 		val destr = CL.mkDestrDcl(name,
@@ -241,7 +241,7 @@ structure GenPickle : sig
 	(* pickler *)
 	  val pickler =
 		CL.mkMethDcl(
-		  name, CL.voidTy, "encode", [osParam],
+		  name, CL.voidTy, "write", [osParam],
 		  CL.mkBlock(encodeFields obj))
 	(* unpickler *)
 	  val unpickler = let
@@ -250,7 +250,7 @@ structure GenPickle : sig
 		val body = getFields @ [CL.mkReturn(SOME newExp)]
 		in
 		  CL.D_Func (
-		    [], ptrTy, [CL.SC_Type ty], "decode", [isParam],
+		    [], ptrTy, [CL.SC_Type ty], "read", [isParam],
 		    SOME(CL.mkBlock body))
 		end
 	(* destructor *)
@@ -290,7 +290,7 @@ structure GenPickle : sig
     and encodeTy (arg, E.OPTION(optModId, tyId)) = [] (* FIXME *)
       | encodeTy (arg, E.SEQUENCE(optModId, tyId)) = [] (* FIXME *)
       | encodeTy (arg, E.SHARED _) = raise Fail "shared types not supported yet"
-      | encodeTy (arg, E.BASE(optModId, tyId)) = [encode (optModId, tyId, arg)]
+      | encodeTy (arg, E.BASE(optModId, tyId)) = [write (optModId, tyId, arg)]
 
   (* generate code for decoding the fields of a product *)
     and decodeFields (E.TUPLE fields) = let
@@ -320,7 +320,7 @@ structure GenPickle : sig
     and decodeTy (x, E.OPTION ty) = [] (* FIXME *)
       | decodeTy (x, E.SEQUENCE ty) = [] (* FIXME *)
       | decodeTy (x, E.SHARED ty) = raise Fail "shared types not supported yet"
-      | decodeTy (x, E.BASE ty) = [CL.mkDeclInit(CL.autoTy, x, decode ty)]
+      | decodeTy (x, E.BASE ty) = [CL.mkDeclInit(CL.autoTy, x, read ty)]
 
   end
 

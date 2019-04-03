@@ -21,18 +21,25 @@ structure CommonView : sig
 
     val template = {
 	    fileProps = List.map prop [
-		(PN.header, false)
+		(PN.header, false),
+		(PN.name, false)
 	      ],
 	    moduleProps = List.map prop [
-		(PN.name, false)
+		(PN.name, false),
+		(PN.interface_prologue, true),
+		(PN.interface_epilogue, true),
+		(PN.implementation_prologue, true),
+		(PN.implementation_epilogue, true),
+		(PN.suppress, false),
+		(PN.is_library, false)
 	      ],
 	    typeProps = List.map prop [
 		(PN.name, false),
 		(PN.natural_type, false),
-		(PN.encoder, false),
-		(PN.decoder, false),
 		(PN.writer, false),
-		(PN.reader, false)
+		(PN.reader, false),
+		(PN.wrapper, false),
+		(PN.unwrapper, false)
 	      ],
 	    consProps = List.map prop [
 		(PN.name, false)

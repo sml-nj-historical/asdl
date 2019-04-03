@@ -69,7 +69,7 @@ structure PrintSML : sig
 		    | NONE => ()
 		  (* end case *);
 		PP.closeBox strm)
-	    | ppSpec (S.DATATYPEspec dbs) = () (* FIXME *)
+	    | ppSpec (S.DATATYPEspec(dbs, tbs)) = ppDatatypes (strm, dbs, tbs)
 	    | ppSpec (S.VALspec(id, ty)) = (
 		PP.openHBox strm;
 		  str "val"; sp(); str id; sp(); str ":"; sp(); ppTy(strm, ty);
@@ -77,6 +77,10 @@ structure PrintSML : sig
 	    | ppSpec (S.EXNspec con) = (
 		PP.openHBox strm;
 		  str "exception"; sp(); ppCon (strm, con);
+		PP.closeBox strm)
+	    | ppSpec (S.VERBspec strs) = (
+		PP.openVBox strm indent0;
+		  List.app str strs;
 		PP.closeBox strm)
 	  fun ppSig (S.IDsig id) = str id
 	    | ppSig (S.AUGsig(sigExp, wTys)) = let
@@ -354,39 +358,7 @@ structure PrintSML : sig
 		    (* end case *)
 		  end
 	      | S.TYPEdec tb => ppTB ("type", tb)
-	      | S.DATATYPEdec(dbs, tbs) => let
-		  fun db (S.DB(tvs, tyc, cons), isFirst) = (
-			PP.openHBox strm;
-			  if isFirst
-			    then str "datatype"
-			    else (nl(); str "and");
-			  sp(); ppTycBind (strm, tvs, tyc);
-			  case cons
-			   of [] => raise Fail "impossible"
-			    | [con] => (sp(); str "="; sp(); ppCon(strm, con))
-			    | cons => let
-				fun ppCon' (con, isFirst) = (
-				      nl();
-				      PP.openHBox strm;
-					if isFirst then str "=" else str "|";
-					sp(); ppCon(strm, con);
-				      PP.closeBox strm;
-				      false)
-				in
-				  PP.openVBox strm indent2;
-				    List.foldl ppCon' true cons;
-				  PP.closeBox strm
-				end
-			  (* end case *);
-			PP.closeBox strm;
-			false)
-		  fun tb (tyb, prefix) = (nl(); ppTB(prefix, tyb); "and")
-		  in
-		    PP.openVBox strm indent0;
-		      List.foldl db true dbs;
-		      List.foldl tb "withtype" tbs;
-		    PP.closeBox strm
-		  end
+	      | S.DATATYPEdec(dbs, tbs) => ppDatatypes (strm, dbs, tbs)
 	      | S.EXCEPTIONdec con => (
 		  PP.openHBox strm;
 		    str "exception"; sp(); ppCon (strm, con);
@@ -394,8 +366,55 @@ structure PrintSML : sig
 	      | S.STRdec(id, sign, strExp) => () (* FIXME *)
 	      | S.OPENdec ids => () (* FIXME *)
 	      | S.LOCALdec(dcls1, dcls2) => () (* FIXME *)
-	      | S.VERBdec strs => List.app str strs
+	      | S.VERBdec strs => (
+		  PP.openVBox strm indent0;
+		    List.app str strs;
+		  PP.closeBox strm)
 	    (* end case *)
+	  end
+
+    and ppDatatypes (strm, dbs, tbs) = let
+          val str = PP.string strm
+          fun sp () = PP.space strm 1
+          fun nl () = PP.newline strm
+	  fun ppTB (prefix, (tvs, tyc, ty)) = (
+		PP.openHBox strm;
+		  str prefix; sp();
+		  ppTycBind (strm, tvs, tyc);
+		  sp(); str "="; sp();
+		  ppTy (strm, ty);
+		PP.closeBox strm)
+	  fun db (S.DB(tvs, tyc, cons), isFirst) = (
+		PP.openHBox strm;
+		  if isFirst
+		    then str "datatype"
+		    else (nl(); str "and");
+		  sp(); ppTycBind (strm, tvs, tyc);
+		  case cons
+		   of [] => raise Fail "impossible"
+		    | [con] => (sp(); str "="; sp(); ppCon(strm, con))
+		    | cons => let
+			fun ppCon' (con, isFirst) = (
+			      nl();
+			      PP.openHBox strm;
+				if isFirst then str "=" else str "|";
+				sp(); ppCon(strm, con);
+			      PP.closeBox strm;
+			      false)
+			in
+			  PP.openVBox strm indent2;
+			    List.foldl ppCon' true cons;
+			  PP.closeBox strm
+			end
+		  (* end case *);
+		PP.closeBox strm;
+		false)
+	  fun tb (tyb, prefix) = (nl(); ppTB(prefix, tyb); "and")
+	  in
+	    PP.openVBox strm indent0;
+	      List.foldl db true dbs;
+	      List.foldl tb "withtype" tbs;
+	    PP.closeBox strm
 	  end
 
     and ppTycBind (strm, tvs, tyc) = let

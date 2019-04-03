@@ -1,0 +1,46 @@
+-- int-map-test.asdl
+--
+-- test of view example from manual
+--
+
+module IntMap {
+  int_map = (int size,entries map)
+  entries = (entry* entries)
+  entry   = (int key, int value)
+}
+
+view sml {
+  module IntMap <= {
+    interface_epilogue : type int_map = int IntRedBlackMap.map
+    implementation_epilogue
+%%
+    structure IntMap = IntRedBlackMap
+    type int_map = int IntMap.map
+
+    fun wrap_int_map ({map={entries}, ...} : int_map_pkl) =
+          List.foldl
+            (fn ({key, value}, imap) => IntMap.insert(imap, key, value))
+              IntMap
+                entries
+    fun unwrap_int_map imap = {
+            size = IntMap.numItems imap,
+            entries = IntMap.foldri
+              (fn (k, v, entries) => {key = k, value = v} :: entries)
+                []
+                  imap
+          }
+%%
+  }
+  IntMap.int_map <= {
+    name : int_map_pkl
+    natural_type : int_map
+    wrapper : wrap_int_map
+    unwrapper : unwrap_int_map
+  }
+}
+
+view cxx {
+  IntMap.int_map <= {
+    natural_type : my_int_map
+  }
+}

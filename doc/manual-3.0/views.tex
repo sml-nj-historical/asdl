@@ -31,6 +31,10 @@ supported:
     constructors and modules.
 \end{itemize}%
 
+\section{Views and View Entities}
+
+\asdlgen{} currently recognizes two views: \texttt{cxx} and \texttt{sml}.
+
 \section{Interpretation of View Entry Values}
 
 See the chapter on \hyperref[chap:syntax]{Input Syntax} for details on
@@ -56,214 +60,265 @@ Currently there is a small set of standard interpretations.
     \lstinline!M.t! in \sml{}.
 \end{description}%
 
+\newcommand{\PROP}[4]{%
+  \item[\fbox{\texttt{#1}~~\normalfont\textit{#2}}]\hfill{\fbox{#3 / #4}}\\ }
+
+\section{Overriding the Default Names}
+The view mechanism provides a fair amount of flexibility for overriding the
+default names used for modules and functions in the generated code.
+
+\begin{description}
+  \PROP{file_pickler_name}{identifier}{\texttt{sml}}{Module}
+    Specifies the name to give to the target module that implements file pickling.
+    Does not apply to the \Cplusplus{} target, since memory and file pickling is
+    combined.
+  \PROP{memory_pickler_name}{identifier}{\texttt{sml}}{Module}
+    Specifies the name to give to the target module that implements memory pickling.
+    Does not apply to the \Cplusplus{} target, since memory and file pickling is
+    combined.
+  \PROP{name}{identifier}{All}{All}
+    All entities have this property.  The value is interpreted as an identifier
+    that overrides the name for the file, module, type, or data constructor
+    in the output code.
+  \PROP{pickler_name}{identifier}{\texttt{c++},\texttt{sml}}{Module}
+    Specifies the name to give to the target module that implements both file
+    and memory pickling.
+    For the \sml{} target, this affects the name of the pickler signature, but
+    not the pickler structures, since different modules are generated
+    for memory and file pickling.
+  \PROP{sexp_pickle_name}{identifier}{\texttt{sml}}{Module}
+    Specifies the name to give to the target module that implements S-Expression pickling.
+\end{description}%
+
 \section{Adding User Code}
 It is useful to be able to add arbitrary user code to the modules
 produced by \asdlgen{}.
 Modules have six properties that can be set to allow
-the addition of user-code strings. 
+the addition of user-code to the generated modules.\footnote{
+  In the case of a target language like \sml{}, where multiple modules
+  are generated, the code is added to the base module that contains the
+  generated type definitions.
+} 
 \begin{description}
-  \item[\texttt{interface\char`\_prologue}]\mbox{}\\
+  \PROP{interface\char`\_prologue}{text}{\texttt{c++},\texttt{sml}}{Module}
     Include text verbatim after the introduction of the base
     environment, but before any type defined in the module interface.
 
-  \item[\texttt{interface\char`\_epilogue}]\mbox{}\\
+  \PROP{interface\char`\_epilogue}{text}{\texttt{c++},\texttt{sml}}{Module}
     Include text verbatim after all types defined in the module
     interface have been defined.
 	
-  \item[\texttt{implementation\char`\_prologue}]\mbox{}\\
+  \PROP{implementation\char`\_prologue}{text}{\texttt{c++},\texttt{sml}}{Module}
     Include text verbatim after the introduction of the base
     environment, but before any other implementation code is defined.
 	
-  \item[\texttt{implementation\char`\_epilogue}]\mbox{}\\
-   Include text verbatim after all definitions defined in the module
-   implementation.  
+  \PROP{implementation\char`\_epilogue}{text}{\texttt{c++},\texttt{sml}}{Module}
+    Include text verbatim after all definitions defined in the module
+    implementation.  
 
-  \item[\texttt{suppress}]\mbox{}\\
-   Default value is false. Do not produce any code for this module, 
-   assume it's implementation is 
-   written by hand. It's often a good idea to first generate code and then
-   set the flag, so the generated code can be used as stubs for the 
-   user implementation.
+  \PROP{is\char`\_library}{bool}{\texttt{c++},\texttt{sml}}{Module}
+    Default value is false. If true assume all types can be used
+    as lists or options and generate any needed code, rather then 
 
-  \item[\texttt{is\char`\_library}]\mbox{}\\
-   Default value is false. If true assume all types can be used
-   as lists or options and generate any needed code, rather then 
-   generating list and option code on demand. Useful for generating stubs.
+  \PROP{suppress}{bool}{\texttt{c++},\texttt{sml}}{Module}
+    Default value is false. Do not produce any code for this module, 
+    assume it's implementation is 
+    written by hand. It's often a good idea to first generate code and then
+    set this flag, so that the generated code can be used as stubs for the 
+    user implementation.
+    generating list and option code on demand. Useful for generating stubs.
 
+  \PROP{private_code}{text}{\texttt{c++}}{Type,Con}
+    Add the text to the class generated for the type or constructor with private scope.
+  
+  \PROP{protected_code}{text}{\texttt{c++}}{Type,Con}
+    Add the text to the class generated for the type or constructor with protected scope.
+  
+  \PROP{public_code}{text}{\texttt{c++}}{Type,Con}
+     Add the text to the class generated for the type or constructor with public scope.
+ 
 \end{description}%
 
 The precise meaning of interface and implementation for the different
-languages is as follows
+target languages is as follows:
 \begin{description}
   \item[\Cplusplus{}]
     The interface is the \texttt{.hxx} file and the implementation is the \texttt{.cxx}
     file.
   \item[\sml{}]
-    The interface is the generated signature the implementation is the structure.
+    The interface is the generated signature and the implementation is the structure.
 \end{description}%
+
+\section{Choosing a Different Representation}
+
+The \asdl{} module
+\begin{code}\begin{lstlisting}[language=ASDL]
+module IntMap {
+  int_map = (int size,entries map)
+  entries = (entry* entries)
+  entry   = (int key, int value)
+}
+\end{lstlisting}\end{code}%
+is one possible abstract description of a mapping from integers to
+integers.
+Such an implementation is not particularly efficient; we might prefer to
+use binary-search trees for more efficient lookups.
+We can easily describe such a data structure in \asdl{}
+\begin{code}\begin{lstlisting}[language=ASDL]
+module IntMap {
+  int_map = (size int, map tree)
+     tree = Node(int key, int value, tree left, tree right)
+          | Empty
+}
+\end{lstlisting}\end{code}%
+but this description exposes implementation details and prevents the use
+of existing library code.  Furthermore, changing the representation
+to use a hash table would require that all clients be changed.
+
+\asdlgen{} supports four properties -- \lstinline!natural_type!,
+\lstinline!natural_type_con!, \lstinline!wrapper!, and \lstinline!unwrapper! --
+to allow clients to use a specialized representation for ASDL types.\footnote{
+  Primitive modules are another way to solve this problem, but they require
+  all of the pickling and unpickling code be provided by the user.
+}
+\begin{description} 
+  \PROP{natural\char`\_type}{identifier}{\texttt{c++},\texttt{sml}}{Type}
+    The type to use in place of the original type in all the resulting code. 
+    Supported by all output languages.
+
+  \PROP{natural\char`\_type\char`\_con}{identifier}{\texttt{c++},\texttt{sml}}{Type}
+    A unary type constructor to apply to the old type to get a new type to
+    use in all the resulting code; \eg{}, \lstinline@ref@ in \sml to make a type
+    mutable.
+    \emph{Support for \Cplusplus{} templates will be added in the near future.}
+
+  \PROP{wrapper}{identifier}{\texttt{c++},\texttt{sml}}{Type}
+    A function to convert the new type to the old type when writing the
+    pickle. Supported by all output languages.
+
+  \PROP{unwrapper}{identifier}{\texttt{c++},\texttt{sml}}{Type}
+    A function to convert the old type to the new type when reading the pickle. 
+    Supported by all output languages. 
+\end{description}%
+
+When using \lstinline!natural_type! and \lstinline!natural_type_con!,
+the automatically generated type definitions for the original type still
+remain, but all other references to the original type in constructors, picklers,
+and other type definitions that referred to it are replaced with the new type.
+The original definition must remain to support pickling of the type. Pickling
+is achieved by appropriately coercing the new type to the old type and vice
+versa with functions specified by \lstinline!wrapper! and \lstinline!unwrapper! 
+properties.
+
+For example, we could use the \smlnj{} Library's \lstinline@IntRedBlackMap@ structure
+to implement the \lstinline!int_map! type as follows:
+\begin{code}\begin{lstlisting}[language=ASDL]
+view sml {
+  module IntMap <= {
+    interface_epilogue : type int_map = int IntRedBlackMap.map
+    implementation_epilogue
+%%
+    structure IntMap = IntRedBlackMap
+    type int_map = int IntMap.map
+
+    fun wrap_int_map ({map={entries}, ...} : int_map_pkl) =
+          List.foldl
+            (fn ({key, value}, imap) => IntMap.insert(imap, key, value))
+              IntMap
+                entries
+    fun unwrap_int_map imap = {
+            size = IntMap.numItems imap,
+            entries = IntMap.foldri
+              (fn (k, v, entries) => {key = k, value = v} :: entries)
+                []
+                  imap
+          }
+%%
+  }
+  IntMap.int_map <= {
+    name : int_map_pkl
+    natural_type : int_map
+    wrapper : wrap_int_map
+    unwrapper : unwrap_int_map
+  }
+}
+\end{lstlisting}\end{code}%
+In this view, we rename \lstinline@int_map@ to \lstinline@int_map_pkl@ add a type
+definition for \lstinline!int_map! to both the interface
+(signature) and implementation (structure).
+We also add definitions of the wrapper and unwrapper functions.
+The generated code will be.
+\begin{code}\begin{lstlisting}[language=SML]
+structure IntMap : sig
+    type entry = {key : int, value : int}
+    type entries = {entries : entry list}
+    type int_map_pkl = {size : int, map : entries}
+    val wrap_int_map : int_map_pkl -> int_map
+    val unwrap_int_map : int_map -> int_map_pkl
+    type int_map = int IntRedBlackMap.map
+  end = struct
+    type entry = {key : int, value : int}
+    type entries = {entries : entry list}
+    type int_map_pkl = {size : int, map : entries}
+    structure IntMap = IntRedBlackMap
+    type int_map = int IntMap.map
+    fun wrap_int_map ({map={entries}, ...} : int_map_pkl) =
+          List.foldl
+            (fn ({key, value}, imap) => IntMap.insert(imap, key, value))
+              IntMap
+                entries
+    fun unwrap_int_map imap = {
+            size = IntMap.numItems imap,
+            entries = IntMap.foldri
+              (fn (k, v, entries) => {key = k, value = v} :: entries)
+                []
+                  imap
+          }
+  end
+\end{lstlisting}\end{code}%
 
 \section{Other Properties}
 \begin{description}
-  \item[\texttt{doc\char`\_string}]\mbox{}\\
-        All entities have this property. Its value is interpreted as a
-        string. Currently only the \lstinline!--doc! command recognizes the
-        property. It includes the property value in the HTML documentation
-        produced for the module.
- 
-  \item[\texttt{source\char`\_name}]\mbox{}\\
-        All entities have this property.  The value is interpreted as a
-        string. Choose a different name for the type constructor or module
-        in the output code. The name has no case restrictions. This is
-        particularly useful when producing Java code on Windows NT/95 since
-        the file system is case insensitive and types and constructors that
-        differ only in case will cause problems.
+  \PROP{doc\char`\_string}{text}{}{}
+    All entities have this property. Its value is interpreted as a
+    string. Currently only the \lstinline!--doc! command recognizes the
+    property. It includes the property value in the HTML documentation
+    produced for the module.
 
-  \item[\texttt{user\char`\_attribute}]\mbox{}\\
+  \PROP{user\char`\_attribute}{identifier}{}{}
     Property of types only.	The value is interpreted as a qualified 
     identifier. Add a field called \lstinline!client_data! as an
     attribute to the type. The value is the qualified identifier that
     represents an arbitrary user type of the field. The \lstinline!client_data!
     field is ignored by the pickling code and does not appear in
     constructors. This property is currently only recognized when
-    outputting C.
+    outputting \Cplusplus{}.
 
-  \item[\texttt{user\char`\_init}]\mbox{}\\
+  \PROP{user\char`\_init}{identifier}{}{}
     Property of types only. The value is interpreted as a qualified
     identifier. Call the function specified by the value before
-    returning a the data structure created by a constructor function.
+    returning the data structure created by a constructor function.
     This property is currently only recognized when outputting C.
 
-  \item[\texttt{base\char`\_class}]\mbox{}\\
+  \PROP{base\char`\_class}{identifier}{}{Type}
     Property of types only. The value is interpreted as a qualified
     identifier. The name of the class from which all classes generated
     for that type should inherit from. This property is recognized only
-    when outputting C++ and Java.
+    when outputting \Cplusplus{}.
     
-  \item[\texttt{reader}]\mbox{}\\
+  \PROP{reader}{identifier}{}{Type}
    Property of types only. The value is interpreted as a qualified
    identifier.  Replace the body of the read pickle function for this
    type with a call to a function with the proper arguments. 
 
-  \item[\texttt{writer}]\mbox{}\\
+  \PROP{writer}{identifier}{}Type
    Property of types only. The value is interpreted as a qualified
    identifier.  Replace the body of the writer pickle function for this
    type with a call to a function with the proper arguments. 
 
-  \item[\texttt{enum\char`\_value}]\mbox{}\\
-   Property of constructors only. The value is interpreted as an integer.
-   Use this integer value as the \lstinline!internal! tag value for the
+  \PROP{enum\char`\_value}{integer}{\texttt{c++}}{Con}
+   Property of constructors only.
+   Use this integer value as the \emph{internal} tag value for the
    constructor. The external pickle tag remains unchanged. 
-   This property is recognized only when outputting C, C++, and Java. 
 
 \end{description}%
-
-\section{Choosing a Different Representation}
-
-\begin{quote}\begin{lstlisting}[language=ASDL]
-module IntMap {
-  int_map = (int size,entries map)
-  entries = (entry* entries)
-  entry   = (int key, int value)
-}
-\end{lstlisting}\end{quote}%
-The above is one possible abstract description of a mapping from integers to
-integers.  It would be more efficient to \emph{implement} such a mapping as
-a binary tree. Described as with the ASDL definition below.
-\begin{quote}\begin{lstlisting}[language=ASDL]
-module IntMap {
-  int_map = (size int, map tree)
-     tree = Node(int key, int value, tree left, tree right)
-          | Empty
-}
-\end{lstlisting}\end{quote}%
-
-Although this is a much more efficient representation it exposes
-implementation details. If we decided to change the implementation of
-\lstinline!int_maps! to use a hash table the all other clients that use our type
-will have to be updated.
-
-The view properties \lstinline!natural_type!, \lstinline!natural_type_con!, \lstinline!wrapper!,
-and \lstinline!unwrapper! provide a general mechanism to choose a different
-more efficient representation through coercion functions. All of these
-properties apply to types only and are interpreted as qualified identifiers.
-
-\begin{description} 
-  \item[\texttt{natural\char`\_type}] \mbox{} \\
-    The type to use in place of the original type in all the resulting code. 
-    Supported by all output languages.
-
-  \item[\texttt{natural\char`\_type\char`\_con}] \mbox{} \\
-    A unary type constructor to apply to the old type to get a new type to
-    use in all the resulting code; \textit{e.g.}, ref in ML to make a type
-    mutable. Supported by ML and Haskell.  \emph{Support for C++ templates
-    will be added in the near future.}
-
-  \item[\texttt{wrapper}] \mbox{} \\
-    A function to convert the new type to the old type when writing the
-    pickle. Supported by all output languages.
-
-  \item[\texttt{unwrapper}] \mbox{} \\
-    A function to convert the old type to the new type when reading the pickle. 
-    Supported by all output languages. 
-\end{description}%
-
-When using \lstinline!natural_type! and \lstinline!natural_type_con! the automatically
-generated type definitions for the original type still remain, but all other
-references to the original type in constructors, picklers, and other type
-definitions that referred to it are replaced with the new type. The original
-definition must remain to support pickling of the type. Pickling is achieved
-by appropriately coercing the new type to the old type and vice versa with
-functions specified by \lstinline!wrapper! and \lstinline!unwrapper! properties.
-
-\subsection{Examples}
-%% Need more examples/
-
-\begin{quote}\begin{lstlisting}[language=ASDL]
-module Slp {
-
- real = (int mantissa, int exp)
-...
-  exp = Id(identifier id)
-      | Num(int v)
-      | Op(exp lexp,binop?,exp rexp)
-       attributes (real? value)	
-...
-
-}
-
-view C {
-
--- represent reals as a double
-
-  Slp.exp <= {
-   natural_type : my_real
-   wrapper      : real2my_real
-   unwrapper    : my_real2real
-  }
-  
-  module Slp <= {
-  interface_epilogue : typedef double my_real_ty
-  
-  implementation_prologue
-%%
-  my_real_ty real2my_real(Slp_real_ty x) {
-    /* hairy code to actually do this */
-  }
-
-  Slp_real_ty my_real2real(my_real_ty x) {
-    /* hairy code to actually do this */
-  }
-%% 
-  } 
-}
-
-view SML {
-   -- unpickle exp trees as a mutable type
-    Slp.exp <= {
-       natural_type_con : ref
-       wrapper          : !
-       unwrapper        : ref
-    }
-
-}
-\end{lstlisting}\end{quote}%

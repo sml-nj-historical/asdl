@@ -147,7 +147,7 @@ structure View : sig
       }
 
     datatype t = View of {
-	name : Atom.atom,	(* the view's name *)
+	name : string,		(* the view's name *)
 	template : {		(* template that specifies which properties are supported by
 				 * the view *)
 	    fileProps : Prop.desc ATbl.hash_table,
@@ -169,7 +169,7 @@ structure View : sig
 		end
 	  in
 	    View{
-		name = Atom.atom name,
+		name = CharVector.map Char.toLower name,
 		template = {
 		    fileProps = mkTbl (#fileProps tmp),
 		    moduleProps = mkTbl (#moduleProps tmp),
@@ -180,9 +180,16 @@ structure View : sig
 	      }
 	  end
 
-    fun isView name' (View{name, ...}) = Atom.same(name, name')
+  (* test if name' is the name of the view; this test is case insensitive
+   * (we assume that the official names of views are lower-case).
+   *)
+    fun isView name' = let
+	  val name' = CharVector.map Char.toLower (Atom.toString name')
+          in
+	    fn (View{name, ...}) => (name = name')
+	  end
 
-    fun nameOf (View{name, ...}) = Atom.toString name
+    fun nameOf (View{name, ...}) = name
 
   (* find a property instance; we create a new instance from the template if necessary *)
     fun findProp (View{eTbl, template, ...}, entity, name) = let

@@ -10,9 +10,6 @@ functor GenPickleFn (
 
   (* function to get the name of the pickler module for an ASDL module *)
     val getPklModName : AST.ModuleId.t -> string
-  (* functions to get the name of the reader/writer functions for an ASDL type *)
-    val getReader : AST.TypeId.t -> string
-    val getWriter : AST.TypeId.t -> string
   (* the names of the functions for reading/writing bytes *)
     val getByte : string
     val putByte : string
@@ -56,47 +53,52 @@ functor GenPickleFn (
 		S.IDsig(Util.sigName(ModV.getPickleSigName id, NONE)),
 		[ S.WHERETY([], ["instream"], inStrmTy()),
 		  S.WHERETY([], ["outstream"], outStrmTy())])
-	  val decls = let
-	        val gen = if isPrim
-		      then genPrimType typeModName
-		      else genType typeModName
-		fun genGrp (dcls, dcls') = S.FUNdec(List.foldr gen [] dcls) :: dcls'
-		in
-		  List.foldr genGrp [] (SortDecls.sort (!decls))
-		end
+	  val decls = if isPrim
+		then let
+		  val gen = genPrimType typeModName
+		  in
+		    List.foldr gen [] (!decls)
+		  end
+		else let
+	          val gen = genType typeModName
+		  fun genGrp (dcls, dcls') = S.FUNdec(List.foldr gen [] dcls) :: dcls'
+		  in
+		    List.foldr genGrp [] (SortDecls.sort (!decls))
+		  end
 	  val decls = S.VERBdec[
-		  StringSubst.expand [("PICKLER", pklMod ())] Fragments.pickleUtil
+		  StringSubst.expand [("PICKLER", pklMod ())]
+		    (if isPrim then Fragments.streams else Fragments.pickleUtil)
 		] :: decls
 	  in
 	    S.STRtop(pickleModName, SOME(false, sign), S.BASEstr decls)
 	  end
 
-(* FIXME: change getEncoder/getDecoder to getWriter/getReader *)
-
-    and genPrimType typeModName (AST.TyDcl{id, ...}, fbs) = let
-	  val wr = S.FB(TyV.getDecoder id, [(
-		  pairPat (outSP, S.IDpat "x"),
-		  funApp ()
-		)]
-	  val rd = ??
+    and genPrimType typeModName (AST.TyDcl{id, ...}, decls) = let
+	  val pklModName = typeModName ^ "Pickle"
+	  val wrId = TyV.getWriter id
+	  val wr = S.simpleVB(wrId,
+		funApp (concat[pklModName, ".", wrId], [S.IDexp putByte]))
+	  val rdId = TyV.getReader id
+	  val rd = S.simpleVB(rdId,
+		funApp (concat[pklModName, ".", rdId], [S.IDexp getByte]))
 	  in
-	    wr :: rd :: fbs
+	    wr :: rd :: decls
 	  end
 
     and genType typeModName (dcl, fbs) = let
 	  val (id, encoding) = E.encoding dcl
 	  val name = TyV.getName id
 	  in
-	    genWriter (typeModName, TyV.getEncoder id, encoding) ::
-	    genReader (typeModName, TyV.getDecoder id, encoding) ::
+	    genWriter (typeModName, TyV.getWriter id, encoding) ::
+	    genReader (typeModName, TyV.getReader id, encoding) ::
 	      fbs
 	  end
 
     and genWriter (typeModName, encName, encoding) = let
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
-	  fun baseWriter (NONE, tyId) = TyV.getEncoder tyId
+	  fun baseWriter (NONE, tyId) = TyV.getWriter tyId
 	    | baseWriter (SOME modId, tyId) = concat[
-		  getPklModName modId, ".", TyV.getEncoder tyId
+		  getPklModName modId, ".", TyV.getWriter tyId
 		]
 	  fun genTag (tagTyId, tag) = funApp(
 		baseWriter(SOME PT.primTypesId, tagTyId),
@@ -173,14 +175,14 @@ functor GenPickleFn (
 	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
 	  and genTy' (x, ty) = genTy (S.IDexp x, ty)
 	  in
-	    S.simpleFB(encName, ["buf", "obj"], gen(S.IDexp "obj", encoding))
+	    S.simpleFB(encName, ["outS", "obj"], gen(S.IDexp "obj", encoding))
 	  end
 
     and genReader (typeModName, decName, encoding) = let
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
-	  fun baseReader (NONE, tyId) = TyV.getDecoder tyId
+	  fun baseReader (NONE, tyId) = TyV.getReader tyId
 	    | baseReader (SOME modId, tyId) = concat[
-		  getPklModName modId, ".", TyV.getDecoder tyId
+		  getPklModName modId, ".", TyV.getReader tyId
 		]
 	  fun genTag tagTyId = funApp(
 		baseReader(SOME PT.primTypesId, tagTyId),

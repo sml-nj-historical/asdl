@@ -38,7 +38,7 @@ structure CxxView : sig
 
     structure ViewBase = ViewBaseFn (
       struct
-	val viewName = "Cxx"
+	val viewName = "cxx"
 	val template =  {
 		fileProps = #fileProps CV.template,
 		moduleProps = #moduleProps CV.template,
@@ -119,42 +119,42 @@ structure CxxView : sig
 		(* primitive type bool *)
 		  (PTy.boolTyId,	PN.name,	"bool"),
 		  (PTy.boolTyId,	PN.boxed,	"false"),
-		  (PTy.boolTyId,	PN.encoder,	"encode_bool"),
-		  (PTy.boolTyId,	PN.decoder,	"decode_bool"),
+		  (PTy.boolTyId,	PN.writer,	"wr_bool"),
+		  (PTy.boolTyId,	PN.reader,	"rd_bool"),
 		(* primitive type int *)
 		  (PTy.intTyId,		PN.name,	"int"),
 		  (PTy.intTyId,		PN.boxed,	"false"),
-		  (PTy.intTyId,		PN.encoder,	"encode_int"),
-		  (PTy.intTyId,		PN.decoder,	"decode_int"),
+		  (PTy.intTyId,		PN.writer,	"wr_int"),
+		  (PTy.intTyId,		PN.reader,	"rd_int"),
 		(* primitive type uint *)
 		  (PTy.uintTyId,	PN.name,	"unsigned int"),
 		  (PTy.uintTyId,	PN.boxed,	"false"),
-		  (PTy.uintTyId,	PN.encoder,	"encode_uint"),
-		  (PTy.uintTyId,	PN.decoder,	"decode_uint"),
+		  (PTy.uintTyId,	PN.writer,	"wr_uint"),
+		  (PTy.uintTyId,	PN.reader,	"rd_uint"),
 		(* primitive type integer *)
 		  (PTy.integerTyId,	PN.name,	"asdl::integer"),
 		  (PTy.integerTyId,	PN.boxed,	"false"),
-		  (PTy.integerTyId,	PN.encoder,	"encode_integer"),
-		  (PTy.integerTyId,	PN.decoder,	"decode_integer"),
+		  (PTy.integerTyId,	PN.writer,	"wr_integer"),
+		  (PTy.integerTyId,	PN.reader,	"rd_integer"),
 		(* primitive type identifier *)
 		  (PTy.identifierTyId,	PN.name,	"asdl::identifier"),
 		  (PTy.identifierTyId,	PN.boxed,	"false"),
-		  (PTy.identifierTyId,	PN.encoder,	"encode_identifier"),
-		  (PTy.identifierTyId,	PN.decoder,	"decode_identifier"),
+		  (PTy.identifierTyId,	PN.writer,	"wr_identifier"),
+		  (PTy.identifierTyId,	PN.reader,	"rd_identifier"),
 		(* primitive type string *)
 		  (PTy.stringTyId,	PN.name,	"std::string"),
 		  (PTy.stringTyId,	PN.boxed,	"false"),
-		  (PTy.stringTyId,	PN.encoder,	"encode_string"),
-		  (PTy.stringTyId,	PN.decoder,	"decode_string"),
+		  (PTy.stringTyId,	PN.writer,	"wr_string"),
+		  (PTy.stringTyId,	PN.reader,	"rd_string"),
 		(* internal type tag8 *)
 		  (PTy.tag8TyId,	PN.name,	"unsigned int"),
-		  (PTy.tag8TyId,	PN.encoder,	"encode_tag8"),
-		  (PTy.tag8TyId,	PN.decoder,	"decode_tag8"),
+		  (PTy.tag8TyId,	PN.writer,	"wr_tag8"),
+		  (PTy.tag8TyId,	PN.reader,	"rd_tag8"),
 		  (PTy.tag8TyId,	PN.boxed,	"false"),
 		(* internal type tag16 *)
 		  (PTy.tag16TyId,	PN.name,	"unsigned int"),
-		  (PTy.tag16TyId,	PN.encoder,	"encode_tag16"),
-		  (PTy.tag16TyId,	PN.decoder,	"decode_tag16"),
+		  (PTy.tag16TyId,	PN.writer,	"wr_tag16"),
+		  (PTy.tag16TyId,	PN.reader,	"rd_tag16"),
 		  (PTy.tag16TyId,	PN.boxed,	"false")
 		]
 	    end
