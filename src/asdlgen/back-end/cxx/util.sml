@@ -68,8 +68,8 @@ structure Util : sig
 	  (* end case *))
 
   (* default pickler/unpickler names for an enumeration type *)
-    fun enumPickler name = "encode_" ^ name
-    fun enumUnpickler name = "decode_" ^ name
+    fun enumPickler name = "write_" ^ name
+    fun enumUnpickler name = "read_" ^ name
 
     fun enumConstrName id = let
 	  val SOME(AST.Constr{owner, ...}) = AST.ConstrId.bindingOf id

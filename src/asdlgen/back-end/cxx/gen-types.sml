@@ -75,19 +75,19 @@ structure GenTypes : sig
 	    (* end case *)
 	  end
 
-    and genType (AST.TyDcl{id, def, ...}, dcls) = let
-	  val name = TyV.getName id
+    and genType (AST.TyDcl{id=tyId, def, ...}, dcls) = let
+	  val name = TyV.getName tyId
 	  in
 	    case !def
 	     of AST.EnumTy cons =>
 		  genEnumClass (name, cons) @ dcls
 	      | AST.SumTy{attribs, cons=[AST.Constr{id, fields, ...}]} =>
-		  genProdClass (name, attribs@fields) :: dcls
+		  genProdClass (tyId, name, attribs@fields) :: dcls
 	      | AST.SumTy{attribs, cons} =>
-		  genBaseClass (id, name, attribs, cons) ::
+		  genBaseClass (tyId, name, attribs, cons) ::
 		  List.foldr (genConsClass (name, attribs)) dcls cons
 	      | AST.ProdTy{fields} =>
-		  genProdClass (name, fields) :: dcls
+		  genProdClass (tyId, name, fields) :: dcls
 	      | AST.AliasTy ty =>
 		  CL.D_Typedef(name, U.tyexpToCxx ty) :: dcls
 	      | AST.PrimTy => raise Fail "unexpected primitive type"
@@ -201,7 +201,7 @@ structure GenTypes : sig
 	  end
 
   (* generate the class definition for a product type *)
-    and genProdClass (name, fields) = let
+    and genProdClass (tyId, name, fields) = let
 	  val accessMeths = List.foldr
 		(fn (fld, meths) => genAccessMethods fld @ meths)
 		  [] fields
@@ -223,9 +223,9 @@ structure GenTypes : sig
 		  destr ::
 		  pickleMeth ::
 		  unpickleMeth ::
-		  accessMeths,
-		protected = [],
-		private = List.map genField fields
+		  addCode (TyV.getPublicCode tyId, accessMeths),
+		protected = addCode (TyV.getProtectedCode tyId, []),
+		private = addCode (TyV.getPrivateCode tyId, List.map genField fields)
 	      }
 	  end
 
