@@ -183,6 +183,12 @@ structure SML =
   (* construct a simple variable binding of the form `val x = e` *)
     fun simpleVB (x, e) = VALdec(IDpat x, e)
 
+    fun letExp (decs, LETexp(decs', e)) = LETexp(decs @ decs', e)
+      | letExp arg = LETexp arg
+
+  (* construct a simple let binding of the form `let val x = e1 in e2` *)
+    fun simpleLet (x, e1, e2) = letExp([simpleVB (x, e1)], e2)
+
     fun tupleTy [] = CONty([], "unit")
       | tupleTy [ty] = ty
       | tupleTy tys = TUPLEty tys

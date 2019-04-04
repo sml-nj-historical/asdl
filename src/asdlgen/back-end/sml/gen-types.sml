@@ -1,6 +1,6 @@
 (* gen-types.sml
  *
- * COPYRIGHT (c) 2018 The Fellowship of SML/NJ (http://www.smlnj.org)
+ * COPYRIGHT (c) 2019 The Fellowship of SML/NJ (http://www.smlnj.org)
  * All rights reserved.
  *
  * Generate the SML type definitions for an ASDL module.
@@ -47,7 +47,7 @@ structure GenTypes : sig
 	  end
       | gen _ = raise Fail "GenTypes.gen: unexpected primitive module"
 
-  (* generate the optional signature constrait for the module.  This is only
+  (* generate the optional signature constraint for the module.  This is only
    * generated when the view includes an interface_prologue or interface_epilogue
    * property for the module.
    *)
@@ -62,7 +62,7 @@ structure GenTypes : sig
 		      (* end case *))
 	      (* add optional epilogue code *)
 		val specs = (case epilogue
-		       of SOME code => [S.VERBspec code]
+		       of SOME code =>[ S.VERBspec code]
 			| NONE => []
 		      (* end case *))
 	      (* generate declarations for any specified wrapper/unwrappers *)
@@ -104,7 +104,8 @@ structure GenTypes : sig
 	  val name = TyV.getName id
 	  fun db cons = let
 		fun con (AST.Constr{id, fields=[], ...}) = (ConV.getName id, NONE)
-		  | con (AST.Constr{id, fields, ...}) = (ConV.getName id, SOME(genProdTy fields))
+		  | con (AST.Constr{id, fields, ...}) =
+		      (ConV.getName id, SOME(genProdTy fields))
 		in
 		  (S.DB([], name, List.map con cons)::dbs, tbs)
 		end
@@ -130,13 +131,14 @@ structure GenTypes : sig
 	    S.RECORDty(List.map field fields)
 	  end
 
+  (* get the SML type expression for an ASDL type expression *)
     and genTyExp (AST.Typ(ty, tyc)) = let
 	  val tyName = (case ty
-		 of AST.BaseTy tyId => TyV.getName tyId
+		 of AST.BaseTy tyId => TyV.getNaturalType tyId
 		  | AST.ImportTy(modId, tyId) => String.concat[
-			ModV.getName modId, ".", TyV.getName tyId
+			ModV.getName modId, ".", TyV.getNaturalType tyId
 		      ]
-		  | AST.LocalTy(AST.TyDcl{id, ...}) => TyV.getName id
+		  | AST.LocalTy(AST.TyDcl{id, ...}) => TyV.getNaturalType id
 		(* end case *))
 	  val ty' = S.CONty([], tyName)
 	  in

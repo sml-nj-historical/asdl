@@ -54,7 +54,7 @@ structure GenPickleSig : sig
 
   (* generate the encoder/decoder specifications for a type *)
     and genSpec modName (AST.TyDcl{id, ...}, specs) = let
-	  val ty = S.CONty([], concat[modName, ".", TyV.getName id])
+	  val ty = S.CONty([], concat[modName, ".", TyV.getNaturalType id])
 	(* writer *)
 	  val wrTy = S.FUNty(S.TUPLEty[outStrmTy, ty], unitTy)
 	  val wrSpc = S.VALspec(TyV.getWriter id, wrTy)

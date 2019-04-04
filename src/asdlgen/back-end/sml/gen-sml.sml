@@ -165,6 +165,7 @@ structure GenSML : sig
 
     val stringSort = ListMergeSort.sort String.>
 
+  (* Generate a CM file for the pickling code *)
     fun genCMFile (outS, files, sigs, structs) = let
 	  fun pr s = TextIO.output(outS, s)
 	  fun prl ss = pr(String.concat ss)
@@ -177,8 +178,8 @@ structure GenSML : sig
 	    pr "\n";
 	    List.app prStruct structs;
 	    pr "\
-		\n\
-		\in\n\
+		\\n\
+		\is\n\
 		\\n\
                 \  $/basis.cm\n\
                 \  $/asdl-lib.cm\n\
@@ -187,6 +188,7 @@ structure GenSML : sig
 	    List.app prFile files
 	  end
 
+  (* Generate an MLB file for the pickling code *)
     fun genMLBFile (outS, files, sigs, structs) = let
 	  fun pr s = TextIO.output(outS, s)
 	  fun prl ss = pr(String.concat ss)

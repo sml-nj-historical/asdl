@@ -17,8 +17,8 @@
  *
  * For enumeration and alias types, we generate the functions:
  *
- *	void encode_TYPE (asdl::outstream &os, TYPE v);
- *	TYPE decode_TYPE (asdl::instream &is);
+ *	void write_TYPE (asdl::outstream &os, TYPE v);
+ *	TYPE read_TYPE (asdl::instream &is);
  *
  * TODO:
  * 	write/decoder names should be taken from view
@@ -49,26 +49,26 @@ structure GenPickle : sig
     val isArg = CL.mkVar "is"
 
   (* pickler function name for primitive types *)
-    fun baseEncode (NONE, tyId) = TyV.getWriter tyId
-      | baseEncode (SOME modId, tyId) = concat[
+    fun baseWriter (NONE, tyId) = TyV.getWriter tyId
+      | baseWriter (SOME modId, tyId) = concat[
 	    ModV.getName modId, "::", TyV.getWriter tyId
 	  ]
 
   (* unpickler function name for primitive types *)
-    fun baseDecode (NONE, tyId) = TyV.getReader tyId
-      | baseDecode (SOME modId, tyId) = concat[
+    fun baseReader (NONE, tyId) = TyV.getReader tyId
+      | baseReader (SOME modId, tyId) = concat[
 	    ModV.getName modId, "::", TyV.getReader tyId
 	  ]
 
   (* invoke the pickler operation on the argument *)
     fun write (optModId, tyId, arg) = if U.isBoxed tyId
 	  then CL.mkExpStm(CL.mkIndirectDispatch (arg, "write", [osArg]))
-	  else CL.mkCall (baseEncode(optModId, tyId), [osArg, arg])
+	  else CL.mkCall (baseWriter(optModId, tyId), [osArg, arg])
 
   (* apply the unpickler operation to the input stream *)
     fun read (optModId, tyId) = if U.isBoxed tyId
 	  then CL.mkApply (TyV.getName tyId ^ "::read", [isArg])
-	  else CL.mkApply (baseDecode(optModId, tyId), [isArg])
+	  else CL.mkApply (baseReader(optModId, tyId), [isArg])
 
   (* return a list of delete statements for boxed fields of an object *)
     fun deleteStms obj = let

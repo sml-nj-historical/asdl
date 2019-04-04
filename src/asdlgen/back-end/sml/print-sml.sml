@@ -271,6 +271,7 @@ structure PrintSML : sig
 			      | pp [e] = inHBox (fn () => ppExp e)
 			      | pp (e::er) = (
 				  inHBox (fn () => (ppExp e; str ";"));
+				  sp();
 				  pp er)
 			    in
 			      PP.openVBox strm indent0;

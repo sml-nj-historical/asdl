@@ -154,9 +154,10 @@ target languages is as follows:
 The \asdl{} module
 \begin{code}\begin{lstlisting}[language=ASDL]
 module IntMap {
-  int_map = (int size,entries map)
+  int_map = (int size, entries map)
   entries = (entry* entries)
   entry   = (int key, int value)
+  map_pair = (int_map, int_map)
 }
 \end{lstlisting}\end{code}%
 is one possible abstract description of a mapping from integers to
@@ -167,8 +168,9 @@ We can easily describe such a data structure in \asdl{}
 \begin{code}\begin{lstlisting}[language=ASDL]
 module IntMap {
   int_map = (size int, map tree)
-     tree = Node(int key, int value, tree left, tree right)
-          | Empty
+  tree = Node(int key, int value, tree left, tree right)
+       | Empty
+  map_pair = (int_map, int_map)
 }
 \end{lstlisting}\end{code}%
 but this description exposes implementation details and prevents the use
@@ -193,12 +195,18 @@ to allow clients to use a specialized representation for ASDL types.\footnote{
     \emph{Support for \Cplusplus{} templates will be added in the near future.}
 
   \PROP{wrapper}{identifier}{\texttt{c++},\texttt{sml}}{Type}
-    A function to convert the new type to the old type when writing the
-    pickle. Supported by all output languages.
+    Specifies the name of the function to convert the pickle type to the natural
+    type when reading the pickle.  The interface code for this function will
+    be generated, but the implementation must be provided using the
+    \lstinline@implementation_prologue@ or \lstinline@implementation_epilogue@
+    properties.
 
   \PROP{unwrapper}{identifier}{\texttt{c++},\texttt{sml}}{Type}
-    A function to convert the old type to the new type when reading the pickle. 
-    Supported by all output languages. 
+    Specifies the name of the function to convert the natural type to the pickle
+    type when writing the pickle.  The interface code for this function will
+    be generated, but the implementation must be provided using the
+    \lstinline@implementation_prologue@ or \lstinline@implementation_epilogue@
+    properties.
 \end{description}%
 
 When using \lstinline!natural_type! and \lstinline!natural_type_con!,
@@ -215,23 +223,25 @@ to implement the \lstinline!int_map! type as follows:
 \begin{code}\begin{lstlisting}[language=ASDL]
 view sml {
   module IntMap <= {
-    interface_epilogue : type int_map = int IntRedBlackMap.map
-    implementation_epilogue
+    interface_prologue : type int_map = int IntRedBlackMap.map
+    implementation_prologue
 %%
     structure IntMap = IntRedBlackMap
     type int_map = int IntMap.map
-
+%%
+    implementation_epilogue
+%%
     fun wrap_int_map ({map={entries}, ...} : int_map_pkl) =
           List.foldl
             (fn ({key, value}, imap) => IntMap.insert(imap, key, value))
-              IntMap
+              IntMap.empty
                 entries
-    fun unwrap_int_map imap = {
+    fun unwrap_int_map (imap : int_map) = {
             size = IntMap.numItems imap,
-            entries = IntMap.foldri
+            map = {entries = IntMap.foldri
               (fn (k, v, entries) => {key = k, value = v} :: entries)
                 []
-                  imap
+                  imap}
           }
 %%
   }
@@ -247,35 +257,30 @@ In this view, we rename \lstinline@int_map@ to \lstinline@int_map_pkl@ add a typ
 definition for \lstinline!int_map! to both the interface
 (signature) and implementation (structure).
 We also add definitions of the wrapper and unwrapper functions.
-The generated code will be.
+The generated code is
 \begin{code}\begin{lstlisting}[language=SML]
 structure IntMap : sig
+    type int_map = int IntRedBlackMap.map
     type entry = {key : int, value : int}
     type entries = {entries : entry list}
     type int_map_pkl = {size : int, map : entries}
+    type map_pair = int_map * int_map
     val wrap_int_map : int_map_pkl -> int_map
     val unwrap_int_map : int_map -> int_map_pkl
-    type int_map = int IntRedBlackMap.map
   end = struct
+    structure IntMap = IntRedBlackMap
+    type int_map = int IntMap.map
     type entry = {key : int, value : int}
     type entries = {entries : entry list}
     type int_map_pkl = {size : int, map : entries}
-    structure IntMap = IntRedBlackMap
-    type int_map = int IntMap.map
-    fun wrap_int_map ({map={entries}, ...} : int_map_pkl) =
-          List.foldl
-            (fn ({key, value}, imap) => IntMap.insert(imap, key, value))
-              IntMap
-                entries
-    fun unwrap_int_map imap = {
-            size = IntMap.numItems imap,
-            entries = IntMap.foldri
-              (fn (k, v, entries) => {key = k, value = v} :: entries)
-                []
-                  imap
-          }
+    type map_pair = int_map * int_map
+    fun wrap_int_map ({map={entries}, ...} : int_map_pkl) = ...
+    fun unwrap_int_map (imap : int_map) = ...
   end
 \end{lstlisting}\end{code}%
+Note that we had to define the \lstinline[language=SML]@int_map@ type in
+the prologue so that the definition of the \lstinline[language=SML]@int_map@
+type was well-defined.
 
 \section{Other Properties}
 \begin{description}

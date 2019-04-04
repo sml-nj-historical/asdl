@@ -57,13 +57,14 @@ structure GenSExpPickle : sig
 	  val (id, encoding) = E.encoding dcl
 	  val name = TyV.getName id
 	  in
-	    genWriter (typeModName, TyV.getWriter id, encoding) ::
-	    genReader (typeModName, TyV.getReader id, encoding) ::
+	    genWriter (typeModName, id, encoding) ::
+	    genReader (typeModName, id, encoding) ::
 	      fbs
 	  end
 
-    and genWriter (typeModName, wrName, encoding) = let
-	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
+    and genWriter (typeModName, tyId, encoding) = let
+	  fun qId id = concat[typeModName, ".", id]
+	  fun getConName conId = qId (ConV.getName conId)
 	  fun baseWriter (NONE, tyId) = TyV.getWriter tyId
 	    | baseWriter (SOME modId, tyId) = concat[
 		  ModV.getSExpName modId, ".", TyV.getWriter tyId
@@ -159,11 +160,19 @@ structure GenSExpPickle : sig
 	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
 	  and genTy' false (x, ty) = genTy (S.IDexp x, ty)
 	    | genTy' true (x, ty) = genSExp(x, fn () => [genTy (S.IDexp x, ty)])
+        (* generate the body of the writer; which may involve a conversion
+	 * from the natural type.
+	 *)
+	  val body = (case TyV.getUnwrapper tyId
+		 of NONE => gen(S.IDexp "obj", encoding)
+		  | SOME f => S.simpleLet("pkl", funApp(qId f, [S.IDexp "obj"]),
+		      gen(S.IDexp "pkl", encoding))
+		(* end case *))
 	  in
-	    S.simpleFB(wrName, ["outS", "obj"], gen(S.IDexp "obj", encoding))
+	    S.simpleFB(TyV.getWriter tyId, ["outS", "obj"], body)
 	  end
 
-    and genReader (typeModName, rdName, encoding) = let
+    and genReader (typeModName, tyId, encoding) = let
 	  val inSV = S.IDexp "inS"
 (*
 	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
@@ -230,7 +239,7 @@ structure GenSExpPickle : sig
 	    | genTy (E.BASE ty) = funApp (baseReader ty, [inSV])
 *)
 	  in
-	    S.simpleFB(rdName, ["inS"],
+	    S.simpleFB(TyV.getReader tyId, ["inS"],
 	      S.raiseExp(funApp("Fail", [
 		  S.STRINGexp "S-Expression reading is not implemented yet"
 		])))

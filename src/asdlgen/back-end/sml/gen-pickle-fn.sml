@@ -89,13 +89,14 @@ functor GenPickleFn (
 	  val (id, encoding) = E.encoding dcl
 	  val name = TyV.getName id
 	  in
-	    genWriter (typeModName, TyV.getWriter id, encoding) ::
-	    genReader (typeModName, TyV.getReader id, encoding) ::
+	    genWriter (typeModName, id, encoding) ::
+	    genReader (typeModName, id, encoding) ::
 	      fbs
 	  end
 
-    and genWriter (typeModName, encName, encoding) = let
-	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
+    and genWriter (typeModName, tyId, encoding) = let
+	  fun qId id = concat[typeModName, ".", id]
+	  fun getConName conId = qId (ConV.getName conId)
 	  fun baseWriter (NONE, tyId) = TyV.getWriter tyId
 	    | baseWriter (SOME modId, tyId) = concat[
 		  getPklModName modId, ".", TyV.getWriter tyId
@@ -114,7 +115,7 @@ functor GenPickleFn (
 	    | gen (arg, E.WRAP(conId, fields)) = let
 		val (lhsPat, xs) = objPat fields
 		in
-		  S.LETexp(
+		  S.letExp(
 		    [S.VALdec(S.CONpat(getConName conId, lhsPat), arg)],
 		    S.SEQexp(List.map genTy' xs))
 		end
@@ -143,12 +144,12 @@ functor GenPickleFn (
 	  and genProd (arg, obj) = let
 		val (pat, args) = objPat obj
 		in
-		  S.LETexp(
+		  S.letExp(
 		    [S.VALdec(pat, arg)],
 		    S.SEQexp(List.map genTy' args))
 		end
-	(* create a pattern for matching against a product type; returns the pattern and the
-	 * bound variables with their types.
+	(* create a pattern for matching against a product type; returns the
+	 * pattern and the bound variables with their types.
 	 *)
 	  and objPat (E.TUPLE tys) = let
 		val args = List.map (fn (i, ty) => ("x"^Int.toString i, ty)) tys
@@ -174,12 +175,21 @@ functor GenPickleFn (
 	    | genTy (arg, E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (arg, E.BASE ty) = funApp (baseWriter ty, [outSV, arg])
 	  and genTy' (x, ty) = genTy (S.IDexp x, ty)
+        (* generate the body of the writer; which may involve a conversion
+	 * from the natural type.
+	 *)
+	  val body = (case TyV.getUnwrapper tyId
+		 of NONE => gen(S.IDexp "obj", encoding)
+		  | SOME f => S.simpleLet("pkl", funApp(qId f, [S.IDexp "obj"]),
+		      gen(S.IDexp "pkl", encoding))
+		(* end case *))
 	  in
-	    S.simpleFB(encName, ["outS", "obj"], gen(S.IDexp "obj", encoding))
+	    S.simpleFB(TyV.getWriter tyId, ["outS", "obj"], body)
 	  end
 
-    and genReader (typeModName, decName, encoding) = let
-	  fun getConName conId = concat[typeModName, ".", ConV.getName conId]
+    and genReader (typeModName, tyId, encoding) = let
+	  fun qId id = concat[typeModName, ".", id]
+	  fun getConName conId = qId(ConV.getName conId)
 	  fun baseReader (NONE, tyId) = TyV.getReader tyId
 	    | baseReader (SOME modId, tyId) = concat[
 		  getPklModName modId, ".", TyV.getReader tyId
@@ -222,7 +232,7 @@ functor GenPickleFn (
 		      (fn (x, (_, ty)) => S.VALdec(S.IDpat x, genTy ty))
 			(xs, tys)
 		in
-		  S.LETexp(decs, k (S.TUPLEexp(List.map S.IDexp xs)))
+		  S.letExp(decs, k (S.TUPLEexp(List.map S.IDexp xs)))
 		end
 	    | genObj (E.RECORD fields, k) = let
 		val decs = List.map
@@ -230,7 +240,7 @@ functor GenPickleFn (
 			fields
 		val fields = List.map (fn (lab, _) => (lab, S.IDexp lab)) fields
 		in
-		  S.LETexp(decs, k (S.RECORDexp fields))
+		  S.letExp(decs, k (S.RECORDexp fields))
 		end
 	  and genTy (E.OPTION ty) =
 		S.appExp(
@@ -242,8 +252,16 @@ functor GenPickleFn (
 		  inSV)
 	    | genTy (E.SHARED ty) = raise Fail "shared types not supported yet"
 	    | genTy (E.BASE ty) = funApp (baseReader ty, [inSV])
+        (* generate the body of the reader; which may involve a conversion
+	 * to the natural type.
+	 *)
+	  val body = (case TyV.getWrapper tyId
+		 of NONE => gen encoding
+		  | SOME f =>
+		      S.simpleLet("pkl", gen encoding, funApp(qId f, [S.IDexp "pkl"]))
+		(* end case *))
 	  in
-	    S.simpleFB(decName, ["inS"], gen encoding)
+	    S.simpleFB(TyV.getReader tyId, ["inS"], body)
 	  end
 
   end

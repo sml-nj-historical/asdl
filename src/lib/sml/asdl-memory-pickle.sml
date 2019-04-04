@@ -41,6 +41,10 @@ structure ASDLMemoryPickle : sig
     infix 6 ++
     infix 7 &
 
+    fun toByte w = W8.fromLarge (W.toLarge w)
+    fun fromByte w = W.fromLarge (W8.toLarge w)
+    fun getByte (data, ix) = fromByte (W8V.sub(data, ix))
+
     type outstream = W8B.buf
 
     datatype instream = Instrm of {
@@ -54,7 +58,7 @@ structure ASDLMemoryPickle : sig
           if (ix < len)
             then (
               idx := ix+1;
-              getByte(data, ix))
+              W8V.sub(data, ix))
             else raise ASDL.DecodeError
 
     val output1 = W8B.add1
@@ -67,10 +71,7 @@ structure ASDLMemoryPickle : sig
 
     fun endOfStream (Instrm{idx, len, ...}) = (!idx >= len)
 
-    fun toByte w = W8.fromLarge (W.toLarge w)
-    fun getByte (data, ix) = W.fromLarge (W8.toLarge (W8V.sub(data, ix)))
-
-    val get1 = input1
+    fun get1 arg = fromByte(input1 arg)
 
     fun get2 (Instrm{data, idx as ref ix, len}) = let
 	  val n = ix + 2
