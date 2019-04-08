@@ -53,13 +53,21 @@ structure Options : sig
     val usage : unit -> string
 
   (* kinds of picklers *)
-    datatype pkl_kind = BINARY | SEXP | XML | EMPTY
+    datatype pickler
+      = TYPES	(* type definitions *)
+      | MEMORY	(* pickle to/from memory *)
+      | FILE	(* pickle to/from binary file *)
+      | SEXP	(* pickle to/from text file using S-Expression syntax *)
 
   (* get option values *)
     val noOutput : unit -> bool			(* set by the `-n` option *)
     val lineWidth : unit -> int			(* set by `--line-width` *)
     val outputDir : unit -> string option	(* set by `-d` / `--output-directory` *)
-    val pickler : unit -> pkl_kind		(* set by `--pickler` *)
+
+  (* is a given component enabled (either default or by `--gen`)? This function
+   * will always return false if the `-n` option was given.
+   *)
+    val isEnabled : pickler -> bool
 
   end = struct
 
@@ -84,23 +92,38 @@ structure Options : sig
 
     exception Usage of string
 
-    datatype pkl_kind = BINARY | SEXP | XML | EMPTY
+  (* kinds of picklers *)
+    datatype pickler
+      = TYPES	(* type definitions *)
+      | MEMORY	(* pickle to/from memory *)
+      | FILE	(* pickle to/from binary file *)
+      | SEXP	(* pickle to/from text file using S-Expression syntax *)
+
+    val defaultPicklers = [TYPES, MEMORY, FILE]
 
   (* option flags that are set by getOpt *)
     val noOutputFlg = ref false
     val viewOpt : string option ref = ref NONE
-    val picklerOpt = ref BINARY
+    val picklersOpt = ref [TYPES, MEMORY, FILE]
     val lineWidOpt : int ref = ref 90
     val outputDirOpt : string option ref = ref NONE
 
-(* FIXME: we have switched to "--sexp" as a target-specific option *)
-  (* get a pickler specification *)
-    fun picklerFromString s = (case String.map Char.toLower s
-	   of "binary" => BINARY
-	    | "sexp" => SEXP
-	    | "xml" => XML
-	    | "empty" => EMPTY
-	    | _ => raise Usage "unkonwn pickler kind"
+  (* process the argument to the `--gen` flag, which is a list of pickler
+   * names.  The word "none" is allowed (by itself) to specify no code
+   * generation
+   *)
+    fun picklersFromString s = (case String.map Char.toLower s
+	   of "none" => []
+	    | s => let
+		fun process ([], picklers) = picklers
+		  | process ("types"::sr, picklers) = process(sr, TYPES::picklers)
+		  | process ("memory"::sr, picklers) = process(sr, MEMORY::picklers)
+		  | process ("file"::sr, picklers) = process(sr, FILE::picklers)
+		  | process ("sexp"::sr, picklers) = process(sr, SEXP::picklers)
+		  | process _ = raise Usage "unkonwn pickler kind"
+		in
+		  process (String.fields (fn #"," => true | _ => false) s, [])
+		end
 	  (* end case *))
 
   (* the list of options, which does not include the view-specific controls *)
@@ -116,9 +139,9 @@ structure Options : sig
 	      desc = G.ReqArg(fn s => outputDirOpt := SOME s, "<dir>"),
 	      help = "specify output directory"
 	    },
-	    { short = "p", long = ["pickler"],
-	      desc = G.ReqArg(fn s => picklerOpt := picklerFromString s, "<pk>"),
-	      help = "specify kind of pickler {binary,sexp,xml,empty}"
+	    { short = "", long = ["gen"],
+	      desc = G.ReqArg(fn s => picklersOpt := picklersFromString s, "<picklers>"),
+	      help = "specify what components to generate"
 	    }
           ]
 
@@ -139,10 +162,12 @@ structure Options : sig
 		  | (_, []) => raise Usage "no input files specified"
 		  | _ => files
 		(* end case *))
-	  in {
-	    command = cmd,
-	    files = srcFiles
-	  } end
+	  in
+	    if !noOutputFlg
+	      then picklersOpt := [] (* disable all output formats *)
+	      else ();
+	    {command = cmd, files = srcFiles}
+	  end
 
     type cmd_info = {
 	    names : string list,	(* name(s) of generator *)
@@ -225,6 +250,7 @@ structure Options : sig
 
     fun outputDir () = !outputDirOpt
 
-    fun pickler () = !picklerOpt
+  (* is a given component enabled (either default or by `--gen`)? *)
+    fun isEnabled pkl = List.exists (fn p => (p = pkl)) (! picklersOpt)
 
   end

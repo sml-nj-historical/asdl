@@ -243,7 +243,7 @@ view Cxx {
 %%
     CPS_Rep.accesspath <= {
         natural_type : std::vector<int>
-        encoder      : encode_accesspath
-	decoder      : decode_accesspath
+        writer      : wr_accesspath
+	reader      : rd_accesspath
     }
 }

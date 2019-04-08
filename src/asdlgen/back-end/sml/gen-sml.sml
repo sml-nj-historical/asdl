@@ -22,6 +22,7 @@ structure GenSML : sig
     structure TyV = V.Type
     structure ConV = V.Constr
     structure S = SML
+    structure Opt = Options
     structure PP = TextIOPP
 
   (* Generate the memory pickling code for the SML view *)
@@ -41,7 +42,6 @@ structure GenSML : sig
     val baseStructureOpt = ref "ASDL"
     val cmFileOpt = ref (NONE : string option)
     val mlbFileOpt = ref (NONE : string option)
-    val genSExpFlg = ref false
 
     val options = [
 	    { short = "", long = ["base-structure"],
@@ -55,12 +55,17 @@ structure GenSML : sig
 	    { short = "", long = ["mlb"],
 	      desc = GetOpt.ReqArg(fn s => mlbFileOpt := SOME s, "<name>"),
 	      help = "generate an MLB file"
-	    },
-	    { short = "", long = ["sexp"],
-	      desc = GetOpt.NoArg(fn () => genSExpFlg := true),
-	      help = "generate support for S-Expression pickles"
 	    }
 	  ]
+
+  (* tests for generating the various possible components *)
+    fun typesEnabled () = Opt.isEnabled Opt.TYPES
+    fun memEnabled () = Opt.isEnabled Opt.TYPES
+    fun fileEnabled () = Opt.isEnabled Opt.TYPES
+    fun sexpEnabled () = Opt.isEnabled Opt.TYPES
+
+  (* remove primitive modules from a list of modules *)
+    val filterPrim = List.filter (fn (AST.Module{isPrim, ...}) => not isPrim)
 
   (* generate the file header as a verbatim top_decl *)
     fun genHeader (src, file) = let
@@ -76,7 +81,7 @@ structure GenSML : sig
     fun output (src, outFile, dcls) = let
 	  val outS = TextIO.openOut outFile
 (* FIXME: output width is a command-line option! *)
-	  val ppStrm = TextIOPP.openOut {dst = outS, wid = Options.lineWidth()}
+	  val ppStrm = TextIOPP.openOut {dst = outS, wid = Opt.lineWidth()}
 	  in
 	    List.app (PrintSML.output ppStrm) (genHeader (src, outFile) :: dcls);
 	    TextIOPP.closeStream ppStrm;
@@ -84,32 +89,36 @@ structure GenSML : sig
 	  end
 
   (* generate a file using the given code generator *)
-    fun genFile codeGen (src, outFile, modules) =
-	  if Options.noOutput()
+    fun genFile targets codeGen (src, outFile, modules) =
+	  if List.exists Opt.isEnabled targets
+	    then output (src, outFile, List.map codeGen modules)
+	  else if Opt.noOutput()
 	    then print(outFile ^ "\n")
-	    else output (src, outFile, List.map codeGen modules)
+	    else ()
 
   (* generate the type-declaration file *)
-    val genTypes = let
-	  val gen = genFile GenTypes.gen
-	  in
-	  (* for the types, the primitive modules are supplied by the user *)
-	    fn (src, outFile, modules) => gen (
-		src, outFile,
-		List.filter (fn (AST.Module{isPrim, ...}) => not isPrim) modules)
-	  end
+    fun genTypes (src, outFile, modules) = (
+	  case filterPrim modules
+	   of [] => ()
+	    | modules => if Opt.isEnabled Opt.TYPES
+		  then output (src, outFile, List.map GenTypes.gen modules)
+		else if Opt.noOutput()
+		  then print(outFile ^ "\n")
+		  else ()
+	  (* end case *))
 
   (* generate the generic pickler signature *)
-    val genPicklerSig = genFile GenPickleSig.gen
+    val genPicklerSig =
+	  genFile [Opt.MEMORY, Opt.FILE, Opt.SEXP] GenPickleSig.gen
 
   (* generate the pickler files *)
-    val genPicklerStr = genFile GenMemoryPickle.gen
+    val genMemoryStr = genFile [Opt.MEMORY] GenMemoryPickle.gen
 
   (* generate the pickle-io files *)
-    val genIOStr = genFile GenFilePickle.gen
+    val genFileStr = genFile [Opt.FILE] GenFilePickle.gen
 
   (* generate the S-Expression pickler files *)
-    val genSExpStr = genFile GenSExpPickle.gen
+    val genSExpStr = genFile [Opt.SEXP] GenSExpPickle.gen
 
   (* references to collect together the generated files and modules so that
    * we can generate CM and/or MLB files
@@ -124,7 +133,7 @@ structure GenSML : sig
 		then sigs
 		else Util.sigName(ModV.getPickleSigName id, NONE) :: sigs
 	  fun getStructs (AST.Module{id, ...}, structs) = let
-		val structs = if !genSExpFlg
+		val structs = if sexpEnabled()
 		      then ModV.getSExpName id :: structs
 		      else structs
 		in
@@ -146,19 +155,18 @@ structure GenSML : sig
   (* generate SML code for the given list of modules using the "Sml" view *)
     fun gen {src, dir, stem, modules} = let
 	  val basePath = OS.Path.joinDirFile{dir=dir, file=stem}
-	  fun smlFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sml"}
-	  fun sigFilename name = OS.Path.joinBaseExt{base=name, ext=SOME "sig"}
-	(* record the inputs before filtering out the primitive modules *)
+	  fun smlFilename suffix =
+		OS.Path.joinBaseExt{base=basePath ^ suffix, ext=SOME "sml"}
+	  fun sigFilename suffix =
+		OS.Path.joinBaseExt{base=basePath ^ suffix, ext=SOME "sig"}
+	(* record the inputs *)
 	  val _ = addModules modules
 	  in
 	    genTypes (src, addFile(smlFilename basePath), modules);
-	    genPicklerSig (src, addFile(sigFilename(basePath ^ "-pickle")), modules);
-	    genPicklerStr (src, addFile(smlFilename(basePath ^ "-memory-pickle")), modules);
-	    genIOStr (src, addFile(smlFilename(basePath ^ "-file-pickle")), modules);
-	    if !genSExpFlg
-	      then (
-		genSExpStr (src, addFile(smlFilename(basePath ^ "-sexp-pickle")), modules))
-	      else ()
+	    genPicklerSig (src, addFile(sigFilename "-pickle"), modules);
+	    genMemoryStr (src, addFile(smlFilename "-memory-pickle"), modules);
+	    genFileStr (src, addFile(smlFilename "-file-pickle"), modules);
+	    genSExpStr (src, addFile(smlFilename "-sexp-pickle"), filterPrim modules)
 	  end
 
   (**** CM/MLB file support ****)
@@ -224,12 +232,14 @@ structure GenSML : sig
 	  val sigs = stringSort (!genSigs)
 	  val structs = stringSort (!genStructs)
 	  fun genFile gen optFile = (case !optFile
-		 of SOME file => let
-		      val outS = TextIO.openOut file
-		      in
-			gen (outS, files, sigs, structs);
-			TextIO.closeOut outS
-		      end
+		 of SOME file => if Opt.noOutput()
+		      then print(file ^ "\n")
+		      else let
+			val outS = TextIO.openOut file
+			in
+			  gen (outS, files, sigs, structs);
+			  TextIO.closeOut outS
+			end
 		  | NONE => ()
 		(* end case *))
 	  in

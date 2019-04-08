@@ -16,6 +16,7 @@ structure GenCxx : sig
 
     structure V = CxxView
     structure CL = Cxx
+    structure Opt = Options
 
     val baseIncludeOpt = ref "asdl/asdl.hxx"
 
